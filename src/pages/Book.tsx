@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, CheckCircle } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { CalendarIcon, CheckCircle, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,7 +31,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { services } from "@/data/services";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const timeSlots = [
   "9:00 AM",
@@ -56,8 +58,32 @@ const bookingSchema = z.object({
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration: string;
+}
+
 const Book = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch services from database
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ["public-services"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("id, name, price, duration")
+        .eq("active", true)
+        .order("category")
+        .order("name");
+
+      if (error) throw error;
+      return data as Service[];
+    },
+  });
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -70,9 +96,34 @@ const Book = () => {
     },
   });
 
+  const bookingMutation = useMutation({
+    mutationFn: async (data: BookingFormValues) => {
+      const { error } = await supabase.from("appointments").insert({
+        full_name: data.fullName,
+        phone: data.phone,
+        email: data.email || null,
+        service_id: data.service,
+        appointment_date: format(data.date, "yyyy-MM-dd"),
+        appointment_time: data.time,
+        notes: data.notes || null,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsSubmitted(true);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Booking failed",
+        description: error.message,
+      });
+    },
+  });
+
   const onSubmit = (data: BookingFormValues) => {
-    console.log("Booking submitted:", data);
-    setIsSubmitted(true);
+    bookingMutation.mutate(data);
   };
 
   if (isSubmitted) {
@@ -274,7 +325,8 @@ const Book = () => {
                   )}
                 />
 
-                <Button type="submit" size="lg" className="w-full">
+                <Button type="submit" size="lg" className="w-full" disabled={bookingMutation.isPending || servicesLoading}>
+                  {bookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Request Appointment
                 </Button>
               </form>
