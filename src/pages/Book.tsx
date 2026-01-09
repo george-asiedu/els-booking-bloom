@@ -178,9 +178,6 @@ const Book = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="" disabled>
-                            Select a service
-                          </SelectItem>
                           {services.map((service) => (
                             <SelectItem key={service.id} value={service.id}>
                               {service.name} - ${service.price} ({service.duration})
