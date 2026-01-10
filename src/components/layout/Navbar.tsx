@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { name: "Home", path: "/" },
@@ -15,6 +16,8 @@ const navLinks = [
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const { user } = useAuth();
   const location = useLocation();
 
   return (
@@ -44,6 +47,11 @@ export const Navbar = () => {
                 {link.name}
               </Link>
             ))}
+            <Button variant="ghost" size="icon" asChild>
+              <Link to={user ? "/account" : "/login"}>
+                <User className="h-5 w-5" />
+              </Link>
+            </Button>
             <div className="ml-2">
               <ThemeToggle />
             </div>
