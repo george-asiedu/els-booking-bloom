@@ -27,6 +27,7 @@ export type Database = {
           service_id: string
           status: Database["public"]["Enums"]["appointment_status"]
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           appointment_date: string
@@ -40,6 +41,7 @@ export type Database = {
           service_id: string
           status?: Database["public"]["Enums"]["appointment_status"]
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           appointment_date?: string
@@ -53,6 +55,7 @@ export type Database = {
           service_id?: string
           status?: Database["public"]["Enums"]["appointment_status"]
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -114,6 +117,201 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      loyalty_points: {
+        Row: {
+          created_at: string
+          id: string
+          lifetime_points: number
+          points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lifetime_points?: number
+          points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lifetime_points?: number
+          points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      loyalty_transactions: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          points: number
+          type: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          points: number
+          type: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+          uses: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+          uses?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          uses?: number
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referral_code_id: string
+          referred_id: string
+          referrer_id: string
+          rewarded: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_code_id: string
+          referred_id: string
+          referrer_id: string
+          rewarded?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_code_id?: string
+          referred_id?: string
+          referrer_id?: string
+          rewarded?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          approved: boolean | null
+          content: string | null
+          created_at: string
+          id: string
+          rating: number
+          service_id: string | null
+          user_id: string
+        }
+        Insert: {
+          approved?: boolean | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          service_id?: string | null
+          user_id: string
+        }
+        Update: {
+          approved?: boolean | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          service_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       services: {
         Row: {
