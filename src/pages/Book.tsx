@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const timeSlots = [
   "9:00 AM",
@@ -68,6 +69,7 @@ interface Service {
 const Book = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch services from database
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -85,6 +87,21 @@ const Book = () => {
     },
   });
 
+  // Fetch user profile if logged in
+  const { data: profile } = useQuery({
+    queryKey: ["user-profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, phone, email")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -96,6 +113,15 @@ const Book = () => {
     },
   });
 
+  // Pre-fill form with profile data when available
+  useEffect(() => {
+    if (profile) {
+      form.setValue("fullName", profile.full_name || "");
+      form.setValue("phone", profile.phone || "");
+      form.setValue("email", profile.email || "");
+    }
+  }, [profile, form]);
+
   const bookingMutation = useMutation({
     mutationFn: async (data: BookingFormValues) => {
       const { error } = await supabase.from("appointments").insert({
@@ -106,6 +132,7 @@ const Book = () => {
         appointment_date: format(data.date, "yyyy-MM-dd"),
         appointment_time: data.time,
         notes: data.notes || null,
+        user_id: user?.id || null,
       });
 
       if (error) throw error;
