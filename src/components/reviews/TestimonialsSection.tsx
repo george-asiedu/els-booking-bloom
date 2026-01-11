@@ -27,7 +27,7 @@ export const TestimonialsSection = () => {
           rating,
           content,
           created_at,
-          profiles!inner(full_name),
+          profiles(full_name),
           services(name)
         `)
         .eq("approved", true)
