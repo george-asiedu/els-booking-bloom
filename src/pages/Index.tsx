@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, Clock, Star, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
+import { TestimonialsSection } from "@/components/reviews/TestimonialsSection";
 import { services } from "@/data/services";
 import heroImage from "@/assets/hero-beauty.jpg";
 import nails1 from "@/assets/gallery/nails-1.jpg";
@@ -189,6 +190,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
 
       {/* CTA Section */}
       <section className="py-20">
