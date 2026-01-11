@@ -8,7 +8,9 @@ import {
   LogOut, 
   Sparkles,
   Menu,
-  X
+  X,
+  Star,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +27,8 @@ const navItems = [
   { name: "Services", path: "/admin/services", icon: Scissors },
   { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },
   { name: "Hours", path: "/admin/hours", icon: Clock },
+  { name: "Reviews", path: "/admin/reviews", icon: Star },
+  { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
