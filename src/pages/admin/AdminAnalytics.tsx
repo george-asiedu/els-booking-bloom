@@ -16,7 +16,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
+import { appointmentsApi, servicesApi, reviewsApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--muted))", "#10b981", "#f59e0b"];
@@ -25,45 +25,26 @@ const AdminAnalytics = () => {
   // Fetch appointments for analytics
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ["admin-analytics-appointments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("*, services(name, price, category)")
-        .order("appointment_date", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => appointmentsApi.listAll(),
   });
 
   // Fetch services for popular services chart
   const { data: services = [] } = useQuery({
     queryKey: ["admin-analytics-services"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("id, name, category, price");
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => servicesApi.listAll(),
   });
 
   // Fetch reviews stats
   const { data: reviewStats } = useQuery({
     queryKey: ["admin-analytics-reviews"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select("rating, approved");
+      const data = await reviewsApi.listAll();
+      const approved = data.filter((r) => r.approved);
+      const avgRating =
+        approved.length > 0
+          ? approved.reduce((sum, r) => sum + r.rating, 0) / approved.length
+          : 0;
 
-      if (error) throw error;
-      
-      const approved = data.filter(r => r.approved);
-      const avgRating = approved.length > 0 
-        ? approved.reduce((sum, r) => sum + r.rating, 0) / approved.length 
-        : 0;
-      
       return {
         total: data.length,
         approved: approved.length,
@@ -114,7 +95,7 @@ const AdminAnalytics = () => {
   }
 
   // Category breakdown
-  const categoryBreakdown: Record<string, number> = { nails: 0, lashes: 0 };
+  const categoryBreakdown: Record<string, number> = { nails: 0, lashes: 0, hair: 0 };
   appointments.forEach(apt => {
     const category = apt.services?.category || "other";
     categoryBreakdown[category] = (categoryBreakdown[category] || 0) + 1;
@@ -166,7 +147,7 @@ const AdminAnalytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">
-                ${totalRevenue.toLocaleString()}
+                GHS {totalRevenue.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 From {completedAppointments.length} completed appointments
@@ -300,7 +281,7 @@ const AdminAnalytics = () => {
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{service.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {service.count} bookings • ${service.revenue.toLocaleString()} revenue
+                      {service.count} bookings • GHS {service.revenue.toLocaleString()} revenue
                     </p>
                   </div>
                   <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">

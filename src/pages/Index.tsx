@@ -1,16 +1,32 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, Clock, Star, Heart } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
 import { TestimonialsSection } from "@/components/reviews/TestimonialsSection";
-import { services } from "@/data/services";
+import { services as staticServices } from "@/data/services";
+import { servicesApi } from "@/lib/api";
 import heroImage from "@/assets/hero-beauty.jpg";
 import nails1 from "@/assets/gallery/nails-1.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
 
-const popularServices = services.filter((s) => s.popular).slice(0, 4);
+const categoryLabels: Record<string, string> = {
+  nails: "Nails",
+  lashes: "Lashes",
+  hair: "Hair",
+};
 
 const Index = () => {
+  // Featured services come from the live catalog; fall back to the static menu.
+  const { data: apiServices } = useQuery({
+    queryKey: ["public-services-catalog"],
+    queryFn: () => servicesApi.listActive(),
+  });
+
+  const source =
+    apiServices && apiServices.length > 0 ? apiServices : staticServices;
+  const popularServices = source.filter((s) => s.popular).slice(0, 4);
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -123,7 +139,7 @@ const Index = () => {
                         : "bg-primary/10 text-primary"
                     }`}
                   >
-                    {service.category === "nails" ? "Nails" : "Lashes"}
+                    {categoryLabels[service.category] ?? service.category}
                   </span>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
@@ -133,7 +149,7 @@ const Index = () => {
                   {service.description}
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-primary">${service.price}</span>
+                  <span className="text-lg font-bold text-primary">GHS {service.price}</span>
                   <span className="text-sm text-muted-foreground">{service.duration}</span>
                 </div>
               </div>

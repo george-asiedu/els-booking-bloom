@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   Calendar, 
@@ -14,11 +14,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { profileApi, appointmentsApi, accountApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
+import { useToast } from "@/hooks/use-toast";
+
+// 100 points = GHS 1; redeem in 1000-pt (GHS 10) increments.
+const REDEEM_TIERS = [1000, 2000, 5000];
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -33,74 +39,57 @@ const Account = () => {
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user!.id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => profileApi.getMine(),
     enabled: !!user,
   });
 
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ["my-appointments", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("*, services(name, price, duration)")
-        .eq("user_id", user!.id)
-        .order("appointment_date", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => appointmentsApi.listMine(),
     enabled: !!user,
   });
 
   const { data: loyaltyData } = useQuery({
     queryKey: ["loyalty-points", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("loyalty_points")
-        .select("*")
-        .eq("user_id", user!.id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => accountApi.getLoyalty(),
     enabled: !!user,
   });
 
   const { data: referralCode } = useQuery({
     queryKey: ["referral-code", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("referral_codes")
-        .select("*")
-        .eq("user_id", user!.id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => accountApi.getReferral(),
     enabled: !!user,
   });
 
   const { data: loyaltyTransactions = [] } = useQuery({
     queryKey: ["loyalty-transactions", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("loyalty_transactions")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => accountApi.getTransactions(),
     enabled: !!user,
   });
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const redeemMutation = useMutation({
+    mutationFn: (points: number) => accountApi.redeem(points),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["loyalty-points", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["loyalty-transactions", user?.id] });
+      toast({
+        title: "Points redeemed",
+        description: `You redeemed ${res.redeemed} points for GHS ${res.ghsValue} off. Show this at your next visit to claim your discount.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Redeem failed",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    },
+  });
+
+  const availablePoints = loyaltyData?.points ?? 0;
 
   const upcomingAppointments = appointments.filter(
     (apt) => new Date(apt.appointment_date) >= new Date() && apt.status !== "cancelled"
@@ -131,9 +120,12 @@ const Account = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-8 w-8 text-primary" />
-              </div>
+              <Avatar className="w-16 h-16">
+                <AvatarImage src={profile?.avatar_url || undefined} alt="Avatar" />
+                <AvatarFallback className="bg-primary/10">
+                  <User className="h-8 w-8 text-primary" />
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <h1 className="text-2xl font-serif font-bold text-foreground">
                   {profileLoading ? <Skeleton className="h-8 w-40" /> : profile?.full_name || "My Account"}
@@ -141,10 +133,17 @@ const Account = () => {
                 <p className="text-muted-foreground">{user.email}</p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <ProfileEditDialog
+                userId={user.id}
+                profile={profile}
+                trigger={<Button variant="outline">Edit Profile</Button>}
+              />
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -331,11 +330,47 @@ const Account = () => {
                         {loyaltyData?.points || 0} pts
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">
-                        Earn 10 points per $1 spent • 1000 pts = $10 off
+                        Earn 10 points per GHS 1 spent • 1000 pts = GHS 10 off
                       </p>
                     </div>
                     <Gift className="h-16 w-16 text-primary/20" />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Redeem Points */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="h-5 w-5 text-primary" />
+                    Redeem Points
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    Turn your points into a discount on your next visit. Every 100
+                    points is worth GHS 1 off.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {REDEEM_TIERS.map((tier) => (
+                      <Button
+                        key={tier}
+                        variant="outline"
+                        disabled={
+                          availablePoints < tier || redeemMutation.isPending
+                        }
+                        onClick={() => redeemMutation.mutate(tier)}
+                      >
+                        Redeem {tier.toLocaleString()} pts → GHS {tier / 100}
+                      </Button>
+                    ))}
+                  </div>
+                  {availablePoints < REDEEM_TIERS[0] && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Earn at least {REDEEM_TIERS[0].toLocaleString()} points to
+                      start redeeming.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 

@@ -1,7 +1,7 @@
 export interface Service {
   id: string;
   name: string;
-  category: "nails" | "lashes";
+  category: "nails" | "lashes" | "hair";
   description: string;
   duration: string;
   price: number;
@@ -103,9 +103,44 @@ export const services: Service[] = [
     duration: "30 min",
     price: 25,
   },
+  // Hair Services
+  {
+    id: "silk-press",
+    name: "Silk Press",
+    category: "hair",
+    description: "Wash, blow-dry and silk press for a smooth, sleek finish",
+    duration: "1.5 hrs",
+    price: 70,
+    popular: true,
+  },
+  {
+    id: "knotless-braids",
+    name: "Knotless Braids",
+    category: "hair",
+    description: "Protective knotless box braids in your choice of length",
+    duration: "4 hrs",
+    price: 160,
+    popular: true,
+  },
+  {
+    id: "wig-install",
+    name: "Wig Install",
+    category: "hair",
+    description: "Custom lace wig install with styling and laid edges",
+    duration: "2 hrs",
+    price: 120,
+  },
+  {
+    id: "wash-and-style",
+    name: "Wash & Style",
+    category: "hair",
+    description: "Cleansing shampoo, condition and blow-out with styling",
+    duration: "1 hr",
+    price: 55,
+  },
 ];
 
-export const getServicesByCategory = (category: "nails" | "lashes") =>
+export const getServicesByCategory = (category: "nails" | "lashes" | "hair") =>
   services.filter((s) => s.category === category);
 
 export const getServiceById = (id: string) =>

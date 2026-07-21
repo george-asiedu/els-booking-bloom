@@ -1,13 +1,37 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { services, getServicesByCategory } from "@/data/services";
+import { Skeleton } from "@/components/ui/skeleton";
+import { services as staticServices } from "@/data/services";
+import { servicesApi } from "@/lib/api";
+
+interface DisplayService {
+  id: string;
+  name: string;
+  description: string;
+  duration: string;
+  price: number;
+  popular?: boolean;
+  category: "nails" | "lashes" | "hair";
+}
 
 const Services = () => {
-  const nailServices = getServicesByCategory("nails");
-  const lashServices = getServicesByCategory("lashes");
+  // Prefer live services from the API; fall back to the static menu so the page
+  // is never empty (e.g. before any services are added, or if the API is down).
+  const { data: apiServices, isLoading } = useQuery({
+    queryKey: ["public-services-catalog"],
+    queryFn: () => servicesApi.listActive(),
+  });
+
+  const source: DisplayService[] =
+    apiServices && apiServices.length > 0 ? apiServices : staticServices;
+
+  const nailServices = source.filter((s) => s.category === "nails");
+  const lashServices = source.filter((s) => s.category === "lashes");
+  const hairServices = source.filter((s) => s.category === "hair");
 
   return (
     <Layout>
@@ -18,7 +42,7 @@ const Services = () => {
             Our Services
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            From classic manicures to dramatic volume lashes, explore our full menu of beauty services
+            From classic manicures to dramatic volume lashes and statement hairstyling, explore our full menu of beauty services
           </p>
         </div>
       </section>
@@ -26,17 +50,26 @@ const Services = () => {
       {/* Services */}
       <section className="py-16">
         <div className="container mx-auto px-4">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-40 w-full" />
+              ))}
+            </div>
+          ) : (
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-12">
-              <TabsTrigger value="all">All Services</TabsTrigger>
+            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4 mb-12">
+              <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="nails">Nails</TabsTrigger>
               <TabsTrigger value="lashes">Lashes</TabsTrigger>
+              <TabsTrigger value="hair">Hair</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all">
               <div className="space-y-12">
                 <ServiceCategory title="Nail Services" services={nailServices} />
                 <ServiceCategory title="Lash Services" services={lashServices} />
+                <ServiceCategory title="Hair Services" services={hairServices} />
               </div>
             </TabsContent>
 
@@ -47,7 +80,12 @@ const Services = () => {
             <TabsContent value="lashes">
               <ServiceCategory title="Lash Services" services={lashServices} />
             </TabsContent>
+
+            <TabsContent value="hair">
+              <ServiceCategory title="Hair Services" services={hairServices} />
+            </TabsContent>
           </Tabs>
+          )}
 
           {/* Book CTA */}
           <div className="mt-16 text-center">
@@ -97,7 +135,7 @@ const Services = () => {
 
 interface ServiceCategoryProps {
   title: string;
-  services: typeof services;
+  services: DisplayService[];
 }
 
 const ServiceCategory = ({ title, services }: ServiceCategoryProps) => (
@@ -118,7 +156,7 @@ const ServiceCategory = ({ title, services }: ServiceCategoryProps) => (
           <h3 className="text-lg font-semibold text-foreground mb-2">{service.name}</h3>
           <p className="text-sm text-muted-foreground mb-4">{service.description}</p>
           <div className="flex items-center justify-between pt-4 border-t border-border">
-            <span className="text-xl font-bold text-primary">${service.price}</span>
+            <span className="text-xl font-bold text-primary">GHS {service.price}</span>
             <span className="text-sm text-muted-foreground">{service.duration}</span>
           </div>
         </div>

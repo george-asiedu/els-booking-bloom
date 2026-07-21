@@ -21,29 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
+import { appointmentsApi, AppointmentDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/integrations/supabase/types";
 
-type AppointmentStatus = Database["public"]["Enums"]["appointment_status"];
-
-interface Appointment {
-  id: string;
-  full_name: string;
-  phone: string;
-  email: string | null;
-  service_id: string;
-  appointment_date: string;
-  appointment_time: string;
-  notes: string | null;
-  status: AppointmentStatus;
-  created_at: string;
-  services: {
-    name: string;
-    duration: string;
-    price: number;
-  } | null;
-}
+type AppointmentStatus = AppointmentDTO["status"];
+type Appointment = AppointmentDTO;
 
 const statusConfig = {
   pending: { label: "Pending", variant: "secondary" as const, icon: AlertCircle },
@@ -59,32 +41,12 @@ const AdminAppointments = () => {
 
   const { data: appointments, isLoading } = useQuery({
     queryKey: ["admin-appointments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select(`
-          *,
-          services (
-            name,
-            duration,
-            price
-          )
-        `)
-        .order("appointment_date", { ascending: false });
-
-      if (error) throw error;
-      return data as Appointment[];
-    },
+    queryFn: () => appointmentsApi.listAll(),
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: AppointmentStatus }) => {
-      const { error } = await supabase
-        .from("appointments")
-        .update({ status })
-        .eq("id", id);
-
-      if (error) throw error;
+      await appointmentsApi.updateStatus(id, status);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
@@ -225,7 +187,7 @@ const AdminAppointments = () => {
                             {appointment.services?.duration}
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            ${appointment.services?.price}
+                            GHS {appointment.services?.price}
                           </p>
                         </div>
                       </TableCell>

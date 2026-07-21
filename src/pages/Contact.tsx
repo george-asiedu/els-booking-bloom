@@ -1,45 +1,75 @@
-import { Phone, Mail, Instagram, MapPin, Clock, MessageCircle } from "lucide-react";
+import { Phone, Mail, Instagram, MapPin, Clock, MessageCircle, Music2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { contactInfoApi, businessHoursApi, ContactInfoDTO } from "@/lib/api";
 
-const contactInfo = [
-  {
-    icon: Phone,
-    label: "Phone",
-    value: "+1 (555) 123-4567",
-    href: "tel:+15551234567",
-  },
-  {
-    icon: MessageCircle,
-    label: "WhatsApp",
-    value: "Chat with me",
-    href: "https://wa.me/15551234567",
-  },
-  {
-    icon: Mail,
-    label: "Email",
-    value: "hello@elsbeauty.com",
-    href: "mailto:hello@elsbeauty.com",
-  },
-  {
-    icon: Instagram,
-    label: "Instagram",
-    value: "@elsbeautystudio",
-    href: "https://instagram.com/elsbeautystudio",
-  },
+const dayNames = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
 ];
 
-const businessHours = [
-  { day: "Monday", hours: "9:00 AM - 6:00 PM" },
-  { day: "Tuesday", hours: "9:00 AM - 6:00 PM" },
-  { day: "Wednesday", hours: "9:00 AM - 6:00 PM" },
-  { day: "Thursday", hours: "9:00 AM - 7:00 PM" },
-  { day: "Friday", hours: "9:00 AM - 7:00 PM" },
-  { day: "Saturday", hours: "10:00 AM - 5:00 PM" },
-  { day: "Sunday", hours: "Closed" },
-];
+// --- Link builders: turn stored values into working hrefs ---
+const digitsOnly = (v: string) => v.replace(/[^\d]/g, "");
+const stripAt = (v: string) => v.replace(/^@/, "").trim();
+
+const telHref = (phone: string) => `tel:${phone.replace(/\s+/g, "")}`;
+const whatsappHref = (phone: string) => `https://wa.me/${digitsOnly(phone)}`;
+const emailHref = (email: string) => `mailto:${email}`;
+const instagramHref = (v: string) =>
+  v.startsWith("http") ? v : `https://instagram.com/${stripAt(v)}`;
+const tiktokHref = (v: string) =>
+  v.startsWith("http") ? v : `https://www.tiktok.com/@${stripAt(v)}`;
+
+interface ContactCard {
+  icon: typeof Phone;
+  label: string;
+  value: string;
+  href: string;
+}
+
+const buildCards = (info: ContactInfoDTO): ContactCard[] => {
+  const cards: ContactCard[] = [];
+  if (info.showPhone && info.phone)
+    cards.push({ icon: Phone, label: "Phone", value: info.phone, href: telHref(info.phone) });
+  if (info.showWhatsapp && info.whatsapp)
+    cards.push({ icon: MessageCircle, label: "WhatsApp", value: "Chat with us", href: whatsappHref(info.whatsapp) });
+  if (info.showEmail && info.email)
+    cards.push({ icon: Mail, label: "Email", value: info.email, href: emailHref(info.email) });
+  if (info.showInstagram && info.instagram)
+    cards.push({ icon: Instagram, label: "Instagram", value: `@${stripAt(info.instagram)}`, href: instagramHref(info.instagram) });
+  if (info.showTiktok && info.tiktok)
+    cards.push({ icon: Music2, label: "TikTok", value: `@${stripAt(info.tiktok)}`, href: tiktokHref(info.tiktok) });
+  return cards;
+};
+
+const formatTime = (t: string | null) => {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, "0")} ${period}`;
+};
 
 const Contact = () => {
+  const { data: info, isLoading } = useQuery({
+    queryKey: ["contact-info"],
+    queryFn: () => contactInfoApi.get(),
+  });
+
+  const { data: hours = [] } = useQuery({
+    queryKey: ["public-business-hours"],
+    queryFn: () => businessHoursApi.list(),
+  });
+
+  const cards = info ? buildCards(info) : [];
+
   return (
     <Layout>
       {/* Header */}
@@ -63,44 +93,60 @@ const Contact = () => {
               <h2 className="text-2xl font-serif font-bold text-foreground mb-6">
                 Contact Information
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {contactInfo.map((item, index) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    target={item.href.startsWith("http") ? "_blank" : undefined}
-                    rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                    className="group bg-card border border-border rounded-lg p-6 hover:shadow-md hover:border-primary/50 transition-all animate-fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                        <item.icon className="h-5 w-5 text-primary" />
+
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                  ))}
+                </div>
+              ) : cards.length === 0 ? (
+                <p className="text-muted-foreground">
+                  Contact details are being updated. Please check back soon.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {cards.map((item, index) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      target={item.href.startsWith("http") ? "_blank" : undefined}
+                      rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="group bg-card border border-border rounded-lg p-6 hover:shadow-md hover:border-primary/50 transition-all animate-fade-in"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                          <item.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">{item.label}</p>
+                          <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                            {item.value}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">{item.label}</p>
-                        <p className="font-medium text-foreground group-hover:text-primary transition-colors">
-                          {item.value}
-                        </p>
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
+                    </a>
+                  ))}
+                </div>
+              )}
 
               {/* Location */}
-              <div className="mt-8 bg-card border border-border rounded-lg p-6 animate-fade-in [animation-delay:400ms]">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Location</p>
-                    <p className="font-medium text-foreground">123 Beauty Lane, Suite 101</p>
-                    <p className="text-muted-foreground">Downtown Beauty District</p>
+              {info?.showAddress && info.address && (
+                <div className="mt-8 bg-card border border-border rounded-lg p-6 animate-fade-in [animation-delay:400ms]">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
+                      <MapPin className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Location</p>
+                      <p className="font-medium text-foreground whitespace-pre-line">
+                        {info.address}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Business Hours */}
@@ -116,21 +162,18 @@ const Contact = () => {
                   <span className="font-medium text-foreground">Weekly Schedule</span>
                 </div>
                 <div className="space-y-3">
-                  {businessHours.map((item, index) => (
+                  {hours.map((item) => (
                     <div
-                      key={item.day}
-                      className="flex justify-between py-2 border-b border-border last:border-0 animate-fade-in"
-                      style={{ animationDelay: `${index * 50}ms` }}
+                      key={item.day_of_week}
+                      className="flex justify-between py-2 border-b border-border last:border-0"
                     >
-                      <span className="text-foreground font-medium">{item.day}</span>
-                      <span
-                        className={
-                          item.hours === "Closed"
-                            ? "text-muted-foreground"
-                            : "text-muted-foreground"
-                        }
-                      >
-                        {item.hours}
+                      <span className="text-foreground font-medium">
+                        {dayNames[item.day_of_week]}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {item.is_closed
+                          ? "Closed"
+                          : `${formatTime(item.open_time)} - ${formatTime(item.close_time)}`}
                       </span>
                     </div>
                   ))}
@@ -138,20 +181,26 @@ const Contact = () => {
               </div>
 
               {/* Quick Actions */}
-              <div className="mt-6 flex flex-col sm:flex-row gap-4">
-                <Button asChild className="flex-1">
-                  <a href="https://wa.me/15551234567" target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    WhatsApp Me
-                  </a>
-                </Button>
-                <Button variant="outline" asChild className="flex-1">
-                  <a href="tel:+15551234567">
-                    <Phone className="mr-2 h-4 w-4" />
-                    Call Now
-                  </a>
-                </Button>
-              </div>
+              {info && ((info.showWhatsapp && info.whatsapp) || (info.showPhone && info.phone)) && (
+                <div className="mt-6 flex flex-col sm:flex-row gap-4">
+                  {info.showWhatsapp && info.whatsapp && (
+                    <Button asChild className="flex-1">
+                      <a href={whatsappHref(info.whatsapp)} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp Us
+                      </a>
+                    </Button>
+                  )}
+                  {info.showPhone && info.phone && (
+                    <Button variant="outline" asChild className="flex-1">
+                      <a href={telHref(info.phone)}>
+                        <Phone className="mr-2 h-4 w-4" />
+                        Call Now
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

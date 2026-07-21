@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { galleryApi } from "@/lib/api";
 import nails1 from "@/assets/gallery/nails-1.jpg";
 import nails2 from "@/assets/gallery/nails-2.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
@@ -11,10 +13,11 @@ interface GalleryImage {
   id: string;
   src: string;
   alt: string;
-  category: "nails" | "lashes";
+  category: "nails" | "lashes" | "hair";
 }
 
-const galleryImages: GalleryImage[] = [
+// Fallback portfolio shown until images are uploaded via the admin gallery.
+const fallbackImages: GalleryImage[] = [
   { id: "1", src: nails1, alt: "Elegant French tip acrylics", category: "nails" },
   { id: "2", src: nails2, alt: "Trendy ombre gel nails", category: "nails" },
   { id: "3", src: lashes1, alt: "Volume lash extensions", category: "lashes" },
@@ -24,8 +27,24 @@ const galleryImages: GalleryImage[] = [
 const Gallery = () => {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
 
+  const { data: apiImages } = useQuery({
+    queryKey: ["public-gallery"],
+    queryFn: () => galleryApi.listActive(),
+  });
+
+  const galleryImages: GalleryImage[] =
+    apiImages && apiImages.length > 0
+      ? apiImages.map((img) => ({
+          id: img.id,
+          src: img.image_url,
+          alt: img.title || img.category,
+          category: img.category,
+        }))
+      : fallbackImages;
+
   const nailImages = galleryImages.filter((img) => img.category === "nails");
   const lashImages = galleryImages.filter((img) => img.category === "lashes");
+  const hairImages = galleryImages.filter((img) => img.category === "hair");
 
   return (
     <Layout>
@@ -45,10 +64,11 @@ const Gallery = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-12">
+            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4 mb-12">
               <TabsTrigger value="all">All Work</TabsTrigger>
               <TabsTrigger value="nails">Nails</TabsTrigger>
               <TabsTrigger value="lashes">Lashes</TabsTrigger>
+              <TabsTrigger value="hair">Hair</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all">
@@ -61,6 +81,10 @@ const Gallery = () => {
 
             <TabsContent value="lashes">
               <GalleryGrid images={lashImages} onImageClick={setSelectedImage} />
+            </TabsContent>
+
+            <TabsContent value="hair">
+              <GalleryGrid images={hairImages} onImageClick={setSelectedImage} />
             </TabsContent>
           </Tabs>
         </div>

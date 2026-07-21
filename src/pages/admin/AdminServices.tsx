@@ -41,19 +41,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { servicesApi, ServiceDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-interface Service {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  duration: string;
-  price: number;
-  popular: boolean | null;
-  active: boolean | null;
-}
+type Service = ServiceDTO;
 
 interface ServiceFormData {
   name: string;
@@ -83,16 +74,7 @@ const AdminServices = () => {
 
   const { data: services, isLoading } = useQuery({
     queryKey: ["admin-services"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .order("category", { ascending: true })
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      return data as Service[];
-    },
+    queryFn: () => servicesApi.listAll(),
   });
 
   const saveMutation = useMutation({
@@ -107,14 +89,9 @@ const AdminServices = () => {
       };
 
       if (data.id) {
-        const { error } = await supabase
-          .from("services")
-          .update(serviceData)
-          .eq("id", data.id);
-        if (error) throw error;
+        await servicesApi.update(data.id, serviceData);
       } else {
-        const { error } = await supabase.from("services").insert(serviceData);
-        if (error) throw error;
+        await servicesApi.create(serviceData);
       }
     },
     onSuccess: () => {
@@ -138,11 +115,7 @@ const AdminServices = () => {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase
-        .from("services")
-        .update({ active })
-        .eq("id", id);
-      if (error) throw error;
+      await servicesApi.update(id, { active });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-services"] });
@@ -151,8 +124,7 @@ const AdminServices = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("services").delete().eq("id", id);
-      if (error) throw error;
+      await servicesApi.remove(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-services"] });
@@ -257,7 +229,7 @@ const AdminServices = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{service.duration}</TableCell>
-                    <TableCell>${service.price}</TableCell>
+                    <TableCell>GHS {service.price}</TableCell>
                     <TableCell>
                       {service.popular && <Badge variant="default">Popular</Badge>}
                     </TableCell>
@@ -325,6 +297,7 @@ const AdminServices = () => {
                 <SelectContent>
                   <SelectItem value="nails">Nails</SelectItem>
                   <SelectItem value="lashes">Lashes</SelectItem>
+                  <SelectItem value="hair">Hair</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -351,7 +324,7 @@ const AdminServices = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="price">Price ($)</Label>
+                <Label htmlFor="price">Price (GHS)</Label>
                 <Input
                   id="price"
                   type="number"

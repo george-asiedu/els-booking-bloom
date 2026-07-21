@@ -16,14 +16,19 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 
 const signupSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
+      "Include an uppercase letter, a lowercase letter, a number, and a special character",
+    ),
   referralCode: z.string().optional(),
 });
 
@@ -51,10 +56,18 @@ const Signup = () => {
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
-    const { error } = await signUp(data.email, data.password);
+    // The server bootstraps the profile, loyalty points and referral code, and
+    // records any inbound referral, all within the signup call.
+    const { error } = await signUp({
+      email: data.email,
+      password: data.password,
+      fullName: data.fullName,
+      phone: data.phone,
+      ...(data.referralCode ? { referralCode: data.referralCode } : {}),
+    });
+    setIsLoading(false);
 
     if (error) {
-      setIsLoading(false);
       toast({
         variant: "destructive",
         title: "Signup failed",
@@ -63,57 +76,6 @@ const Signup = () => {
       return;
     }
 
-    // Get the new user
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData.user) {
-      // Create profile
-      await supabase.from("profiles").insert({
-        user_id: userData.user.id,
-        full_name: data.fullName,
-        email: data.email,
-        phone: data.phone,
-      });
-
-      // Initialize loyalty points
-      await supabase.from("loyalty_points").insert({
-        user_id: userData.user.id,
-        points: 0,
-        lifetime_points: 0,
-      });
-
-      // Generate unique referral code
-      const referralCode = `${data.fullName.split(" ")[0].toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      await supabase.from("referral_codes").insert({
-        user_id: userData.user.id,
-        code: referralCode,
-      });
-
-      // Handle referral if code was provided
-      if (data.referralCode) {
-        const { data: referrerCode } = await supabase
-          .from("referral_codes")
-          .select("id, user_id")
-          .eq("code", data.referralCode.toUpperCase())
-          .single();
-
-        if (referrerCode) {
-          // Create referral record
-          await supabase.from("referrals").insert({
-            referrer_id: referrerCode.user_id,
-            referred_id: userData.user.id,
-            referral_code_id: referrerCode.id,
-          });
-
-          // Update referral code uses
-          await supabase
-            .from("referral_codes")
-            .update({ uses: (await supabase.from("referral_codes").select("uses").eq("id", referrerCode.id).single()).data?.uses || 0 + 1 })
-            .eq("id", referrerCode.id);
-        }
-      }
-    }
-
-    setIsLoading(false);
     toast({
       title: "Account created!",
       description: "Welcome to El's Beauty Studio!",

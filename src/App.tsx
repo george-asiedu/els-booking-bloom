@@ -14,6 +14,8 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Account from "./pages/account/Account";
 import Reviews from "./pages/Reviews";
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -23,6 +25,7 @@ import AdminGallery from "./pages/admin/AdminGallery";
 import AdminHours from "./pages/admin/AdminHours";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminContact from "./pages/admin/AdminContact";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +45,8 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/account" element={<Account />} />
               <Route path="/review" element={<Reviews />} />
               
@@ -92,6 +97,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <AdminAnalytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/contact"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminContact />
                   </ProtectedRoute>
                 }
               />

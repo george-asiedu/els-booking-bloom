@@ -1,42 +1,47 @@
 import { useQuery } from "@tanstack/react-query";
 import { Star, Quote } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { reviewsApi, ReviewDTO } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Review {
-  id: string;
-  rating: number;
-  content: string;
-  created_at: string;
-  profiles?: {
-    full_name: string;
-  };
-  services?: {
-    name: string;
-  };
-}
+// Shown when there are no approved reviews yet, so the landing page always has
+// social proof. Replaced by real reviews as soon as any are approved.
+const fallbackTestimonials: ReviewDTO[] = [
+  {
+    id: "fallback-1",
+    rating: 5,
+    content:
+      "Absolutely love my nails! El is so talented and always makes sure I leave feeling beautiful. The attention to detail is incredible.",
+    approved: true,
+    created_at: "",
+    profiles: { full_name: "Amara O.", email: "" },
+    services: { name: "Full Set Acrylics" },
+  },
+  {
+    id: "fallback-2",
+    rating: 5,
+    content:
+      "Best lash extensions I've ever had! They look so natural and last for weeks. Highly recommend El's Beauty Studio!",
+    approved: true,
+    created_at: "",
+    profiles: { full_name: "Jade M.", email: "" },
+    services: { name: "Volume Lash Set" },
+  },
+  {
+    id: "fallback-3",
+    rating: 5,
+    content:
+      "My hair has never looked better. El really listens to what you want and delivers beyond expectations. Will definitely be back!",
+    approved: true,
+    created_at: "",
+    profiles: { full_name: "Tasha B.", email: "" },
+    services: { name: "Hairstyling" },
+  },
+];
 
 export const TestimonialsSection = () => {
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["approved-reviews"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select(`
-          id,
-          rating,
-          content,
-          created_at,
-          profiles(full_name),
-          services(name)
-        `)
-        .eq("approved", true)
-        .order("created_at", { ascending: false })
-        .limit(6);
-
-      if (error) throw error;
-      return data as unknown as Review[];
-    },
+    queryFn: () => reviewsApi.listApproved(),
   });
 
   if (isLoading) {
@@ -58,9 +63,9 @@ export const TestimonialsSection = () => {
     );
   }
 
-  if (reviews.length === 0) {
-    return null;
-  }
+  // Always render something: fall back to curated testimonials when there are
+  // no approved reviews yet.
+  const testimonials = reviews.length > 0 ? reviews : fallbackTestimonials;
 
   return (
     <section className="py-20 bg-secondary">
@@ -75,14 +80,14 @@ export const TestimonialsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reviews.map((review, index) => (
+          {testimonials.map((review, index) => (
             <div
               key={review.id}
               className="bg-card border border-border rounded-lg p-6 animate-fade-in"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <Quote className="h-8 w-8 text-primary/20 mb-4" />
-              
+
               <div className="flex gap-1 mb-3">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star

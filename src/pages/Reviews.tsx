@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { servicesApi, reviewsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -48,14 +48,7 @@ const Reviews = () => {
 
   const { data: services = [] } = useQuery({
     queryKey: ["services-for-review"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("id, name")
-        .eq("active", true);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => servicesApi.listActive(),
   });
 
   const form = useForm<ReviewFormValues>({
@@ -72,15 +65,12 @@ const Reviews = () => {
   const submitMutation = useMutation({
     mutationFn: async (data: ReviewFormValues) => {
       if (!user) throw new Error("Must be logged in");
-      
-      const { error } = await supabase.from("reviews").insert({
-        user_id: user.id,
-        service_id: data.serviceId || null,
+
+      await reviewsApi.create({
         rating: data.rating,
         content: data.content,
+        ...(data.serviceId ? { serviceId: data.serviceId } : {}),
       });
-
-      if (error) throw error;
     },
     onSuccess: () => {
       setIsSubmitted(true);

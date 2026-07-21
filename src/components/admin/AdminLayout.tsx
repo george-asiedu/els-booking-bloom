@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Star,
-  BarChart3
+  BarChart3,
+  Phone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navItems = [
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
+  { name: "Contact", path: "/admin/contact", icon: Phone },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {

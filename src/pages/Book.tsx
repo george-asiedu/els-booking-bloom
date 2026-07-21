@@ -31,7 +31,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { servicesApi, profileApi, appointmentsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -71,34 +71,16 @@ const Book = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Fetch services from database
+  // Fetch services from the API
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["public-services"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("id, name, price, duration")
-        .eq("active", true)
-        .order("category")
-        .order("name");
-
-      if (error) throw error;
-      return data as Service[];
-    },
+    queryFn: () => servicesApi.listActive(),
   });
 
   // Fetch user profile if logged in
   const { data: profile } = useQuery({
     queryKey: ["user-profile", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, phone, email")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      return data;
-    },
+    queryFn: () => profileApi.getMine(),
     enabled: !!user,
   });
 
@@ -124,7 +106,7 @@ const Book = () => {
 
   const bookingMutation = useMutation({
     mutationFn: async (data: BookingFormValues) => {
-      const { error } = await supabase.from("appointments").insert({
+      await appointmentsApi.create({
         full_name: data.fullName,
         phone: data.phone,
         email: data.email || null,
@@ -132,10 +114,7 @@ const Book = () => {
         appointment_date: format(data.date, "yyyy-MM-dd"),
         appointment_time: data.time,
         notes: data.notes || null,
-        user_id: user?.id || null,
       });
-
-      if (error) throw error;
     },
     onSuccess: () => {
       setIsSubmitted(true);
@@ -258,7 +237,7 @@ const Book = () => {
                         <SelectContent>
                           {services.map((service) => (
                             <SelectItem key={service.id} value={service.id}>
-                              {service.name} - ${service.price} ({service.duration})
+                              {service.name} - GHS {service.price} ({service.duration})
                             </SelectItem>
                           ))}
                         </SelectContent>

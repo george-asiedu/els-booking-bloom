@@ -23,24 +23,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { reviewsApi, ReviewDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Review {
-  id: string;
-  rating: number;
-  content: string;
-  approved: boolean;
-  created_at: string;
-  profiles?: {
-    full_name: string;
-    email: string;
-  };
-  services?: {
-    name: string;
-  };
-}
+type Review = ReviewDTO;
 
 const AdminReviews = () => {
   const { toast } = useToast();
@@ -48,32 +35,12 @@ const AdminReviews = () => {
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["admin-reviews"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select(`
-          id,
-          rating,
-          content,
-          approved,
-          created_at,
-          profiles!inner(full_name, email),
-          services(name)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as unknown as Review[];
-    },
+    queryFn: () => reviewsApi.listAll(),
   });
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
-      const { error } = await supabase
-        .from("reviews")
-        .update({ approved })
-        .eq("id", id);
-      if (error) throw error;
+      await reviewsApi.setApproved(id, approved);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
@@ -90,11 +57,7 @@ const AdminReviews = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("reviews")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
+      await reviewsApi.remove(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });

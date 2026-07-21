@@ -31,17 +31,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { galleryApi, GalleryImageDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-interface GalleryImage {
-  id: string;
-  title: string;
-  category: string;
-  image_url: string;
-  active: boolean | null;
-  created_at: string;
-}
+type GalleryImage = GalleryImageDTO;
 
 const AdminGallery = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -57,46 +50,15 @@ const AdminGallery = () => {
 
   const { data: images, isLoading } = useQuery({
     queryKey: ["admin-gallery"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gallery_images")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as GalleryImage[];
-    },
+    queryFn: () => galleryApi.listAll(),
   });
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!selectedFile) throw new Error("No file selected");
-
       setIsUploading(true);
-
-      // Upload to storage
-      const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("gallery")
-        .upload(fileName, selectedFile);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("gallery")
-        .getPublicUrl(fileName);
-
-      // Save to database
-      const { error: dbError } = await supabase.from("gallery_images").insert({
-        title,
-        category,
-        image_url: urlData.publicUrl,
-      });
-
-      if (dbError) throw dbError;
+      // The server uploads the file to S3 and records the gallery entry.
+      await galleryApi.upload(selectedFile, title, category);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-gallery"] });
@@ -121,18 +83,7 @@ const AdminGallery = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const image = images?.find((img) => img.id === id);
-      if (!image) throw new Error("Image not found");
-
-      // Delete from storage
-      const fileName = image.image_url.split("/").pop();
-      if (fileName) {
-        await supabase.storage.from("gallery").remove([fileName]);
-      }
-
-      // Delete from database
-      const { error } = await supabase.from("gallery_images").delete().eq("id", id);
-      if (error) throw error;
+      await galleryApi.remove(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-gallery"] });
@@ -264,6 +215,7 @@ const AdminGallery = () => {
                 <SelectContent>
                   <SelectItem value="nails">Nails</SelectItem>
                   <SelectItem value="lashes">Lashes</SelectItem>
+                  <SelectItem value="hair">Hair</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -6,16 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { businessHoursApi, BusinessHourDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-interface BusinessHour {
-  id: string;
-  day_of_week: number;
-  open_time: string | null;
-  close_time: string | null;
-  is_closed: boolean | null;
-}
+type BusinessHour = BusinessHourDTO;
 
 const dayNames = [
   "Sunday",
@@ -33,29 +27,16 @@ const AdminHours = () => {
 
   const { data: hours, isLoading } = useQuery({
     queryKey: ["admin-hours"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("business_hours")
-        .select("*")
-        .order("day_of_week", { ascending: true });
-
-      if (error) throw error;
-      return data as BusinessHour[];
-    },
+    queryFn: () => businessHoursApi.list(),
   });
 
   const updateMutation = useMutation({
     mutationFn: async (hour: BusinessHour) => {
-      const { error } = await supabase
-        .from("business_hours")
-        .update({
-          open_time: hour.open_time,
-          close_time: hour.close_time,
-          is_closed: hour.is_closed,
-        })
-        .eq("id", hour.id);
-
-      if (error) throw error;
+      await businessHoursApi.update(hour.id, {
+        open_time: hour.open_time,
+        close_time: hour.close_time,
+        is_closed: hour.is_closed,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-hours"] });
