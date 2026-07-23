@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { Calendar, Phone, Mail, Clock, CheckCircle, XCircle, AlertCircle, Loader2, MessageCircle, Image as ImageIcon } from "lucide-react";
+import { Calendar, Phone, Mail, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Image as ImageIcon } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
+import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
 
 type AppointmentStatus = AppointmentDTO["status"];
@@ -285,7 +286,7 @@ const AdminAppointments = () => {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              <MessageCircle className="h-4 w-4 mr-1" />
+                              <WhatsappIcon className="h-4 w-4 mr-1" />
                               Notify
                             </a>
                           </Button>
