@@ -290,6 +290,7 @@ const mapProfile = (p: RawProfile): ProfileDTO => ({
 
 export interface ProfileUpdateInput {
   fullName?: string;
+  email?: string;
   phone?: string;
   location?: string;
   avatar?: File | null;
@@ -312,6 +313,7 @@ export const profileApi = {
   async update(input: ProfileUpdateInput): Promise<ProfileDTO> {
     const form = new FormData();
     if (input.fullName) form.append("fullName", input.fullName);
+    if (input.email) form.append("email", input.email);
     if (input.phone) form.append("phone", input.phone);
     if (input.location) form.append("location", input.location);
     if (input.avatar) form.append("image", input.avatar);
