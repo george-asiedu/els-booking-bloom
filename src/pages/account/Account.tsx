@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -109,10 +111,12 @@ const Account = () => {
     }
   };
 
-  if (!user) {
-    navigate("/login");
-    return null;
-  }
+  // Redirect unauthenticated users after render (never navigate mid-render).
+  useEffect(() => {
+    if (!user) navigate("/login");
+  }, [user, navigate]);
+
+  if (!user) return null;
 
   return (
     <Layout>
@@ -130,7 +134,7 @@ const Account = () => {
                 <h1 className="text-2xl font-serif font-bold text-foreground">
                   {profileLoading ? <Skeleton className="h-8 w-40" /> : profile?.full_name || "My Account"}
                 </h1>
-                <p className="text-muted-foreground">{user.email}</p>
+                <p className="text-muted-foreground">{profile?.email || user.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
