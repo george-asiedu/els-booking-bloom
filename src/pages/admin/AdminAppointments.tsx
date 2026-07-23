@@ -34,9 +34,9 @@ const buildWhatsappMessage = (a: Appointment): string => {
   const when = `${a.appointment_date} at ${a.appointment_time}`;
   switch (a.status) {
     case "confirmed":
-      return `Hi ${a.full_name}, great news! Your ${svc} appointment on ${when} is confirmed ✅. See you soon at El's Beauty Studio 💅`;
+      return `Hi ${a.full_name}, great news! Your ${svc} appointment on ${when} is confirmed. See you soon at El's Beauty Studio`;
     case "completed":
-      return `Hi ${a.full_name}, thank you for visiting El's Beauty Studio 💖 We'd love your feedback — leave us a review when you get a moment!`;
+      return `Hi ${a.full_name}, thank you for visiting El's Beauty Studio We'd love your feedback — leave us a review when you get a moment!`;
     case "cancelled":
       return `Hi ${a.full_name}, your ${svc} appointment on ${when} has been cancelled. Reach out anytime to reschedule.`;
     default:
