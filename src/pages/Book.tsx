@@ -198,12 +198,12 @@ const Book = () => {
     studioWhatsapp && bookedAppointment
       ? whatsappLink(
           studioWhatsapp,
-          `Hi El's Beauty Studio 👋, I've just requested an appointment:\n\n` +
+          `Hi El's Beauty Studio, I've just requested an appointment:\n\n` +
             `Service: ${bookedAppointment.services?.name ?? "Service"}\n` +
+            `Name: ${bookedAppointment.full_name}` +
             `Date: ${bookedAppointment.appointment_date}\n` +
             `Time: ${bookedAppointment.appointment_time}\n` +
-            `Status: Pending confirmation\n\n` +
-            `Name: ${bookedAppointment.full_name}`,
+            `Status: Pending confirmation\n\n` ,
         )
       : null;
 
