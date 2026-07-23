@@ -219,9 +219,23 @@ const AdminAppointments = () => {
                               <Clock className="h-3 w-3" />
                               {appointment.services?.duration}
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              GHS {appointment.services?.price}
-                            </p>
+                            {appointment.discount_amount > 0 ? (
+                              <div className="text-sm">
+                                <span className="text-muted-foreground line-through">
+                                  GHS {appointment.total_price}
+                                </span>
+                                <span className="ml-2 font-medium text-foreground">
+                                  GHS {appointment.amount_due}
+                                </span>
+                                <span className="ml-1 text-xs text-green-600">
+                                  (-GHS {appointment.discount_amount} • {appointment.points_redeemed} pts)
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                GHS {appointment.total_price}
+                              </p>
+                            )}
                             {appointment.notes && (
                               <p className="text-xs text-muted-foreground mt-1 max-w-[200px] line-clamp-2">
                                 “{appointment.notes}”
