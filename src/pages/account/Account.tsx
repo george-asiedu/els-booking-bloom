@@ -25,8 +25,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { useToast } from "@/hooks/use-toast";
 
-// 100 points = GHS 1; redeem in 1000-pt (GHS 10) increments.
-const REDEEM_TIERS = [1000, 2000, 5000];
+// 10 points = GHS 1 off; redeem from 100 pts (GHS 10) upward.
+const REDEEM_TIERS = [100, 200, 500];
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -338,7 +338,7 @@ const Account = () => {
                         {loyaltyData?.points || 0} pts
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">
-                        Earn 10 points per GHS 1 spent • 1000 pts = GHS 10 off
+                        Earn 1 point per GHS 10 spent • 100 pts = GHS 10 off
                       </p>
                     </div>
                     <Gift className="h-16 w-16 text-primary/20" />
@@ -356,7 +356,7 @@ const Account = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-4">
-                    Turn your points into a discount on your next visit. Every 100
+                    Turn your points into a discount on your next visit. Every 10
                     points is worth GHS 1 off.
                   </p>
                   <div className="flex flex-wrap gap-3">
@@ -369,7 +369,7 @@ const Account = () => {
                         }
                         onClick={() => redeemMutation.mutate(tier)}
                       >
-                        Redeem {tier.toLocaleString()} pts → GHS {tier / 100}
+                        Redeem {tier.toLocaleString()} pts → GHS {tier / 10}
                       </Button>
                     ))}
                   </div>
@@ -392,7 +392,7 @@ const Account = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-4">
-                    Share your referral code and earn 500 bonus points when your friend books their first appointment!
+                    Share your referral code and earn 100 bonus points (GHS 10 off) when your friend completes their first appointment!
                   </p>
                   <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
                     <span className="text-lg font-mono font-bold text-primary flex-1">
