@@ -53,6 +53,10 @@ export interface AppointmentDTO {
   status: "pending" | "confirmed" | "completed" | "cancelled";
   user_id: string | null;
   created_at: string;
+  total_price: number;
+  discount_amount: number;
+  points_redeemed: number;
+  amount_due: number;
   services: AppointmentServiceDTO | null;
 }
 
@@ -83,6 +87,9 @@ interface RawAppointment {
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   userId: string | null;
   createdAt: string;
+  totalPrice: number | null;
+  discountAmount: number;
+  pointsRedeemed: number;
   service?: {
     id: string;
     name: string;
@@ -124,6 +131,10 @@ const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
   status: a.status.toLowerCase() as AppointmentDTO["status"],
   user_id: a.userId,
   created_at: a.createdAt,
+  total_price: a.totalPrice ?? 0,
+  discount_amount: a.discountAmount ?? 0,
+  points_redeemed: a.pointsRedeemed ?? 0,
+  amount_due: (a.totalPrice ?? 0) - (a.discountAmount ?? 0),
   services: a.service
     ? {
         id: a.service.id,
@@ -260,6 +271,7 @@ export interface CreateAppointmentInput {
   appointment_time: string;
   notes?: string | null;
   design_image?: File | null;
+  apply_points?: boolean;
 }
 
 // ---------------- Profile ----------------
@@ -458,6 +470,7 @@ export const appointmentsApi = {
     form.append("appointmentTime", input.appointment_time);
     if (input.notes) form.append("notes", input.notes);
     if (input.design_image) form.append("designImage", input.design_image);
+    if (input.apply_points) form.append("applyPoints", "true");
 
     const res = await apiRequest<Envelope<RawAppointment>>("/appointments", {
       method: "POST",
