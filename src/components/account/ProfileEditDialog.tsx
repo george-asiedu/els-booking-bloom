@@ -29,6 +29,7 @@ export const ProfileEditDialog = ({
 }: ProfileEditDialogProps) => {
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -41,6 +42,7 @@ export const ProfileEditDialog = ({
   useEffect(() => {
     if (open) {
       setFullName(profile?.full_name || "");
+      setEmail(profile?.email || "");
       setPhone(profile?.phone || "");
       setLocation(profile?.location || "");
       setAvatarFile(null);
@@ -52,6 +54,7 @@ export const ProfileEditDialog = ({
     mutationFn: () =>
       profileApi.update({
         fullName: fullName.trim() || undefined,
+        email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         location: location.trim() || undefined,
         avatar: avatarFile,
@@ -136,6 +139,17 @@ export const ProfileEditDialog = ({
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
             />
           </div>
 
