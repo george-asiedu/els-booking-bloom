@@ -15,8 +15,10 @@ interface AuthContextType {
   signIn: (
     email: string,
     password: string,
-  ) => Promise<{ error: Error | null }>;
-  signUp: (payload: SignupPayload) => Promise<{ error: Error | null }>;
+  ) => Promise<{ error: Error | null; user: AuthUser | null }>;
+  signUp: (
+    payload: SignupPayload,
+  ) => Promise<{ error: Error | null; user: AuthUser | null }>;
   signOut: () => void;
 }
 
@@ -36,13 +38,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const authedUser = await authApi.login(email, password);
       setUser(authedUser);
-      return { error: null };
+      return { error: null, user: authedUser };
     } catch (error) {
       const message =
         error instanceof ApiError || error instanceof Error
           ? error.message
           : "Login failed";
-      return { error: new Error(message) };
+      return { error: new Error(message), user: null };
     }
   };
 
@@ -50,13 +52,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const authedUser = await authApi.signup(payload);
       setUser(authedUser);
-      return { error: null };
+      return { error: null, user: authedUser };
     } catch (error) {
       const message =
         error instanceof ApiError || error instanceof Error
           ? error.message
           : "Signup failed";
-      return { error: new Error(message) };
+      return { error: new Error(message), user: null };
     }
   };
 

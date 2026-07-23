@@ -49,6 +49,7 @@ export interface AppointmentDTO {
   appointment_date: string; // yyyy-MM-dd
   appointment_time: string;
   notes: string | null;
+  design_image_url: string | null;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   user_id: string | null;
   created_at: string;
@@ -78,6 +79,7 @@ interface RawAppointment {
   appointmentDate: string;
   appointmentTime: string;
   notes: string | null;
+  designImageUrl: string | null;
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   userId: string | null;
   createdAt: string;
@@ -118,6 +120,7 @@ const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
   appointment_date: toDateOnly(a.appointmentDate),
   appointment_time: a.appointmentTime,
   notes: a.notes,
+  design_image_url: a.designImageUrl,
   status: a.status.toLowerCase() as AppointmentDTO["status"],
   user_id: a.userId,
   created_at: a.createdAt,
@@ -256,6 +259,7 @@ export interface CreateAppointmentInput {
   appointment_date: string; // yyyy-MM-dd
   appointment_time: string;
   notes?: string | null;
+  design_image?: File | null;
 }
 
 // ---------------- Profile ----------------
@@ -430,20 +434,31 @@ export const contactInfoApi = {
 
 export const appointmentsApi = {
   async create(input: CreateAppointmentInput): Promise<AppointmentDTO> {
+    // Sent as multipart so an optional design reference image can be attached.
+    const form = new FormData();
+    form.append("fullName", input.full_name);
+    form.append("phone", input.phone);
+    if (input.email) form.append("email", input.email);
+    form.append("serviceId", input.service_id);
+    form.append("appointmentDate", input.appointment_date);
+    form.append("appointmentTime", input.appointment_time);
+    if (input.notes) form.append("notes", input.notes);
+    if (input.design_image) form.append("designImage", input.design_image);
+
     const res = await apiRequest<Envelope<RawAppointment>>("/appointments", {
       method: "POST",
       auth: true, // optionalAuth server-side; token attached if present
-      body: {
-        fullName: input.full_name,
-        phone: input.phone,
-        ...(input.email ? { email: input.email } : {}),
-        serviceId: input.service_id,
-        appointmentDate: input.appointment_date,
-        appointmentTime: input.appointment_time,
-        ...(input.notes ? { notes: input.notes } : {}),
-      },
+      formData: form,
     });
     return normalizeAppointment(res.data);
+  },
+
+  // Time slots already taken for a date (so the picker can exclude them).
+  async takenSlots(date: string): Promise<string[]> {
+    const res = await apiRequest<Envelope<string[]>>(
+      `/appointments/availability?date=${encodeURIComponent(date)}`,
+    );
+    return res.data;
   },
 
   async listMine(): Promise<AppointmentDTO[]> {
@@ -518,6 +533,7 @@ export interface CreateReviewInput {
   rating: number;
   content: string;
   serviceId?: string;
+  appointmentId?: string;
 }
 
 export const reviewsApi = {
@@ -541,6 +557,7 @@ export const reviewsApi = {
         rating: input.rating,
         content: input.content,
         ...(input.serviceId ? { serviceId: input.serviceId } : {}),
+        ...(input.appointmentId ? { appointmentId: input.appointmentId } : {}),
       },
     });
     return normalizeReview(res.data);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { Calendar, Phone, Mail, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Calendar, Phone, Mail, Clock, CheckCircle, XCircle, AlertCircle, Loader2, MessageCircle, Image as ImageIcon } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
+import { whatsappLink } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 
 type AppointmentStatus = AppointmentDTO["status"];
 type Appointment = AppointmentDTO;
+
+// Status-aware WhatsApp message the admin sends to the customer.
+const buildWhatsappMessage = (a: Appointment): string => {
+  const svc = a.services?.name ?? "your service";
+  const when = `${a.appointment_date} at ${a.appointment_time}`;
+  switch (a.status) {
+    case "confirmed":
+      return `Hi ${a.full_name}, great news! Your ${svc} appointment on ${when} is confirmed ✅. See you soon at El's Beauty Studio 💅`;
+    case "completed":
+      return `Hi ${a.full_name}, thank you for visiting El's Beauty Studio 💖 We'd love your feedback — leave us a review when you get a moment!`;
+    case "cancelled":
+      return `Hi ${a.full_name}, your ${svc} appointment on ${when} has been cancelled. Reach out anytime to reschedule.`;
+    default:
+      return `Hi ${a.full_name}, we've received your ${svc} request for ${when}. We'll confirm shortly — thank you for booking with El's Beauty Studio!`;
+  }
+};
 
 const statusConfig = {
   pending: { label: "Pending", variant: "secondary" as const, icon: AlertCircle },
@@ -180,15 +197,41 @@ const AdminAppointments = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{appointment.services?.name}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {appointment.services?.duration}
+                        <div className="flex items-start gap-3">
+                          {appointment.design_image_url && (
+                            <a
+                              href={appointment.design_image_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="View design reference"
+                            >
+                              <img
+                                src={appointment.design_image_url}
+                                alt="Design reference"
+                                className="w-12 h-12 rounded object-cover border border-border"
+                              />
+                            </a>
+                          )}
+                          <div>
+                            <p className="font-medium">{appointment.services?.name}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {appointment.services?.duration}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              GHS {appointment.services?.price}
+                            </p>
+                            {appointment.notes && (
+                              <p className="text-xs text-muted-foreground mt-1 max-w-[200px] line-clamp-2">
+                                “{appointment.notes}”
+                              </p>
+                            )}
+                            {appointment.design_image_url && (
+                              <span className="inline-flex items-center gap-1 text-xs text-primary mt-1">
+                                <ImageIcon className="h-3 w-3" /> Design attached
+                              </span>
+                            )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            GHS {appointment.services?.price}
-                          </p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -208,25 +251,45 @@ const AdminAppointments = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={appointment.status}
-                          onValueChange={(value) =>
-                            updateStatusMutation.mutate({
-                              id: appointment.id,
-                              status: value as AppointmentStatus,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex flex-col gap-2">
+                          <Select
+                            value={appointment.status}
+                            onValueChange={(value) =>
+                              updateStatusMutation.mutate({
+                                id: appointment.id,
+                                status: value as AppointmentStatus,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="confirmed">Confirmed</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="w-32 border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
+                          >
+                            <a
+                              href={whatsappLink(
+                                appointment.phone,
+                                buildWhatsappMessage(appointment),
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <MessageCircle className="h-4 w-4 mr-1" />
+                              Notify
+                            </a>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

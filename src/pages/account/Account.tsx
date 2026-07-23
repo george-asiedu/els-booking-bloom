@@ -302,10 +302,14 @@ const Account = () => {
                                 {apt.status}
                               </Badge>
                               {apt.status === "completed" && (
-                                <Button variant="ghost" size="sm" asChild>
-                                  <Link to={`/review?service=${(apt.services as any)?.id}`}>
+                                <Button variant="outline" size="sm" asChild>
+                                  <Link
+                                    to={`/review?appointment=${apt.id}${
+                                      apt.services?.id ? `&service=${apt.services.id}` : ""
+                                    }`}
+                                  >
                                     <Star className="h-4 w-4 mr-1" />
-                                    Review
+                                    Leave a review
                                   </Link>
                                 </Button>
                               )}

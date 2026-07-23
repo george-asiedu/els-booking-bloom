@@ -54,8 +54,9 @@ const Index = () => {
             </h1>
 
             <p className="text-lg text-muted-foreground mb-8 animate-fade-in [animation-delay:200ms]">
-              Specializing in stunning nail art and luxurious lash extensions.
-              Let me help you feel confident and beautiful, one appointment at a time.
+              Specializing in stunning nail art, luxurious lash extensions and
+              statement hairstyling. Let me help you feel confident and beautiful,
+              one appointment at a time.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 animate-fade-in [animation-delay:300ms]">
@@ -120,7 +121,8 @@ const Index = () => {
               Popular Services
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              From elegant nail designs to flawless lash extensions, discover our most loved treatments
+              From elegant nail designs and flawless lash extensions to fresh
+              hairstyling, discover our most loved treatments
             </p>
           </div>
 
@@ -176,7 +178,7 @@ const Index = () => {
                 See My Work
               </h2>
               <p className="text-muted-foreground mb-6">
-                Every set of nails and lashes is a work of art. Browse my portfolio to see the
+                Every set of nails, lashes and hairstyle is a work of art. Browse my portfolio to see the
                 transformations and find inspiration for your next appointment.
               </p>
               <Button asChild>

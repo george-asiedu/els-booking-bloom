@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { CalendarIcon, CheckCircle, Loader2 } from "lucide-react";
+import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -31,7 +31,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { servicesApi, profileApi, appointmentsApi } from "@/lib/api";
+import {
+  servicesApi,
+  profileApi,
+  appointmentsApi,
+  contactInfoApi,
+  AppointmentDTO,
+} from "@/lib/api";
+import { whatsappLink } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -68,6 +75,10 @@ interface Service {
 
 const Book = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [bookedAppointment, setBookedAppointment] = useState<AppointmentDTO | null>(null);
+  const [designImage, setDesignImage] = useState<File | null>(null);
+  const [designPreview, setDesignPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -84,6 +95,12 @@ const Book = () => {
     enabled: !!user,
   });
 
+  // Studio contact info — used for the WhatsApp confirmation button.
+  const { data: contactInfo } = useQuery({
+    queryKey: ["contact-info"],
+    queryFn: () => contactInfoApi.get(),
+  });
+
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -95,18 +112,52 @@ const Book = () => {
     },
   });
 
-  // Pre-fill form with profile data when available
+  // Pre-fill from the account: profile first, then fall back to the login email.
   useEffect(() => {
     if (profile) {
       form.setValue("fullName", profile.full_name || "");
       form.setValue("phone", profile.phone || "");
-      form.setValue("email", profile.email || "");
     }
-  }, [profile, form]);
+    if (profile?.email || user?.email) {
+      form.setValue("email", profile?.email || user?.email || "");
+    }
+  }, [profile, user, form]);
+
+  // Times already booked for the chosen date are removed from the picker.
+  const selectedDate = form.watch("date");
+  const selectedDateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
+  const { data: takenSlots = [] } = useQuery({
+    queryKey: ["taken-slots", selectedDateStr],
+    queryFn: () => appointmentsApi.takenSlots(selectedDateStr),
+    enabled: !!selectedDateStr,
+  });
+  const availableTimeSlots = timeSlots.filter((t) => !takenSlots.includes(t));
+
+  // If the picked time becomes unavailable after choosing a date, clear it.
+  const selectedTime = form.watch("time");
+  useEffect(() => {
+    if (selectedTime && takenSlots.includes(selectedTime)) {
+      form.setValue("time", "");
+    }
+  }, [takenSlots, selectedTime, form]);
+
+  const handleDesignImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setDesignImage(file);
+      setDesignPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const clearDesignImage = () => {
+    setDesignImage(null);
+    setDesignPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const bookingMutation = useMutation({
-    mutationFn: async (data: BookingFormValues) => {
-      await appointmentsApi.create({
+    mutationFn: (data: BookingFormValues) =>
+      appointmentsApi.create({
         full_name: data.fullName,
         phone: data.phone,
         email: data.email || null,
@@ -114,9 +165,10 @@ const Book = () => {
         appointment_date: format(data.date, "yyyy-MM-dd"),
         appointment_time: data.time,
         notes: data.notes || null,
-      });
-    },
-    onSuccess: () => {
+        design_image: designImage,
+      }),
+    onSuccess: (appointment) => {
+      setBookedAppointment(appointment);
       setIsSubmitted(true);
     },
     onError: (error) => {
@@ -132,6 +184,29 @@ const Book = () => {
     bookingMutation.mutate(data);
   };
 
+  const resetBooking = () => {
+    setIsSubmitted(false);
+    setBookedAppointment(null);
+    clearDesignImage();
+    form.reset();
+  };
+
+  // Pre-filled WhatsApp message to the studio confirming the request.
+  const studioWhatsapp =
+    contactInfo?.showWhatsapp && contactInfo.whatsapp ? contactInfo.whatsapp : null;
+  const whatsappConfirmLink =
+    studioWhatsapp && bookedAppointment
+      ? whatsappLink(
+          studioWhatsapp,
+          `Hi El's Beauty Studio 👋, I've just requested an appointment:\n\n` +
+            `Service: ${bookedAppointment.services?.name ?? "Service"}\n` +
+            `Date: ${bookedAppointment.appointment_date}\n` +
+            `Time: ${bookedAppointment.appointment_time}\n` +
+            `Status: Pending confirmation\n\n` +
+            `Name: ${bookedAppointment.full_name}`,
+        )
+      : null;
+
   if (isSubmitted) {
     return (
       <Layout>
@@ -145,10 +220,23 @@ const Book = () => {
                 Booking Request Received!
               </h1>
               <p className="text-muted-foreground mb-6">
-                Thank you for booking with El's Beauty Studio. I'll confirm your appointment
-                shortly via phone or email.
+                Thank you for booking with El's Beauty Studio. Your request is
+                <span className="font-medium text-foreground"> pending confirmation</span> —
+                we'll confirm shortly. Send us a quick WhatsApp so we can keep you updated.
               </p>
-              <Button onClick={() => setIsSubmitted(false)}>Book Another Appointment</Button>
+              <div className="flex flex-col gap-3">
+                {whatsappConfirmLink && (
+                  <Button asChild className="bg-[#25D366] hover:bg-[#1da851] text-white">
+                    <a href={whatsappConfirmLink} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Confirm on WhatsApp
+                    </a>
+                  </Button>
+                )}
+                <Button variant="outline" onClick={resetBooking}>
+                  Book Another Appointment
+                </Button>
+              </div>
             </div>
           </div>
         </section>
@@ -293,20 +381,43 @@ const Book = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Preferred Time *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={!selectedDateStr}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a time" />
+                            <SelectValue
+                              placeholder={
+                                selectedDateStr
+                                  ? "Select a time"
+                                  : "Pick a date first"
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {timeSlots.map((time) => (
-                            <SelectItem key={time} value={time}>
-                              {time}
-                            </SelectItem>
-                          ))}
+                          {availableTimeSlots.length === 0 ? (
+                            <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                              {selectedDateStr
+                                ? "No times left for this date"
+                                : "Pick a date first"}
+                            </div>
+                          ) : (
+                            availableTimeSlots.map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
+                      {selectedDateStr && takenSlots.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Some times are already booked and hidden.
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -330,6 +441,50 @@ const Book = () => {
                     </FormItem>
                   )}
                 />
+
+                {/* Design reference image */}
+                <div className="space-y-2">
+                  <FormLabel>Design Inspiration (optional)</FormLabel>
+                  <p className="text-sm text-muted-foreground">
+                    Have a style in mind? Upload a photo of the look you want.
+                  </p>
+                  {designPreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={designPreview}
+                        alt="Design reference preview"
+                        className="max-h-48 rounded-lg border border-border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-7 w-7 rounded-full"
+                        onClick={clearDesignImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="flex flex-col items-center text-muted-foreground">
+                        <Upload className="h-8 w-8 mb-2" />
+                        <p>Click to upload an image</p>
+                        <p className="text-xs">JPG, PNG, or WebP</p>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleDesignImageChange}
+                    className="hidden"
+                  />
+                </div>
 
                 <Button type="submit" size="lg" className="w-full" disabled={bookingMutation.isPending || servicesLoading}>
                   {bookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

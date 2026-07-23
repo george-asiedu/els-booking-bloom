@@ -28,7 +28,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, signOut } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<LoginFormValues>({
@@ -41,8 +41,8 @@ const AdminLogin = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    const { error } = await signIn(data.email, data.password);
-    
+    const { error, user } = await signIn(data.email, data.password);
+
     if (error) {
       toast({
         variant: "destructive",
@@ -50,6 +50,17 @@ const AdminLogin = () => {
         description: error.message,
       });
       setIsLoading(false);
+      return;
+    }
+
+    if (user?.role !== "ADMIN") {
+      signOut();
+      setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Not an admin account",
+        description: "This login is for studio admins only.",
+      });
       return;
     }
 

@@ -15,7 +15,7 @@ export const Footer = () => {
               </span>
             </Link>
             <p className="text-sm text-muted-foreground">
-              Where beauty meets artistry. Specializing in stunning nails and lashes that make you feel confident.
+              Where beauty meets artistry. Specializing in stunning nails, lashes and hair that make you feel confident.
             </p>
           </div>
 
@@ -72,10 +72,17 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border text-center">
+        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} El's Beauty Studio. All rights reserved.
           </p>
+          <span className="hidden sm:inline text-muted-foreground">•</span>
+          <Link
+            to="/admin/login"
+            className="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            Admin Login
+          </Link>
         </div>
       </div>
     </footer>

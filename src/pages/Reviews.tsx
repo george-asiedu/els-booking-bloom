@@ -45,6 +45,7 @@ const Reviews = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const serviceIdFromUrl = searchParams.get("service") || "";
+  const appointmentIdFromUrl = searchParams.get("appointment") || "";
 
   const { data: services = [] } = useQuery({
     queryKey: ["services-for-review"],
@@ -70,6 +71,7 @@ const Reviews = () => {
         rating: data.rating,
         content: data.content,
         ...(data.serviceId ? { serviceId: data.serviceId } : {}),
+        ...(appointmentIdFromUrl ? { appointmentId: appointmentIdFromUrl } : {}),
       });
     },
     onSuccess: () => {

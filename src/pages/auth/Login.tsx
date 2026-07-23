@@ -44,7 +44,7 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    const { error } = await signIn(data.email, data.password);
+    const { error, user } = await signIn(data.email, data.password);
     setIsLoading(false);
 
     if (error) {
@@ -60,7 +60,8 @@ const Login = () => {
       title: "Welcome back!",
       description: "You've successfully logged in.",
     });
-    navigate(redirectTo);
+    // Admins land on the dashboard; customers go to their account (or redirect).
+    navigate(user?.role === "ADMIN" ? "/admin" : redirectTo);
   };
 
   return (
@@ -137,11 +138,17 @@ const Login = () => {
                 </form>
               </Form>
 
-              <div className="mt-6 text-center">
+              <div className="mt-6 text-center space-y-2">
                 <p className="text-sm text-muted-foreground">
                   Don't have an account?{" "}
                   <Link to="/signup" className="text-primary hover:underline font-medium">
                     Sign up
+                  </Link>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Studio admin?{" "}
+                  <Link to="/admin/login" className="text-primary hover:underline font-medium">
+                    Log in to the dashboard
                   </Link>
                 </p>
               </div>
