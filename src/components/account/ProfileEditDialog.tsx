@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Upload, User } from "lucide-react";
+import { Loader2, Upload, User, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -34,6 +35,9 @@ export const ProfileEditDialog = ({
   const [location, setLocation] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -47,6 +51,9 @@ export const ProfileEditDialog = ({
       setLocation(profile?.location || "");
       setAvatarFile(null);
       setPreviewUrl(null);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     }
   }, [open, profile]);
 
@@ -77,6 +84,52 @@ export const ProfileEditDialog = ({
       });
     },
   });
+
+  const passwordMutation = useMutation({
+    mutationFn: () => profileApi.changePassword(currentPassword, newPassword),
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed.",
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Couldn't change password",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    },
+  });
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      toast({ variant: "destructive", title: "Enter your current password" });
+      return;
+    }
+    const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(
+      newPassword,
+    );
+    if (!strong) {
+      toast({
+        variant: "destructive",
+        title: "Weak password",
+        description:
+          "Use at least 8 characters with upper, lower, a number and a special character.",
+      });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ variant: "destructive", title: "Passwords don't match" });
+      return;
+    }
+    passwordMutation.mutate();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -188,6 +241,58 @@ export const ProfileEditDialog = ({
               Save Changes
             </Button>
           </DialogFooter>
+        </form>
+
+        {/* Change password — separate form so it submits independently. */}
+        <form
+          onSubmit={handlePasswordSubmit}
+          className="space-y-3 border-t border-border pt-4"
+        >
+          <div className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-primary" />
+            <p className="font-medium text-sm">Change Password</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current password</Label>
+            <PasswordInput
+              id="currentPassword"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New password</Label>
+              <PasswordInput
+                id="newPassword"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm new</Label>
+              <PasswordInput
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={passwordMutation.isPending}
+            >
+              {passwordMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Update Password
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
