@@ -325,6 +325,18 @@ export const profileApi = {
     });
     return mapProfile(res.data);
   },
+
+  async changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<string> {
+    const res = await apiRequest<{ message: string }>("/profile/me/password", {
+      method: "POST",
+      auth: true,
+      body: { currentPassword, newPassword },
+    });
+    return res.message;
+  },
 };
 
 // ---------------- Loyalty & Referral ----------------
