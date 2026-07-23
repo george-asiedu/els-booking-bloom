@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { 
-  BarChart3, 
-  Calendar, 
-  DollarSign, 
+import { format, subDays } from "date-fns";
+import {
+  BarChart3,
+  Calendar,
+  DollarSign,
   TrendingUp,
   Users,
   Star
@@ -11,17 +12,31 @@ import {
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { appointmentsApi, servicesApi, reviewsApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--muted))", "#10b981", "#f59e0b"];
+// Distinct, high-contrast slice colors (nails / lashes / hair are all visible).
+const COLORS = ["#d6336c", "#7048e8", "#f59e0b", "#10b981", "#0ea5e9"];
+
+type StatusFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
 
 const AdminAnalytics = () => {
+  // Filters for the bookings-over-time chart.
+  const [rangeDays, setRangeDays] = useState<number>(7);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
   // Fetch appointments for analytics
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ["admin-analytics-appointments"],
@@ -82,17 +97,26 @@ const AdminAnalytics = () => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // Daily bookings for last 7 days
+  // Bookings over the selected range, counted by the date each booking was made
+  // (created_at) so recently-made bookings show even if scheduled for the future.
+  const chartAppointments =
+    statusFilter === "all"
+      ? appointments
+      : appointments.filter((a) => a.status === statusFilter);
+
   const dailyBookings = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = rangeDays - 1; i >= 0; i--) {
     const date = subDays(new Date(), i);
     const dateStr = format(date, "yyyy-MM-dd");
-    const count = appointments.filter(a => a.appointment_date === dateStr).length;
+    const count = chartAppointments.filter(
+      (a) => format(new Date(a.created_at), "yyyy-MM-dd") === dateStr,
+    ).length;
     dailyBookings.push({
-      day: format(date, "EEE"),
+      day: rangeDays <= 7 ? format(date, "EEE") : format(date, "MMM d"),
       bookings: count,
     });
   }
+  const totalInRange = dailyBookings.reduce((s, d) => s + d.bookings, 0);
 
   // Category breakdown
   const categoryBreakdown: Record<string, number> = { nails: 0, lashes: 0, hair: 0 };
@@ -101,10 +125,12 @@ const AdminAnalytics = () => {
     categoryBreakdown[category] = (categoryBreakdown[category] || 0) + 1;
   });
 
-  const categoryData = Object.entries(categoryBreakdown).map(([name, value]) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    value,
-  }));
+  const categoryData = Object.entries(categoryBreakdown)
+    .filter(([, value]) => value > 0)
+    .map(([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value,
+    }));
 
   const chartConfig = {
     bookings: {
@@ -211,25 +237,72 @@ const AdminAnalytics = () => {
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Daily Bookings Chart */}
+          {/* Bookings over time */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Bookings This Week
-              </CardTitle>
+            <CardHeader className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Bookings Over Time
+                </CardTitle>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {totalInRange} total
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Select
+                  value={String(rangeDays)}
+                  onValueChange={(v) => setRangeDays(Number(v))}
+                >
+                  <SelectTrigger className="w-[150px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Last 7 days</SelectItem>
+                    <SelectItem value="14">Last 14 days</SelectItem>
+                    <SelectItem value="30">Last 30 days</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+                >
+                  <SelectTrigger className="w-[150px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyBookings}>
-                    <XAxis dataKey="day" />
-                    <YAxis allowDecimals={false} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="bookings" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {totalInRange === 0 ? (
+                <div className="h-[300px] flex flex-col items-center justify-center text-center text-muted-foreground">
+                  <BarChart3 className="h-10 w-10 mb-3 opacity-40" />
+                  <p>No bookings in this range.</p>
+                  <p className="text-sm">Try a longer range or a different status.</p>
+                </div>
+              ) : (
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dailyBookings}>
+                      <XAxis
+                        dataKey="day"
+                        interval={rangeDays > 14 ? 2 : 0}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="bookings" fill="#d6336c" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
             </CardContent>
           </Card>
 
@@ -259,6 +332,11 @@ const AdminAnalytics = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      iconType="circle"
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
