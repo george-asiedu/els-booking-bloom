@@ -11,11 +11,15 @@ import {
   X,
   Star,
   BarChart3,
-  Phone
+  Phone,
+  User
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { profileApi } from "@/lib/api";
+import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState } from "react";
 
@@ -36,8 +40,14 @@ const navItems = [
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => profileApi.getMine(),
+    enabled: !!user,
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -69,6 +79,18 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            {user && (
+              <ProfileEditDialog
+                userId={user.id}
+                profile={profile}
+                trigger={
+                  <Button variant="ghost" size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">My Profile</span>
+                  </Button>
+                }
+              />
+            )}
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
