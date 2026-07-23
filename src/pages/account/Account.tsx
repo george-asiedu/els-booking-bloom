@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   Calendar, 
@@ -23,10 +23,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { profileApi, appointmentsApi, accountApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
-import { useToast } from "@/hooks/use-toast";
-
-// 10 points = GHS 1 off; redeem from 100 pts (GHS 10) upward.
-const REDEEM_TIERS = [100, 200, 500];
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -68,30 +64,6 @@ const Account = () => {
     queryFn: () => accountApi.getTransactions(),
     enabled: !!user,
   });
-
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  const redeemMutation = useMutation({
-    mutationFn: (points: number) => accountApi.redeem(points),
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["loyalty-points", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["loyalty-transactions", user?.id] });
-      toast({
-        title: "Points redeemed",
-        description: `You redeemed ${res.redeemed} points for GHS ${res.ghsValue} off. Show this at your next visit to claim your discount.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Redeem failed",
-        description: error instanceof Error ? error.message : "Please try again.",
-      });
-    },
-  });
-
-  const availablePoints = loyaltyData?.points ?? 0;
 
   const upcomingAppointments = appointments.filter(
     (apt) => new Date(apt.appointment_date) >= new Date() && apt.status !== "cancelled"
@@ -338,7 +310,7 @@ const Account = () => {
                         {loyaltyData?.points || 0} pts
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">
-                        Earn 1 point per GHS 10 spent • 100 pts = GHS 10 off
+                        Earn 1 point per GHS 10 spent • use points for up to 30% off any booking
                       </p>
                     </div>
                     <Gift className="h-16 w-16 text-primary/20" />
@@ -346,39 +318,34 @@ const Account = () => {
                 </CardContent>
               </Card>
 
-              {/* Redeem Points */}
+              {/* How points work */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Gift className="h-5 w-5 text-primary" />
-                    Redeem Points
+                    How your points work
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Turn your points into a discount on your next visit. Every 10
-                    points is worth GHS 1 off.
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    <span className="font-medium text-foreground">Earn</span> 1 point
+                    for every GHS 10 you spend, added when your appointment is
+                    completed.
                   </p>
-                  <div className="flex flex-wrap gap-3">
-                    {REDEEM_TIERS.map((tier) => (
-                      <Button
-                        key={tier}
-                        variant="outline"
-                        disabled={
-                          availablePoints < tier || redeemMutation.isPending
-                        }
-                        onClick={() => redeemMutation.mutate(tier)}
-                      >
-                        Redeem {tier.toLocaleString()} pts → GHS {tier / 10}
-                      </Button>
-                    ))}
-                  </div>
-                  {availablePoints < REDEEM_TIERS[0] && (
-                    <p className="text-xs text-muted-foreground mt-3">
-                      Earn at least {REDEEM_TIERS[0].toLocaleString()} points to
-                      start redeeming.
-                    </p>
-                  )}
+                  <p>
+                    <span className="font-medium text-foreground">Redeem</span> at
+                    checkout — when you book, flip on “Use my loyalty points” to take
+                    up to <span className="font-medium text-foreground">30% off</span>{" "}
+                    that service (10 points = GHS 1).
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Refer</span> a friend
+                    and earn a 100-point bonus (GHS 10) once they complete their first
+                    visit.
+                  </p>
+                  <Button asChild className="mt-2">
+                    <Link to="/book">Book &amp; use points</Link>
+                  </Button>
                 </CardContent>
               </Card>
 
