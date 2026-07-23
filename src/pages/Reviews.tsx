@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +55,8 @@ const Reviews = () => {
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
-      serviceId: serviceIdFromUrl,
+      // "general" is a sentinel — Radix Select items can't have an empty value.
+      serviceId: serviceIdFromUrl || "general",
       rating: 0,
       content: "",
     },
@@ -67,10 +68,12 @@ const Reviews = () => {
     mutationFn: async (data: ReviewFormValues) => {
       if (!user) throw new Error("Must be logged in");
 
+      const serviceId =
+        data.serviceId && data.serviceId !== "general" ? data.serviceId : undefined;
       await reviewsApi.create({
         rating: data.rating,
         content: data.content,
-        ...(data.serviceId ? { serviceId: data.serviceId } : {}),
+        ...(serviceId ? { serviceId } : {}),
         ...(appointmentIdFromUrl ? { appointmentId: appointmentIdFromUrl } : {}),
       });
     },
@@ -90,10 +93,12 @@ const Reviews = () => {
     submitMutation.mutate(data);
   };
 
-  if (!user) {
-    navigate("/login?redirect=/review");
-    return null;
-  }
+  // Redirect unauthenticated users after render (never call navigate mid-render).
+  useEffect(() => {
+    if (!user) navigate("/login?redirect=/review");
+  }, [user, navigate]);
+
+  if (!user) return null;
 
   if (isSubmitted) {
     return (
@@ -145,14 +150,14 @@ const Reviews = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Service (optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="General review" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">General Review</SelectItem>
+                            <SelectItem value="general">General Review</SelectItem>
                             {services.map((service) => (
                               <SelectItem key={service.id} value={service.id}>
                                 {service.name}
