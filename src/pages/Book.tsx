@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -31,11 +31,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 import {
   servicesApi,
   profileApi,
   appointmentsApi,
   contactInfoApi,
+  accountApi,
   AppointmentDTO,
 } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -73,14 +75,20 @@ interface Service {
   duration: string;
 }
 
+// Loyalty: 10 points = GHS 1 off, capped at 30% of the service price.
+const POINTS_PER_GHS = 10;
+const MAX_DISCOUNT_RATIO = 0.3;
+
 const Book = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState<AppointmentDTO | null>(null);
   const [designImage, setDesignImage] = useState<File | null>(null);
   const [designPreview, setDesignPreview] = useState<string | null>(null);
+  const [applyPoints, setApplyPoints] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Fetch services from the API
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -100,6 +108,14 @@ const Book = () => {
     queryKey: ["contact-info"],
     queryFn: () => contactInfoApi.get(),
   });
+
+  // Loyalty balance — lets logged-in customers apply points as a discount.
+  const { data: loyalty } = useQuery({
+    queryKey: ["loyalty-points", user?.id],
+    queryFn: () => accountApi.getLoyalty(),
+    enabled: !!user,
+  });
+  const availablePoints = loyalty?.points ?? 0;
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -155,6 +171,18 @@ const Book = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // Loyalty discount preview for the selected service.
+  const selectedService = services.find((s) => s.id === form.watch("service"));
+  const servicePrice = selectedService?.price ?? 0;
+  const maxPointsByCap = Math.floor(
+    servicePrice * MAX_DISCOUNT_RATIO * POINTS_PER_GHS,
+  );
+  const pointsToUse = Math.min(availablePoints, maxPointsByCap);
+  const discount = pointsToUse / POINTS_PER_GHS;
+  const canUsePoints = !!user && availablePoints > 0 && discount > 0;
+  const effectiveApplyPoints = applyPoints && canUsePoints;
+  const amountDue = servicePrice - (effectiveApplyPoints ? discount : 0);
+
   const bookingMutation = useMutation({
     mutationFn: (data: BookingFormValues) =>
       appointmentsApi.create({
@@ -166,10 +194,14 @@ const Book = () => {
         appointment_time: data.time,
         notes: data.notes || null,
         design_image: designImage,
+        apply_points: effectiveApplyPoints,
       }),
     onSuccess: (appointment) => {
       setBookedAppointment(appointment);
       setIsSubmitted(true);
+      // Points were spent and this slot is now taken — refresh both.
+      queryClient.invalidateQueries({ queryKey: ["loyalty-points", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["taken-slots"] });
     },
     onError: (error) => {
       toast({
@@ -187,6 +219,7 @@ const Book = () => {
   const resetBooking = () => {
     setIsSubmitted(false);
     setBookedAppointment(null);
+    setApplyPoints(false);
     clearDesignImage();
     form.reset();
   };
@@ -200,7 +233,7 @@ const Book = () => {
           studioWhatsapp,
           `Hi El's Beauty Studio, I've just requested an appointment:\n\n` +
             `Service: ${bookedAppointment.services?.name ?? "Service"}\n` +
-            `Name: ${bookedAppointment.full_name}` +
+            `Name: ${bookedAppointment.full_name}\n` +
             `Date: ${bookedAppointment.appointment_date}\n` +
             `Time: ${bookedAppointment.appointment_time}\n` +
             `Status: Pending confirmation\n\n` ,
@@ -485,6 +518,59 @@ const Book = () => {
                     className="hidden"
                   />
                 </div>
+
+                {/* Loyalty points discount + order summary */}
+                {selectedService && (
+                  <div className="rounded-lg border border-border p-4 space-y-3 bg-secondary/40">
+                    {canUsePoints && (
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            Use my loyalty points
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            You have {availablePoints.toLocaleString()} points. Save{" "}
+                            <span className="font-medium text-foreground">
+                              GHS {discount}
+                            </span>{" "}
+                            ({pointsToUse.toLocaleString()} pts) on this booking —
+                            up to 30% off.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={applyPoints}
+                          onCheckedChange={setApplyPoints}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Service price</span>
+                      <span className="text-foreground">GHS {servicePrice}</span>
+                    </div>
+                    {effectiveApplyPoints && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Points discount
+                        </span>
+                        <span className="text-green-600">− GHS {discount}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <span className="font-semibold text-foreground">
+                        Amount due
+                      </span>
+                      <span className="text-xl font-bold text-primary">
+                        GHS {amountDue}
+                      </span>
+                    </div>
+                    {!user && (
+                      <p className="text-xs text-muted-foreground">
+                        Log in to earn and redeem loyalty points on your bookings.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <Button type="submit" size="lg" className="w-full" disabled={bookingMutation.isPending || servicesLoading}>
                   {bookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
