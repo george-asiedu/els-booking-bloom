@@ -90,7 +90,7 @@ export const Navbar = () => {
                 </Link>
               ))}
 
-              {/* Account / Login */}
+              {/* Account / Login on Mobile */}
               <Link
                 to={user ? "/account" : "/login"}
                 onClick={() => setIsOpen(false)}
