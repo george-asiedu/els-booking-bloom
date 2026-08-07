@@ -89,6 +89,21 @@ export const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+
+              {/* Account / Login */}
+              <Link
+                to={user ? "/account" : "/login"}
+                onClick={() => setIsOpen(false)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 rounded-md text-sm font-medium transition-colors border-t border-border mt-1 pt-3",
+                  location.pathname === (user ? "/account" : "/login")
+                    ? "text-primary bg-accent"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+              >
+                <User className="h-5 w-5" />
+                {user ? "My Account" : "Login"}
+              </Link>
             </div>
           </div>
         )}
