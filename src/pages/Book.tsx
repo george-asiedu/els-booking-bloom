@@ -173,13 +173,15 @@ const Book = () => {
 
   // Loyalty discount preview for the selected service.
   const selectedService = services.find((s) => s.id === form.watch("service"));
-  const servicePrice = selectedService?.price ?? 0;
+  const onPromo = selectedService?.on_promo ?? false;
+  const servicePrice = selectedService?.effective_price ?? 0;
   const maxPointsByCap = Math.floor(
     servicePrice * MAX_DISCOUNT_RATIO * POINTS_PER_GHS,
   );
   const pointsToUse = Math.min(availablePoints, maxPointsByCap);
   const discount = pointsToUse / POINTS_PER_GHS;
-  const canUsePoints = !!user && availablePoints > 0 && discount > 0;
+  // Points can't be combined with a promo price.
+  const canUsePoints = !!user && availablePoints > 0 && discount > 0 && !onPromo;
   const effectiveApplyPoints = applyPoints && canUsePoints;
   const amountDue = servicePrice - (effectiveApplyPoints ? discount : 0);
 
@@ -358,7 +360,8 @@ const Book = () => {
                         <SelectContent>
                           {services.map((service) => (
                             <SelectItem key={service.id} value={service.id}>
-                              {service.name} - GHS {service.price} ({service.duration})
+                              {service.name} - GHS {service.effective_price}
+                              {service.on_promo ? " (Promo)" : ""} ({service.duration})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -546,7 +549,21 @@ const Book = () => {
 
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Service price</span>
-                      <span className="text-foreground">GHS {servicePrice}</span>
+                      {onPromo && selectedService ? (
+                        <span className="flex items-baseline gap-2">
+                          <span className="text-muted-foreground line-through">
+                            GHS {selectedService.price}
+                          </span>
+                          <span className="text-foreground">
+                            GHS {servicePrice}
+                          </span>
+                          <span className="text-xs font-medium text-green-600">
+                            Promo
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-foreground">GHS {servicePrice}</span>
+                      )}
                     </div>
                     {effectiveApplyPoints && (
                       <div className="flex items-center justify-between text-sm">
@@ -564,6 +581,11 @@ const Book = () => {
                         GHS {amountDue}
                       </span>
                     </div>
+                    {onPromo && (
+                      <p className="text-xs text-muted-foreground">
+                        This service is on promo — loyalty points can't be applied.
+                      </p>
+                    )}
                     {!user && (
                       <p className="text-xs text-muted-foreground">
                         Log in to earn and redeem loyalty points on your bookings.
