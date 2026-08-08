@@ -27,6 +27,9 @@ export interface ServiceDTO {
   description: string;
   duration: string;
   price: number;
+  promo_price: number | null;
+  on_promo: boolean;
+  effective_price: number; // promo_price when on promo, else price
   popular: boolean;
   active: boolean;
   image_url: string | null;
@@ -69,6 +72,7 @@ interface RawService {
   description: string | null;
   duration: string;
   price: number;
+  promoPrice: number | null;
   popular: boolean;
   active: boolean;
   imageUrl: string | null;
@@ -106,17 +110,23 @@ const toDateOnly = (iso: string): string => {
   return iso.slice(0, 10);
 };
 
-const normalizeService = (s: RawService): ServiceDTO => ({
-  id: s.id,
-  name: s.name,
-  category: s.category.toLowerCase() as ServiceCategory,
-  description: s.description ?? "",
-  duration: s.duration,
-  price: s.price,
-  popular: s.popular,
-  active: s.active,
-  image_url: s.imageUrl,
-});
+const normalizeService = (s: RawService): ServiceDTO => {
+  const onPromo = s.promoPrice != null && s.promoPrice < s.price;
+  return {
+    id: s.id,
+    name: s.name,
+    category: s.category.toLowerCase() as ServiceCategory,
+    description: s.description ?? "",
+    duration: s.duration,
+    price: s.price,
+    promo_price: s.promoPrice,
+    on_promo: onPromo,
+    effective_price: onPromo ? (s.promoPrice as number) : s.price,
+    popular: s.popular,
+    active: s.active,
+    image_url: s.imageUrl,
+  };
+};
 
 const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
   id: a.id,
@@ -215,6 +225,7 @@ export interface ServiceInput {
   description?: string;
   duration: string;
   price: number;
+  promoPrice?: number | null;
   popular?: boolean;
   active?: boolean;
 }
@@ -614,6 +625,7 @@ export interface GalleryImageDTO {
   title: string;
   category: ServiceCategory;
   image_url: string;
+  media_type: "image" | "video";
   active: boolean;
   created_at: string;
 }
@@ -623,6 +635,7 @@ interface RawGalleryImage {
   title: string | null;
   category: ServiceCategoryEnum;
   imageUrl: string;
+  mediaType?: "IMAGE" | "VIDEO";
   active: boolean;
   createdAt: string;
 }
@@ -632,6 +645,7 @@ const normalizeGalleryImage = (g: RawGalleryImage): GalleryImageDTO => ({
   title: g.title ?? "",
   category: g.category.toLowerCase() as ServiceCategory,
   image_url: g.imageUrl,
+  media_type: g.mediaType === "VIDEO" ? "video" : "image",
   active: g.active,
   created_at: g.createdAt,
 });
