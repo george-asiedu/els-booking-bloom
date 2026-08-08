@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Play } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -14,14 +15,15 @@ interface GalleryImage {
   src: string;
   alt: string;
   category: "nails" | "lashes" | "hair";
+  type: "image" | "video";
 }
 
 // Fallback portfolio shown until images are uploaded via the admin gallery.
 const fallbackImages: GalleryImage[] = [
-  { id: "1", src: nails1, alt: "Elegant French tip acrylics", category: "nails" },
-  { id: "2", src: nails2, alt: "Trendy ombre gel nails", category: "nails" },
-  { id: "3", src: lashes1, alt: "Volume lash extensions", category: "lashes" },
-  { id: "4", src: lashes2, alt: "Classic natural lashes", category: "lashes" },
+  { id: "1", src: nails1, alt: "Elegant French tip acrylics", category: "nails", type: "image" },
+  { id: "2", src: nails2, alt: "Trendy ombre gel nails", category: "nails", type: "image" },
+  { id: "3", src: lashes1, alt: "Volume lash extensions", category: "lashes", type: "image" },
+  { id: "4", src: lashes2, alt: "Classic natural lashes", category: "lashes", type: "image" },
 ];
 
 const Gallery = () => {
@@ -39,6 +41,7 @@ const Gallery = () => {
           src: img.image_url,
           alt: img.title || img.category,
           category: img.category,
+          type: img.media_type,
         }))
       : fallbackImages;
 
@@ -93,13 +96,21 @@ const Gallery = () => {
       {/* Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent className="max-w-4xl p-2 bg-card">
-          {selectedImage && (
-            <img
-              src={selectedImage.src}
-              alt={selectedImage.alt}
-              className="w-full h-auto rounded-lg"
-            />
-          )}
+          {selectedImage &&
+            (selectedImage.type === "video" ? (
+              <video
+                src={selectedImage.src}
+                className="w-full h-auto rounded-lg"
+                controls
+                autoPlay
+              />
+            ) : (
+              <img
+                src={selectedImage.src}
+                alt={selectedImage.alt}
+                className="w-full h-auto rounded-lg"
+              />
+            ))}
         </DialogContent>
       </Dialog>
     </Layout>
@@ -120,11 +131,28 @@ const GalleryGrid = ({ images, onImageClick }: GalleryGridProps) => (
         className="group relative aspect-square overflow-hidden rounded-lg bg-muted animate-fade-in"
         style={{ animationDelay: `${index * 50}ms` }}
       >
-        <img
-          src={image.src}
-          alt={image.alt}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-        />
+        {image.type === "video" ? (
+          <>
+            <video
+              src={image.src}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              muted
+              playsInline
+              preload="metadata"
+            />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/80 text-foreground">
+                <Play className="h-6 w-6 translate-x-0.5" />
+              </span>
+            </span>
+          </>
+        ) : (
+          <img
+            src={image.src}
+            alt={image.alt}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          />
+        )}
         <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/20 transition-colors duration-300" />
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-foreground/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <p className="text-sm text-background font-medium">{image.alt}</p>
