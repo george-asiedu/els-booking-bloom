@@ -112,12 +112,22 @@ const AdminGallery = () => {
     }
   };
 
+  const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    if (!file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast({
+        variant: "destructive",
+        title: "File too large",
+        description: "Please choose a file under 100 MB.",
+      });
+      e.target.value = "";
+      return;
     }
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -135,7 +145,7 @@ const AdminGallery = () => {
           </div>
           <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Image
+            Add Media
           </Button>
         </div>
 
@@ -147,9 +157,9 @@ const AdminGallery = () => {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No images in your gallery</p>
+              <p className="text-muted-foreground">No media in your gallery</p>
               <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
-                Upload Your First Image
+                Upload Your First Media
               </Button>
             </CardContent>
           </Card>
@@ -158,16 +168,31 @@ const AdminGallery = () => {
             {images?.map((image) => (
               <Card key={image.id} className="overflow-hidden group">
                 <div className="relative aspect-square">
-                  <img
-                    src={image.image_url}
-                    alt={image.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/50 transition-colors flex items-center justify-center">
+                  {image.media_type === "video" ? (
+                    <video
+                      src={image.image_url}
+                      className="w-full h-full object-cover"
+                      muted
+                      playsInline
+                      controls
+                    />
+                  ) : (
+                    <img
+                      src={image.image_url}
+                      alt={image.title}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  {image.media_type === "video" && (
+                    <span className="absolute top-2 left-2 text-[10px] font-medium bg-foreground/70 text-background px-1.5 py-0.5 rounded">
+                      VIDEO
+                    </span>
+                  )}
+                  <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors flex items-start justify-end p-2 pointer-events-none">
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
                       onClick={() => setDeleteId(image.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -193,7 +218,7 @@ const AdminGallery = () => {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload Image</DialogTitle>
+            <DialogTitle>Upload Media</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -220,29 +245,37 @@ const AdminGallery = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Image</Label>
+              <Label>Image or video</Label>
               <div
                 className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="max-h-48 mx-auto rounded-lg"
-                  />
+                  selectedFile?.type.startsWith("video/") ? (
+                    <video
+                      src={previewUrl}
+                      className="max-h-48 mx-auto rounded-lg"
+                      controls
+                    />
+                  ) : (
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="max-h-48 mx-auto rounded-lg"
+                    />
+                  )
                 ) : (
                   <div className="flex flex-col items-center text-muted-foreground">
                     <Upload className="h-8 w-8 mb-2" />
-                    <p>Click to upload an image</p>
-                    <p className="text-xs">JPG, PNG, or WebP</p>
+                    <p>Click to upload an image or video</p>
+                    <p className="text-xs">Images or any video format, up to 100 MB</p>
                   </div>
                 )}
               </div>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/*,video/*"
                 onChange={handleFileChange}
                 className="hidden"
               />
