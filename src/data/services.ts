@@ -1,7 +1,7 @@
 export interface Service {
   id: string;
   name: string;
-  category: "nails" | "lashes" | "hair";
+  category: string;
   description: string;
   duration: string;
   price: number;
