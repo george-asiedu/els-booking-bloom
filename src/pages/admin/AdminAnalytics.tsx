@@ -128,7 +128,7 @@ const AdminAnalytics = () => {
   const totalInRange = dailyBookings.reduce((s, d) => s + d.bookings, 0);
 
   // Category breakdown
-  const categoryBreakdown: Record<string, number> = { nails: 0, lashes: 0, hair: 0 };
+  const categoryBreakdown: Record<string, number> = {};
   appointments.forEach(apt => {
     const category = apt.services?.category || "other";
     categoryBreakdown[category] = (categoryBreakdown[category] || 0) + 1;
