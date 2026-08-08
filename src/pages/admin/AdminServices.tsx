@@ -52,6 +52,7 @@ interface ServiceFormData {
   description: string;
   duration: string;
   price: string;
+  promoPrice: string;
   popular: boolean;
 }
 
@@ -61,6 +62,7 @@ const emptyFormData: ServiceFormData = {
   description: "",
   duration: "",
   price: "",
+  promoPrice: "",
   popular: false,
 };
 
@@ -85,6 +87,7 @@ const AdminServices = () => {
         description: data.description,
         duration: data.duration,
         price: parseFloat(data.price),
+        promoPrice: data.promoPrice.trim() ? parseFloat(data.promoPrice) : null,
         popular: data.popular,
       };
 
@@ -157,6 +160,7 @@ const AdminServices = () => {
       description: service.description,
       duration: service.duration,
       price: service.price.toString(),
+      promoPrice: service.promo_price != null ? service.promo_price.toString() : "",
       popular: service.popular ?? false,
     });
     setIsDialogOpen(true);
@@ -229,7 +233,19 @@ const AdminServices = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{service.duration}</TableCell>
-                    <TableCell>GHS {service.price}</TableCell>
+                    <TableCell>
+                      {service.on_promo ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground line-through text-sm">
+                            GHS {service.price}
+                          </span>
+                          <span className="font-medium">GHS {service.promo_price}</span>
+                          <Badge className="bg-green-600 hover:bg-green-600">Promo</Badge>
+                        </div>
+                      ) : (
+                        <>GHS {service.price}</>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {service.popular && <Badge variant="default">Popular</Badge>}
                     </TableCell>
@@ -335,6 +351,22 @@ const AdminServices = () => {
                   required
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="promoPrice">Promo price (GHS, optional)</Label>
+              <Input
+                id="promoPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Leave empty for no promo"
+                value={formData.promoPrice}
+                onChange={(e) => setFormData({ ...formData, promoPrice: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                When set below the price, the service shows as a promo. Loyalty
+                points can't be used on promo services.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Switch
