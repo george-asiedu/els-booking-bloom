@@ -12,7 +12,8 @@ import {
   Star,
   BarChart3,
   Phone,
-  User
+  User,
+  Tag
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ interface AdminLayoutProps {
 const navItems = [
   { name: "Appointments", path: "/admin", icon: Calendar },
   { name: "Services", path: "/admin/services", icon: Scissors },
+  { name: "Categories", path: "/admin/categories", icon: Tag },
   { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
