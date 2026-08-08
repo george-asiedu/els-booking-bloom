@@ -14,6 +14,8 @@ interface DisplayService {
   description: string;
   duration: string;
   price: number;
+  promo_price?: number | null;
+  on_promo?: boolean;
   popular?: boolean;
   category: "nails" | "lashes" | "hair";
 }
@@ -148,15 +150,33 @@ const ServiceCategory = ({ title, services }: ServiceCategoryProps) => (
           className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow animate-fade-in"
           style={{ animationDelay: `${index * 50}ms` }}
         >
-          {service.popular && (
-            <span className="inline-block px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded-full mb-3">
-              Popular
-            </span>
-          )}
+          <div className="flex gap-2 mb-3">
+            {service.popular && (
+              <span className="inline-block px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded-full">
+                Popular
+              </span>
+            )}
+            {service.on_promo && (
+              <span className="inline-block px-2 py-1 text-xs font-medium bg-green-600 text-white rounded-full">
+                Promo
+              </span>
+            )}
+          </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">{service.name}</h3>
           <p className="text-sm text-muted-foreground mb-4">{service.description}</p>
           <div className="flex items-center justify-between pt-4 border-t border-border">
-            <span className="text-xl font-bold text-primary">GHS {service.price}</span>
+            {service.on_promo && service.promo_price != null ? (
+              <span className="flex items-baseline gap-2">
+                <span className="text-sm text-muted-foreground line-through">
+                  GHS {service.price}
+                </span>
+                <span className="text-xl font-bold text-primary">
+                  GHS {service.promo_price}
+                </span>
+              </span>
+            ) : (
+              <span className="text-xl font-bold text-primary">GHS {service.price}</span>
+            )}
             <span className="text-sm text-muted-foreground">{service.duration}</span>
           </div>
         </div>
