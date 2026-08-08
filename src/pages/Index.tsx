@@ -151,7 +151,18 @@ const Index = () => {
                   {service.description}
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-primary">GHS {service.price}</span>
+                  {service.on_promo && service.promo_price != null ? (
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-sm text-muted-foreground line-through">
+                        GHS {service.price}
+                      </span>
+                      <span className="text-lg font-bold text-primary">
+                        GHS {service.promo_price}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-lg font-bold text-primary">GHS {service.price}</span>
+                  )}
                   <span className="text-sm text-muted-foreground">{service.duration}</span>
                 </div>
               </div>
