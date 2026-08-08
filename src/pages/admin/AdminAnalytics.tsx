@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays } from "date-fns";
 import {
@@ -18,6 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   ChartContainer,
   ChartTooltip,
@@ -69,10 +77,11 @@ const AdminAnalytics = () => {
     },
   });
 
-  // Calculate statistics
+  // Calculate statistics — revenue is the amount actually charged (after promo
+  // and any loyalty discount).
   const completedAppointments = appointments.filter(a => a.status === "completed");
   const totalRevenue = completedAppointments.reduce((sum, a) => {
-    return sum + (a.services?.price || 0);
+    return sum + (a.amount_due || 0);
   }, 0);
 
   const last30DaysAppointments = appointments.filter(a => {
@@ -89,7 +98,7 @@ const AdminAnalytics = () => {
     }
     serviceBookings[serviceName].count++;
     if (apt.status === "completed") {
-      serviceBookings[serviceName].revenue += apt.services?.price || 0;
+      serviceBookings[serviceName].revenue += apt.amount_due || 0;
     }
   });
 
@@ -164,39 +173,79 @@ const AdminAnalytics = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Revenue
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">
-                GHS {totalRevenue.toLocaleString()}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Card className="cursor-pointer transition-colors hover:border-primary/50">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Revenue
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    GHS {totalRevenue.toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    From {completedAppointments.length} completed appointments — tap to view
+                  </p>
+                </CardContent>
+              </Card>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Completed revenue</DialogTitle>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto -mx-2 px-2">
+                {completedAppointments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    No completed appointments yet.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {completedAppointments.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between py-3">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {a.services?.name || "Service"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {a.full_name} • {a.appointment_date}
+                          </p>
+                        </div>
+                        <span className="font-semibold text-foreground">
+                          GHS {a.amount_due}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                From {completedAppointments.length} completed appointments
-              </p>
-            </CardContent>
-          </Card>
+              <div className="flex items-center justify-between border-t border-border pt-3 font-semibold">
+                <span>Total</span>
+                <span className="text-primary">GHS {totalRevenue.toLocaleString()}</span>
+              </div>
+            </DialogContent>
+          </Dialog>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Bookings
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">
-                {appointments.length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {last30DaysAppointments.length} in last 30 days
-              </p>
-            </CardContent>
-          </Card>
+          <Link to="/admin" className="block">
+            <Card className="cursor-pointer transition-colors hover:border-primary/50 h-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Bookings
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">
+                  {appointments.length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {last30DaysAppointments.length} in last 30 days — view all
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
