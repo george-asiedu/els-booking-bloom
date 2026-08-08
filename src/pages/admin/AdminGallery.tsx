@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { galleryApi, GalleryImageDTO } from "@/lib/api";
+import { galleryApi, categoriesApi, GalleryImageDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type GalleryImage = GalleryImageDTO;
@@ -51,6 +51,11 @@ const AdminGallery = () => {
   const { data: images, isLoading } = useQuery({
     queryKey: ["admin-gallery"],
     queryFn: () => galleryApi.listAll(),
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: () => categoriesApi.listAll(),
   });
 
   const uploadMutation = useMutation({
@@ -238,9 +243,12 @@ const AdminGallery = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="nails">Nails</SelectItem>
-                  <SelectItem value="lashes">Lashes</SelectItem>
-                  <SelectItem value="hair">Hair</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.slug}>
+                      {c.name}
+                      {!c.active ? " (hidden)" : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
