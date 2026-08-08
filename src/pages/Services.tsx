@@ -6,7 +6,13 @@ import { Layout } from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { services as staticServices } from "@/data/services";
-import { servicesApi } from "@/lib/api";
+import { servicesApi, categoriesApi } from "@/lib/api";
+
+const titleize = (slug: string) =>
+  slug
+    .split("-")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
 
 interface DisplayService {
   id: string;
@@ -17,7 +23,7 @@ interface DisplayService {
   promo_price?: number | null;
   on_promo?: boolean;
   popular?: boolean;
-  category: "nails" | "lashes" | "hair";
+  category: string;
 }
 
 const Services = () => {
@@ -28,12 +34,25 @@ const Services = () => {
     queryFn: () => servicesApi.listActive(),
   });
 
+  const { data: categoriesData } = useQuery({
+    queryKey: ["public-categories"],
+    queryFn: () => categoriesApi.listActive(),
+  });
+
   const source: DisplayService[] =
     apiServices && apiServices.length > 0 ? apiServices : staticServices;
 
-  const nailServices = source.filter((s) => s.category === "nails");
-  const lashServices = source.filter((s) => s.category === "lashes");
-  const hairServices = source.filter((s) => s.category === "hair");
+  const nameBySlug = new Map((categoriesData ?? []).map((c) => [c.slug, c.name]));
+  const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
+
+  // Category tabs, ordered by the admin's category order, limited to those
+  // that actually have services.
+  const present = Array.from(new Set(source.map((s) => s.category)));
+  const orderedSlugs = (categoriesData ?? []).map((c) => c.slug);
+  const tabSlugs = [
+    ...orderedSlugs.filter((s) => present.includes(s)),
+    ...present.filter((s) => !orderedSlugs.includes(s)),
+  ];
 
   return (
     <Layout>
@@ -60,32 +79,35 @@ const Services = () => {
             </div>
           ) : (
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4 mb-12">
+            <TabsList className="flex flex-wrap justify-center gap-2 mb-12 h-auto">
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="nails">Nails</TabsTrigger>
-              <TabsTrigger value="lashes">Lashes</TabsTrigger>
-              <TabsTrigger value="hair">Hair</TabsTrigger>
+              {tabSlugs.map((slug) => (
+                <TabsTrigger key={slug} value={slug}>
+                  {catName(slug)}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             <TabsContent value="all">
               <div className="space-y-12">
-                <ServiceCategory title="Nail Services" services={nailServices} />
-                <ServiceCategory title="Lash Services" services={lashServices} />
-                <ServiceCategory title="Hair Services" services={hairServices} />
+                {tabSlugs.map((slug) => (
+                  <ServiceCategory
+                    key={slug}
+                    title={`${catName(slug)} Services`}
+                    services={source.filter((s) => s.category === slug)}
+                  />
+                ))}
               </div>
             </TabsContent>
 
-            <TabsContent value="nails">
-              <ServiceCategory title="Nail Services" services={nailServices} />
-            </TabsContent>
-
-            <TabsContent value="lashes">
-              <ServiceCategory title="Lash Services" services={lashServices} />
-            </TabsContent>
-
-            <TabsContent value="hair">
-              <ServiceCategory title="Hair Services" services={hairServices} />
-            </TabsContent>
+            {tabSlugs.map((slug) => (
+              <TabsContent key={slug} value={slug}>
+                <ServiceCategory
+                  title={`${catName(slug)} Services`}
+                  services={source.filter((s) => s.category === slug)}
+                />
+              </TabsContent>
+            ))}
           </Tabs>
           )}
 
