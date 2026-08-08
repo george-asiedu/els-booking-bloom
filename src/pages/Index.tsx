@@ -10,11 +10,11 @@ import heroImage from "@/assets/hero-beauty.jpg";
 import nails1 from "@/assets/gallery/nails-1.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
 
-const categoryLabels: Record<string, string> = {
-  nails: "Nails",
-  lashes: "Lashes",
-  hair: "Hair",
-};
+const titleize = (slug: string) =>
+  slug
+    .split("-")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
 
 const Index = () => {
   // Featured services come from the live catalog; fall back to the static menu.
@@ -141,7 +141,7 @@ const Index = () => {
                         : "bg-primary/10 text-primary"
                     }`}
                   >
-                    {categoryLabels[service.category] ?? service.category}
+                    {titleize(service.category)}
                   </span>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
