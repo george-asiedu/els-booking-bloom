@@ -26,6 +26,7 @@ import AdminHours from "./pages/admin/AdminHours";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminContact from "./pages/admin/AdminContact";
+import AdminCategories from "./pages/admin/AdminCategories";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,6 +77,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <AdminServices />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/categories"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminCategories />
                   </ProtectedRoute>
                 }
               />
