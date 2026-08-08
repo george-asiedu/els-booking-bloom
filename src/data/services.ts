@@ -5,6 +5,8 @@ export interface Service {
   description: string;
   duration: string;
   price: number;
+  promo_price?: number | null;
+  on_promo?: boolean;
   popular?: boolean;
 }
 
