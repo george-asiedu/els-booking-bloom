@@ -17,8 +17,8 @@ interface TokenPair {
 
 // ---------------- Types (component-facing) ----------------
 
-export type ServiceCategory = "nails" | "lashes" | "hair";
-export type ServiceCategoryEnum = "NAILS" | "LASHES" | "HAIR";
+// Category is now a dynamic, admin-managed slug (e.g. "nails", "makeup-glam").
+export type ServiceCategory = string;
 
 export interface ServiceDTO {
   id: string;
@@ -68,7 +68,7 @@ export interface AppointmentDTO {
 interface RawService {
   id: string;
   name: string;
-  category: ServiceCategoryEnum;
+  category: string;
   description: string | null;
   duration: string;
   price: number;
@@ -99,7 +99,7 @@ interface RawAppointment {
     name: string;
     duration: string;
     price: number;
-    category: ServiceCategoryEnum;
+    category: string;
   } | null;
 }
 
@@ -115,7 +115,7 @@ const normalizeService = (s: RawService): ServiceDTO => {
   return {
     id: s.id,
     name: s.name,
-    category: s.category.toLowerCase() as ServiceCategory,
+    category: s.category,
     description: s.description ?? "",
     duration: s.duration,
     price: s.price,
@@ -151,7 +151,7 @@ const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
         name: a.service.name,
         duration: a.service.duration,
         price: a.service.price,
-        category: a.service.category.toLowerCase() as ServiceCategory,
+        category: a.service.category,
       }
     : null,
 });
@@ -212,13 +212,6 @@ export const authApi = {
 
 // ---------------- Services ----------------
 
-const toCategoryEnum = (c: string): ServiceCategoryEnum => {
-  const upper = c.toUpperCase();
-  if (upper === "LASHES") return "LASHES";
-  if (upper === "HAIR") return "HAIR";
-  return "NAILS";
-};
-
 export interface ServiceInput {
   name: string;
   category: string;
@@ -247,24 +240,74 @@ export const servicesApi = {
     const res = await apiRequest<Envelope<RawService>>("/services", {
       method: "POST",
       auth: true,
-      body: { ...input, category: toCategoryEnum(input.category) },
+      body: input,
     });
     return normalizeService(res.data);
   },
 
   async update(id: string, input: Partial<ServiceInput>): Promise<ServiceDTO> {
-    const body: Record<string, unknown> = { ...input };
-    if (input.category) body.category = toCategoryEnum(input.category);
     const res = await apiRequest<Envelope<RawService>>(`/services/${id}`, {
       method: "PUT",
       auth: true,
-      body,
+      body: input,
     });
     return normalizeService(res.data);
   },
 
   async remove(id: string): Promise<void> {
     await apiRequest<Envelope<null>>(`/services/${id}`, {
+      method: "DELETE",
+      auth: true,
+    });
+  },
+};
+
+// ---------------- Categories ----------------
+
+export interface CategoryDTO {
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+  order: number;
+}
+
+export const categoriesApi = {
+  async listActive(): Promise<CategoryDTO[]> {
+    const res = await apiRequest<Envelope<CategoryDTO[]>>("/categories");
+    return res.data;
+  },
+
+  async listAll(): Promise<CategoryDTO[]> {
+    const res = await apiRequest<Envelope<CategoryDTO[]>>("/categories/all", {
+      auth: true,
+    });
+    return res.data;
+  },
+
+  async create(name: string): Promise<CategoryDTO> {
+    const res = await apiRequest<Envelope<CategoryDTO>>("/categories", {
+      method: "POST",
+      auth: true,
+      body: { name },
+    });
+    return res.data;
+  },
+
+  async update(
+    id: string,
+    input: { name?: string; active?: boolean; order?: number },
+  ): Promise<CategoryDTO> {
+    const res = await apiRequest<Envelope<CategoryDTO>>(`/categories/${id}`, {
+      method: "PUT",
+      auth: true,
+      body: input,
+    });
+    return res.data;
+  },
+
+  async remove(id: string): Promise<void> {
+    await apiRequest<Envelope<null>>(`/categories/${id}`, {
       method: "DELETE",
       auth: true,
     });
@@ -633,7 +676,7 @@ export interface GalleryImageDTO {
 interface RawGalleryImage {
   id: string;
   title: string | null;
-  category: ServiceCategoryEnum;
+  category: string;
   imageUrl: string;
   mediaType?: "IMAGE" | "VIDEO";
   active: boolean;
@@ -643,7 +686,7 @@ interface RawGalleryImage {
 const normalizeGalleryImage = (g: RawGalleryImage): GalleryImageDTO => ({
   id: g.id,
   title: g.title ?? "",
-  category: g.category.toLowerCase() as ServiceCategory,
+  category: g.category,
   image_url: g.imageUrl,
   media_type: g.mediaType === "VIDEO" ? "video" : "image",
   active: g.active,
@@ -671,7 +714,7 @@ export const galleryApi = {
     const form = new FormData();
     form.append("image", file);
     form.append("title", title);
-    form.append("category", toCategoryEnum(category));
+    form.append("category", category);
     const res = await apiRequest<Envelope<RawGalleryImage>>("/gallery", {
       method: "POST",
       auth: true,
