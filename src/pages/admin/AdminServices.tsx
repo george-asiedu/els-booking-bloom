@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { servicesApi, ServiceDTO } from "@/lib/api";
+import { servicesApi, categoriesApi, ServiceDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type Service = ServiceDTO;
@@ -77,6 +77,11 @@ const AdminServices = () => {
   const { data: services, isLoading } = useQuery({
     queryKey: ["admin-services"],
     queryFn: () => servicesApi.listAll(),
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: () => categoriesApi.listAll(),
   });
 
   const saveMutation = useMutation({
@@ -311,9 +316,12 @@ const AdminServices = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="nails">Nails</SelectItem>
-                  <SelectItem value="lashes">Lashes</SelectItem>
-                  <SelectItem value="hair">Hair</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.slug}>
+                      {c.name}
+                      {!c.active ? " (hidden)" : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
