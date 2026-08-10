@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { paymentsApi, contactInfoApi } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
 import { downloadReceipt, receiptFromVerify } from "@/lib/receipt";
+import { celebrate } from "@/lib/confetti";
 
 const PaymentCallback = () => {
   const [params] = useSearchParams();
@@ -41,6 +43,10 @@ const PaymentCallback = () => {
       : null;
 
   const paid = receipt?.status === "paid";
+
+  useEffect(() => {
+    if (paid) celebrate();
+  }, [paid]);
 
   const whatsappReceiptLink =
     studioWhatsapp && receipt && paid
