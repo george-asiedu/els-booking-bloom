@@ -1,10 +1,17 @@
 import { useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle, XCircle, Loader2, MessageCircle } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Loader2,
+  MessageCircle,
+  Download,
+} from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { paymentsApi, contactInfoApi } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
+import { downloadReceipt, receiptFromVerify } from "@/lib/receipt";
 
 const PaymentCallback = () => {
   const [params] = useSearchParams();
@@ -142,10 +149,15 @@ const PaymentCallback = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
+                  <Button onClick={() => downloadReceipt(receiptFromVerify(receipt))}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download receipt
+                  </Button>
                   {whatsappReceiptLink && (
                     <Button
                       asChild
-                      className="bg-[#25D366] hover:bg-[#1da851] text-white"
+                      variant="outline"
+                      className="border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
                     >
                       <a
                         href={whatsappReceiptLink}
