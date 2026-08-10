@@ -14,7 +14,10 @@ import {
   Phone,
   User,
   Tag,
-  CreditCard
+  CreditCard,
+  ShoppingBag,
+  Package,
+  Store
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -37,6 +40,10 @@ const navItems = [
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
+  { name: "Products", path: "/admin/products", icon: ShoppingBag },
+  { name: "Product Categories", path: "/admin/product-categories", icon: Tag },
+  { name: "Orders", path: "/admin/orders", icon: Package },
+  { name: "Shop Settings", path: "/admin/commerce", icon: Store },
   { name: "Payments", path: "/admin/payments", icon: CreditCard },
   { name: "Contact", path: "/admin/contact", icon: Phone },
 ];
