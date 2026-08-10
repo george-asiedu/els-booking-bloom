@@ -15,7 +15,9 @@ import {
   Loader2,
   CreditCard,
   Receipt,
-  Download
+  Download,
+  ShoppingBag,
+  Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,18 +31,41 @@ import {
   appointmentsApi,
   accountApi,
   paymentsApi,
+  ordersApi,
+  cartApi,
+  commerceApi,
   AppointmentDTO,
+  OrderDTO,
 } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { useToast } from "@/hooks/use-toast";
-import { downloadReceipt, receiptFromAppointment } from "@/lib/receipt";
+import {
+  downloadReceipt,
+  receiptFromAppointment,
+  downloadOrderReceipt,
+} from "@/lib/receipt";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
   confirmed: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+};
+
+const orderStatusColors: Record<string, string> = {
+  pending_payment:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  paid: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  fulfilled: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+};
+
+const orderStatusLabel: Record<string, string> = {
+  pending_payment: "Payment pending",
+  paid: "Paid",
+  fulfilled: "Fulfilled",
+  cancelled: "Cancelled",
 };
 
 // Small payment badge for an appointment's payment state.
@@ -120,6 +145,24 @@ const Account = () => {
     enabled: !!user,
   });
 
+  const { data: commerce } = useQuery({
+    queryKey: ["commerce-settings"],
+    queryFn: () => commerceApi.getSettings(),
+  });
+  const shopEnabled = commerce?.enabled ?? false;
+
+  const { data: orders = [] } = useQuery({
+    queryKey: ["my-orders", user?.id],
+    queryFn: () => ordersApi.listMine(),
+    enabled: !!user,
+  });
+
+  const { data: cart } = useQuery({
+    queryKey: ["cart"],
+    queryFn: () => cartApi.getMine(),
+    enabled: !!user,
+  });
+
   const upcomingAppointments = appointments.filter(
     (apt) => new Date(apt.appointment_date) >= new Date() && apt.status !== "cancelled"
   );
@@ -174,6 +217,14 @@ const Account = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {shopEnabled && (
+                <Button variant="outline" asChild>
+                  <Link to="/shop">
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Shop
+                  </Link>
+                </Button>
+              )}
               <ProfileEditDialog
                 userId={user.id}
                 profile={profile}
@@ -254,6 +305,10 @@ const Account = () => {
               <TabsTrigger value="appointments">
                 <Calendar className="h-4 w-4 mr-2" />
                 Appointments
+              </TabsTrigger>
+              <TabsTrigger value="orders">
+                <Package className="h-4 w-4 mr-2" />
+                Orders
               </TabsTrigger>
               <TabsTrigger value="transactions">
                 <Receipt className="h-4 w-4 mr-2" />
@@ -384,6 +439,114 @@ const Account = () => {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="orders" className="space-y-6">
+              {/* Current cart */}
+              {cart && cart.items.length > 0 && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <ShoppingBag className="h-5 w-5 text-primary" />
+                      In your cart ({cart.count})
+                    </CardTitle>
+                    <Button size="sm" asChild>
+                      <Link to="/cart">Checkout</Link>
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {cart.items.map((it) => (
+                      <div
+                        key={it.product_id}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="text-muted-foreground">
+                          {it.name} <span className="text-xs">x{it.quantity}</span>
+                        </span>
+                        <span className="text-foreground">GHS {it.line_total}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between pt-2 border-t border-border font-semibold">
+                      <span>Subtotal</span>
+                      <span className="text-primary">GHS {cart.subtotal}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Order history */}
+              <div>
+                <h2 className="text-xl font-semibold text-foreground mb-4">
+                  My Orders
+                </h2>
+                {orders.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center">
+                      <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-4">
+                        You haven't placed any orders yet.
+                      </p>
+                      {shopEnabled && (
+                        <Button asChild>
+                          <Link to="/shop">Start shopping</Link>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((order: OrderDTO) => (
+                      <Card key={order.id}>
+                        <CardContent className="py-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-foreground">
+                                  {order.order_number}
+                                </p>
+                                <Badge className={orderStatusColors[order.status]}>
+                                  {orderStatusLabel[order.status]}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {order.items
+                                  .map((i) => `${i.name} x${i.quantity}`)
+                                  .join(", ")}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {format(new Date(order.created_at), "MMM d, yyyy")}{" "}
+                                ·{" "}
+                                {order.fulfillment === "delivery"
+                                  ? "Delivery"
+                                  : "Pickup"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="font-bold text-foreground">
+                                GHS {order.total}
+                              </span>
+                              {order.status === "pending_payment" ? (
+                                <Button size="sm" asChild>
+                                  <Link to="/cart">Pay</Link>
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => downloadOrderReceipt(order)}
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Receipt
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="transactions" className="space-y-6">
