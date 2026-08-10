@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sparkles, User } from "lucide-react";
+import { Menu, X, Sparkles, User, ShoppingBag } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
+import { cartApi, commerceApi } from "@/lib/api";
 
 const navLinks = [
   { name: "Home", path: "/" },
   { name: "Services", path: "/services" },
+  { name: "Shop", path: "/shop" },
   { name: "Gallery", path: "/gallery" },
   { name: "Book Now", path: "/book" },
   { name: "Contact", path: "/contact" },
@@ -18,6 +21,38 @@ export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+
+  // Hide the shop entirely when the admin has disabled it.
+  const { data: commerce } = useQuery({
+    queryKey: ["commerce-settings"],
+    queryFn: () => commerceApi.getSettings(),
+  });
+  const shopEnabled = commerce?.enabled ?? true;
+  const visibleLinks = navLinks.filter(
+    (l) => l.path !== "/shop" || shopEnabled,
+  );
+
+  // Show a cart icon with a live item count for logged-in customers.
+  const isCustomer = !!user && user.role !== "ADMIN";
+  const { data: cart } = useQuery({
+    queryKey: ["cart"],
+    queryFn: () => cartApi.getMine(),
+    enabled: isCustomer,
+  });
+  const cartCount = cart?.count ?? 0;
+
+  const CartButton = () => (
+    <Button variant="ghost" size="icon" asChild className="relative">
+      <Link to="/cart" aria-label="Cart">
+        <ShoppingBag className="h-5 w-5" />
+        {cartCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+            {cartCount}
+          </span>
+        )}
+      </Link>
+    </Button>
+  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -32,7 +67,7 @@ export const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {visibleLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
@@ -46,6 +81,7 @@ export const Navbar = () => {
                 {link.name}
               </Link>
             ))}
+            {isCustomer && shopEnabled && <CartButton />}
             <Button variant="ghost" size="icon" asChild>
               <Link to={user ? "/account" : "/login"}>
                 <User className="h-5 w-5" />
@@ -58,6 +94,7 @@ export const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-2 md:hidden">
+            {isCustomer && shopEnabled && <CartButton />}
             <ThemeToggle />
             <Button
               variant="ghost"
@@ -74,7 +111,7 @@ export const Navbar = () => {
         {isOpen && (
           <div className="md:hidden mt-4 pb-4 animate-fade-in">
             <div className="flex flex-col gap-2">
-              {navLinks.map((link) => (
+              {visibleLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
