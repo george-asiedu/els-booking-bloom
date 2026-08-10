@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
 import { TestimonialsSection } from "@/components/reviews/TestimonialsSection";
 import { services as staticServices } from "@/data/services";
-import { servicesApi, commerceApi } from "@/lib/api";
+import { servicesApi, commerceApi, productsApi } from "@/lib/api";
 import heroImage from "@/assets/hero-beauty.jpg";
 import nails1 from "@/assets/gallery/nails-1.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
@@ -32,6 +32,16 @@ const Index = () => {
     queryFn: () => commerceApi.getSettings(),
   });
   const shopEnabled = commerce?.enabled ?? false;
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["public-products"],
+    queryFn: () => productsApi.listActive(),
+    enabled: shopEnabled,
+  });
+  const featuredProducts = [
+    ...products.filter((p) => p.popular),
+    ...products.filter((p) => !p.popular),
+  ].slice(0, 4);
 
   return (
     <Layout>
@@ -193,6 +203,78 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Products Preview */}
+      {shopEnabled && featuredProducts.length > 0 && (
+        <section className="py-20 bg-secondary">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
+                Shop Our Products
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Take the salon home — curated products to prep, style and
+                maintain your look between appointments.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product, index) => (
+                <Link
+                  key={product.id}
+                  to={`/shop/${product.id}`}
+                  className="group bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 animate-fade-in flex flex-col"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="aspect-square bg-muted overflow-hidden">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <Sparkles className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      {product.name}
+                    </h3>
+                    <div className="mt-1">
+                      {product.on_promo ? (
+                        <span className="flex items-baseline gap-2">
+                          <span className="text-xs text-muted-foreground line-through">
+                            GHS {product.price}
+                          </span>
+                          <span className="font-bold text-primary">
+                            GHS {product.effective_price}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="font-bold text-primary">
+                          GHS {product.price}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="text-center mt-10">
+              <Button variant="outline" asChild>
+                <Link to="/shop">
+                  Visit the Shop
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Gallery Preview */}
       <section className="py-20 bg-secondary">
