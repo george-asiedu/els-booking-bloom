@@ -13,7 +13,9 @@ import {
   ChevronRight,
   LogOut,
   Loader2,
-  CreditCard
+  CreditCard,
+  Receipt,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +34,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { useToast } from "@/hooks/use-toast";
+import { downloadReceipt, receiptFromAppointment } from "@/lib/receipt";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -123,6 +126,15 @@ const Account = () => {
   const pastAppointments = appointments.filter(
     (apt) => new Date(apt.appointment_date) < new Date() || apt.status === "cancelled"
   );
+
+  // Booking transactions — any appointment that has a payment record, newest first.
+  const transactions = appointments
+    .filter((apt) => apt.payment !== null)
+    .sort((a, b) => {
+      const at = new Date(a.payment?.paid_at || a.created_at).getTime();
+      const bt = new Date(b.payment?.paid_at || b.created_at).getTime();
+      return bt - at;
+    });
 
   const handleSignOut = async () => {
     await signOut();
@@ -242,6 +254,10 @@ const Account = () => {
               <TabsTrigger value="appointments">
                 <Calendar className="h-4 w-4 mr-2" />
                 Appointments
+              </TabsTrigger>
+              <TabsTrigger value="transactions">
+                <Receipt className="h-4 w-4 mr-2" />
+                Transactions
               </TabsTrigger>
               <TabsTrigger value="rewards">
                 <Gift className="h-4 w-4 mr-2" />
@@ -368,6 +384,106 @@ const Account = () => {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="transactions" className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold text-foreground mb-4">
+                  Booking Transactions
+                </h2>
+                {appointmentsLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2].map((i) => (
+                      <Skeleton key={i} className="h-24 w-full" />
+                    ))}
+                  </div>
+                ) : transactions.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center">
+                      <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-4">
+                        No transactions yet. Payments you make when booking will
+                        appear here.
+                      </p>
+                      <Button asChild>
+                        <Link to="/book">Book Now</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {transactions.map((apt) => {
+                      const p = apt.payment!;
+                      const isPaid = p.status === "paid";
+                      return (
+                        <Card key={apt.id}>
+                          <CardContent className="py-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                  <Receipt className="h-6 w-6 text-primary" />
+                                </div>
+                                <div className="min-w-0">
+                                  <h3 className="font-semibold text-foreground">
+                                    {apt.services?.name || "Service"}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
+                                    <span>
+                                      {format(
+                                        new Date(
+                                          p.paid_at || apt.created_at,
+                                        ),
+                                        "MMM d, yyyy",
+                                      )}
+                                    </span>
+                                    <span>•</span>
+                                    <span>
+                                      {p.type === "partial"
+                                        ? "Deposit"
+                                        : "Full payment"}
+                                    </span>
+                                  </div>
+                                  {p.reference && (
+                                    <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">
+                                      {p.reference}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between sm:justify-end gap-4">
+                                <div className="text-right">
+                                  <p className="font-bold text-foreground">
+                                    GHS {p.amount.toLocaleString()}
+                                  </p>
+                                  <PaymentBadge apt={apt} />
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={!isPaid}
+                                  title={
+                                    isPaid
+                                      ? "Download receipt"
+                                      : "Receipt available after payment"
+                                  }
+                                  onClick={() => {
+                                    const data = receiptFromAppointment(apt);
+                                    if (data) downloadReceipt(data);
+                                  }}
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Receipt
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="rewards" className="space-y-6">
