@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles, Clock, Star, Heart } from "lucide-react";
+import { ArrowRight, Sparkles, Clock, Star, Heart, ShoppingBag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
 import { TestimonialsSection } from "@/components/reviews/TestimonialsSection";
 import { services as staticServices } from "@/data/services";
-import { servicesApi } from "@/lib/api";
+import { servicesApi, commerceApi } from "@/lib/api";
 import heroImage from "@/assets/hero-beauty.jpg";
 import nails1 from "@/assets/gallery/nails-1.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
@@ -26,6 +26,12 @@ const Index = () => {
   const source =
     apiServices && apiServices.length > 0 ? apiServices : staticServices;
   const popularServices = source.filter((s) => s.popular).slice(0, 4);
+
+  const { data: commerce } = useQuery({
+    queryKey: ["commerce-settings"],
+    queryFn: () => commerceApi.getSettings(),
+  });
+  const shopEnabled = commerce?.enabled ?? false;
 
   return (
     <Layout>
@@ -69,6 +75,14 @@ const Index = () => {
               <Button size="lg" variant="outline" asChild>
                 <Link to="/gallery">View My Work</Link>
               </Button>
+              {shopEnabled && (
+                <Button size="lg" variant="secondary" asChild>
+                  <Link to="/shop">
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    Shop Products
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
