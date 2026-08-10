@@ -722,23 +722,39 @@ export const paymentsApi = {
       `/payments/verify?reference=${encodeURIComponent(reference)}`,
       { auth: true },
     );
-    const p = res.data;
+    return mapVerify(res.data);
+  },
+
+  // Combined booking + products charge — returns service payment and/or order.
+  async verifyCombined(
+    reference: string,
+  ): Promise<{ payment: PaymentReceiptDTO | null; order: OrderDTO | null }> {
+    const res = await apiRequest<
+      Envelope<{ payment: RawVerify | null; order: RawOrder | null }>
+    >(`/payments/verify-combined?reference=${encodeURIComponent(reference)}`, {
+      auth: true,
+    });
     return {
-      status: p.status.toLowerCase() as PaymentStatus,
-      type: p.type.toLowerCase() as PaymentType,
-      amount: p.amount,
-      total_amount: p.totalAmount,
-      balance: Math.max(0, p.totalAmount - p.amount),
-      reference: p.reference,
-      channel: p.channel,
-      paid_at: p.paidAt,
-      full_name: p.appointment?.fullName ?? "",
-      service_name: p.appointment?.service?.name ?? "your service",
-      appointment_date: p.appointment?.appointmentDate?.slice(0, 10) ?? "",
-      appointment_time: p.appointment?.appointmentTime ?? "",
+      payment: res.data.payment ? mapVerify(res.data.payment) : null,
+      order: res.data.order ? normalizeOrder(res.data.order) : null,
     };
   },
 };
+
+const mapVerify = (p: RawVerify): PaymentReceiptDTO => ({
+  status: p.status.toLowerCase() as PaymentStatus,
+  type: p.type.toLowerCase() as PaymentType,
+  amount: p.amount,
+  total_amount: p.totalAmount,
+  balance: Math.max(0, p.totalAmount - p.amount),
+  reference: p.reference,
+  channel: p.channel,
+  paid_at: p.paidAt,
+  full_name: p.appointment?.fullName ?? "",
+  service_name: p.appointment?.service?.name ?? "your service",
+  appointment_date: p.appointment?.appointmentDate?.slice(0, 10) ?? "",
+  appointment_time: p.appointment?.appointmentTime ?? "",
+});
 
 // ---------------- Commerce: products ----------------
 
@@ -747,6 +763,7 @@ export interface ProductDTO {
   name: string;
   description: string;
   price: number;
+  cost_price: number;
   promo_price: number | null;
   on_promo: boolean;
   effective_price: number;
@@ -764,6 +781,7 @@ interface RawProduct {
   name: string;
   description: string | null;
   price: number;
+  costPrice?: number;
   promoPrice: number | null;
   imageUrl: string | null;
   category: string;
@@ -780,6 +798,7 @@ const normalizeProduct = (p: RawProduct): ProductDTO => {
     name: p.name,
     description: p.description ?? "",
     price: p.price,
+    cost_price: p.costPrice ?? 0,
     promo_price: p.promoPrice,
     on_promo: onPromo,
     effective_price: onPromo ? (p.promoPrice as number) : p.price,
@@ -797,6 +816,7 @@ export interface ProductInput {
   name: string;
   description?: string;
   price: number;
+  costPrice?: number;
   promoPrice?: number | null;
   category: string;
   stock?: number;
@@ -811,6 +831,7 @@ const productForm = (input: Partial<ProductInput>): FormData => {
   if (input.name !== undefined) form.append("name", input.name);
   if (input.description !== undefined) form.append("description", input.description);
   if (input.price !== undefined) form.append("price", String(input.price));
+  if (input.costPrice !== undefined) form.append("costPrice", String(input.costPrice));
   if (input.promoPrice !== undefined && input.promoPrice !== null)
     form.append("promoPrice", String(input.promoPrice));
   if (input.promoPrice === null) form.append("promoPrice", "");
@@ -834,6 +855,10 @@ export const productsApi = {
       auth: true,
     });
     return res.data.map(normalizeProduct);
+  },
+  async getOne(id: string): Promise<ProductDTO> {
+    const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`);
+    return normalizeProduct(res.data);
   },
   async create(input: ProductInput): Promise<ProductDTO> {
     const res = await apiRequest<Envelope<RawProduct>>("/products", {
@@ -1002,8 +1027,10 @@ export type Fulfillment = "pickup" | "delivery";
 export interface OrderItemDTO {
   name: string;
   unit_price: number;
+  cost_price: number;
   quantity: number;
   line_total: number;
+  profit: number;
 }
 
 export interface OrderDTO {
@@ -1014,14 +1041,20 @@ export interface OrderDTO {
   delivery_address: string | null;
   delivery_phone: string | null;
   subtotal: number;
+  discount_amount: number;
+  points_redeemed: number;
   delivery_fee: number;
   total: number;
+  profit: number; // Σ (unit-cost)×qty, excludes delivery — commerce revenue
   reference: string | null;
   paid_at: string | null;
   created_at: string;
+  is_guest: boolean;
+  appointment_id: string | null;
   items: OrderItemDTO[];
   customer_name?: string | null;
   customer_email?: string | null;
+  customer_phone?: string | null;
 }
 
 interface RawOrder {
@@ -1032,42 +1065,78 @@ interface RawOrder {
   deliveryAddress: string | null;
   deliveryPhone: string | null;
   subtotal: number;
+  discountAmount?: number;
+  pointsRedeemed?: number;
   deliveryFee: number;
   total: number;
   reference: string | null;
   paidAt: string | null;
   createdAt: string;
-  items: { name: string; unitPrice: number; quantity: number }[];
+  userId?: string | null;
+  appointmentId?: string | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  items: { name: string; unitPrice: number; costPrice?: number; quantity: number }[];
   user?: { email: string; profile?: { fullName: string | null } | null } | null;
 }
 
-const normalizeOrder = (o: RawOrder): OrderDTO => ({
-  id: o.id,
-  order_number: o.orderNumber,
-  status: o.status.toLowerCase() as OrderStatus,
-  fulfillment: o.fulfillment.toLowerCase() as Fulfillment,
-  delivery_address: o.deliveryAddress,
-  delivery_phone: o.deliveryPhone,
-  subtotal: o.subtotal,
-  delivery_fee: o.deliveryFee,
-  total: o.total,
-  reference: o.reference,
-  paid_at: o.paidAt,
-  created_at: o.createdAt,
-  items: o.items.map((i) => ({
-    name: i.name,
-    unit_price: i.unitPrice,
-    quantity: i.quantity,
-    line_total: Math.round(i.unitPrice * i.quantity * 100) / 100,
-  })),
-  customer_name: o.user?.profile?.fullName ?? null,
-  customer_email: o.user?.email ?? null,
-});
+const normalizeOrder = (o: RawOrder): OrderDTO => {
+  const items = o.items.map((i) => {
+    const cost = i.costPrice ?? 0;
+    return {
+      name: i.name,
+      unit_price: i.unitPrice,
+      cost_price: cost,
+      quantity: i.quantity,
+      line_total: Math.round(i.unitPrice * i.quantity * 100) / 100,
+      profit: Math.round((i.unitPrice - cost) * i.quantity * 100) / 100,
+    };
+  });
+  const profit =
+    Math.round(items.reduce((s, i) => s + i.profit, 0) * 100) / 100;
+  return {
+    id: o.id,
+    order_number: o.orderNumber,
+    status: o.status.toLowerCase() as OrderStatus,
+    fulfillment: o.fulfillment.toLowerCase() as Fulfillment,
+    delivery_address: o.deliveryAddress,
+    delivery_phone: o.deliveryPhone,
+    subtotal: o.subtotal,
+    discount_amount: o.discountAmount ?? 0,
+    points_redeemed: o.pointsRedeemed ?? 0,
+    delivery_fee: o.deliveryFee,
+    total: o.total,
+    profit,
+    reference: o.reference,
+    paid_at: o.paidAt,
+    created_at: o.createdAt,
+    is_guest: !o.userId,
+    appointment_id: o.appointmentId ?? null,
+    items,
+    customer_name: o.customerName ?? o.user?.profile?.fullName ?? null,
+    customer_email: o.customerEmail ?? o.user?.email ?? null,
+    customer_phone: o.customerPhone ?? null,
+  };
+};
 
 export interface CheckoutInput {
   fulfillment: "PICKUP" | "DELIVERY";
   deliveryAddress?: string;
   deliveryPhone?: string;
+  applyPoints?: boolean;
+  referralCode?: string;
+}
+
+export interface GuestCheckoutInput {
+  items: { productId: string; quantity: number }[];
+  name: string;
+  email: string;
+  phone: string;
+  fulfillment: "PICKUP" | "DELIVERY";
+  deliveryAddress?: string;
+  deliveryPhone?: string;
+  referralCode?: string;
 }
 
 export interface CheckoutResult {
@@ -1078,23 +1147,53 @@ export interface CheckoutResult {
   total: number;
 }
 
+interface RawCheckout {
+  authorizationUrl: string;
+  reference: string;
+  orderId: string;
+  orderNumber?: string;
+  total: number;
+}
+
+const mapCheckout = (d: RawCheckout): CheckoutResult => ({
+  authorization_url: d.authorizationUrl,
+  reference: d.reference,
+  order_id: d.orderId,
+  order_number: d.orderNumber ?? "",
+  total: d.total,
+});
+
 export const ordersApi = {
   async checkout(input: CheckoutInput): Promise<CheckoutResult> {
+    const res = await apiRequest<Envelope<RawCheckout>>("/orders/checkout", {
+      method: "POST",
+      auth: true,
+      body: input,
+    });
+    return mapCheckout(res.data);
+  },
+
+  async guestCheckout(input: GuestCheckoutInput): Promise<CheckoutResult> {
+    const res = await apiRequest<Envelope<RawCheckout>>(
+      "/orders/guest-checkout",
+      { method: "POST", body: input },
+    );
+    return mapCheckout(res.data);
+  },
+
+  async bookingCheckout(input: {
+    appointmentId: string;
+    items: { productId: string; quantity: number }[];
+    serviceType?: "FULL" | "PARTIAL";
+    referralCode?: string;
+  }): Promise<CheckoutResult & { service_due_now: number; product_subtotal: number }> {
     const res = await apiRequest<
-      Envelope<{
-        authorizationUrl: string;
-        reference: string;
-        orderId: string;
-        orderNumber: string;
-        total: number;
-      }>
-    >("/orders/checkout", { method: "POST", auth: true, body: input });
+      Envelope<RawCheckout & { serviceDueNow: number; productSubtotal: number }>
+    >("/orders/booking-checkout", { method: "POST", auth: true, body: input });
     return {
-      authorization_url: res.data.authorizationUrl,
-      reference: res.data.reference,
-      order_id: res.data.orderId,
-      order_number: res.data.orderNumber,
-      total: res.data.total,
+      ...mapCheckout(res.data),
+      service_due_now: res.data.serviceDueNow,
+      product_subtotal: res.data.productSubtotal,
     };
   },
   async listMine(): Promise<OrderDTO[]> {
