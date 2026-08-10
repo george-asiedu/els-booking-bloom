@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, XCircle, Loader2, Download } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Download, MessageCircle } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ordersApi } from "@/lib/api";
+import { ordersApi, contactInfoApi } from "@/lib/api";
 import { downloadOrderReceipt } from "@/lib/receipt";
+import { whatsappLink } from "@/lib/whatsapp";
+import { celebrate } from "@/lib/confetti";
 
 const OrderCallback = () => {
   const [params] = useSearchParams();
@@ -24,12 +26,31 @@ const OrderCallback = () => {
     retry: 1,
   });
 
+  const { data: contactInfo } = useQuery({
+    queryKey: ["contact-info"],
+    queryFn: () => contactInfoApi.get(),
+  });
+
   const paid = order?.status === "paid";
 
-  // A paid order clears the server cart — refresh the badge.
+  // A paid order clears the server cart — refresh the badge + celebrate.
   useEffect(() => {
-    if (paid) queryClient.invalidateQueries({ queryKey: ["cart"] });
+    if (paid) {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      celebrate();
+    }
   }, [paid, queryClient]);
+
+  const studioWhatsapp =
+    contactInfo?.showWhatsapp && contactInfo.whatsapp ? contactInfo.whatsapp : null;
+  const whatsappLinkUrl =
+    studioWhatsapp && order && paid
+      ? whatsappLink(
+          studioWhatsapp,
+          `Hi El's Beauty Studio, I've just placed order ${order.order_number} ` +
+            `(GHS ${order.total}). Looking forward to it!`,
+        )
+      : null;
 
   return (
     <Layout>
@@ -136,8 +157,20 @@ const OrderCallback = () => {
                     <Download className="mr-2 h-4 w-4" />
                     Download receipt
                   </Button>
+                  {whatsappLinkUrl && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
+                    >
+                      <a href={whatsappLinkUrl} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        Message the studio
+                      </a>
+                    </Button>
+                  )}
                   <Button variant="outline" asChild>
-                    <Link to="/account">View my orders</Link>
+                    <Link to="/account?tab=orders">View my orders</Link>
                   </Button>
                 </div>
               </>
