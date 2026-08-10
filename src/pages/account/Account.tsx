@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { 
-  Calendar, 
-  Gift, 
-  Star, 
-  Share2, 
-  Clock, 
+import {
+  Calendar,
+  Gift,
+  Star,
+  Share2,
+  Clock,
   User,
   ChevronRight,
-  LogOut
+  LogOut,
+  Loader2,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +22,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
-import { profileApi, appointmentsApi, accountApi } from "@/lib/api";
+import {
+  profileApi,
+  appointmentsApi,
+  accountApi,
+  paymentsApi,
+  AppointmentDTO,
+} from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -31,9 +40,52 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
+// Small payment badge for an appointment's payment state.
+const PaymentBadge = ({ apt }: { apt: AppointmentDTO }) => {
+  const p = apt.payment;
+  if (!p || p.status === "pending") {
+    return <Badge variant="secondary">Payment pending</Badge>;
+  }
+  if (p.status === "paid") {
+    return (
+      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+        {p.type === "partial" ? `Deposit paid · GHS ${p.balance} due` : "Paid"}
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="destructive">
+      {p.status === "failed" ? "Payment failed" : "Refunded"}
+    </Badge>
+  );
+};
+
 const Account = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [payingId, setPayingId] = useState<string | null>(null);
+
+  // Resume/complete a payment for an existing booking.
+  const handlePay = async (apt: AppointmentDTO) => {
+    if (!apt.payment) return;
+    try {
+      setPayingId(apt.id);
+      const init = await paymentsApi.initialize(
+        apt.id,
+        apt.payment.type === "partial" ? "PARTIAL" : "FULL",
+      );
+      window.location.href = init.authorization_url;
+    } catch (error) {
+      setPayingId(null);
+      toast({
+        variant: "destructive",
+        title: "Couldn't start payment",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    }
+  };
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -238,9 +290,28 @@ const Account = () => {
                                 </div>
                               </div>
                             </div>
-                            <Badge className={statusColors[apt.status]}>
-                              {apt.status}
-                            </Badge>
+                            <div className="flex flex-col items-end gap-2">
+                              <Badge className={statusColors[apt.status]}>
+                                {apt.status}
+                              </Badge>
+                              <PaymentBadge apt={apt} />
+                              {apt.payment &&
+                                apt.payment.status !== "paid" &&
+                                apt.status !== "cancelled" && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handlePay(apt)}
+                                    disabled={payingId === apt.id}
+                                  >
+                                    {payingId === apt.id ? (
+                                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                    ) : (
+                                      <CreditCard className="h-4 w-4 mr-1" />
+                                    )}
+                                    Pay now
+                                  </Button>
+                                )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
