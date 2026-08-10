@@ -43,6 +43,20 @@ export interface AppointmentServiceDTO {
   category: ServiceCategory;
 }
 
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+export type PaymentType = "full" | "partial";
+
+export interface PaymentInfoDTO {
+  status: PaymentStatus;
+  type: PaymentType;
+  amount: number; // amount charged/paid in this transaction
+  total_amount: number; // full amount due for the booking
+  balance: number; // total_amount - amount (0 for full payments)
+  reference: string | null;
+  channel: string | null;
+  paid_at: string | null;
+}
+
 export interface AppointmentDTO {
   id: string;
   full_name: string;
@@ -60,6 +74,7 @@ export interface AppointmentDTO {
   discount_amount: number;
   points_redeemed: number;
   amount_due: number;
+  payment: PaymentInfoDTO | null;
   services: AppointmentServiceDTO | null;
 }
 
@@ -94,6 +109,15 @@ interface RawAppointment {
   totalPrice: number | null;
   discountAmount: number;
   pointsRedeemed: number;
+  payment?: {
+    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+    type: "FULL" | "PARTIAL";
+    amount: number;
+    totalAmount: number;
+    reference: string | null;
+    channel: string | null;
+    paidAt: string | null;
+  } | null;
   service?: {
     id: string;
     name: string;
@@ -145,6 +169,18 @@ const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
   discount_amount: a.discountAmount ?? 0,
   points_redeemed: a.pointsRedeemed ?? 0,
   amount_due: (a.totalPrice ?? 0) - (a.discountAmount ?? 0),
+  payment: a.payment
+    ? {
+        status: a.payment.status.toLowerCase() as PaymentStatus,
+        type: a.payment.type.toLowerCase() as PaymentType,
+        amount: a.payment.amount,
+        total_amount: a.payment.totalAmount,
+        balance: Math.max(0, a.payment.totalAmount - a.payment.amount),
+        reference: a.payment.reference,
+        channel: a.payment.channel,
+        paid_at: a.payment.paidAt,
+      }
+    : null,
   services: a.service
     ? {
         id: a.service.id,
@@ -570,6 +606,137 @@ export const appointmentsApi = {
       },
     );
     return normalizeAppointment(res.data);
+  },
+};
+
+// ---------------- Payments ----------------
+
+export interface PaymentSettingsDTO {
+  enabled: boolean;
+  allow_full: boolean;
+  allow_partial: boolean;
+  deposit_percent: number;
+}
+
+interface RawPaymentSettings {
+  enabled: boolean;
+  allowFull: boolean;
+  allowPartial: boolean;
+  depositPercent: number;
+}
+
+const normalizePaymentSettings = (
+  s: RawPaymentSettings,
+): PaymentSettingsDTO => ({
+  enabled: s.enabled,
+  allow_full: s.allowFull,
+  allow_partial: s.allowPartial,
+  deposit_percent: s.depositPercent,
+});
+
+export interface InitializePaymentResult {
+  authorization_url: string;
+  reference: string;
+  amount: number;
+  type: "FULL" | "PARTIAL";
+}
+
+interface RawInitialize {
+  authorizationUrl: string;
+  reference: string;
+  amount: number;
+  type: "FULL" | "PARTIAL";
+}
+
+// Receipt shape returned by verify (payment + its appointment/service).
+export interface PaymentReceiptDTO {
+  status: PaymentStatus;
+  type: PaymentType;
+  amount: number;
+  total_amount: number;
+  balance: number;
+  reference: string | null;
+  channel: string | null;
+  paid_at: string | null;
+  full_name: string;
+  service_name: string;
+  appointment_date: string;
+  appointment_time: string;
+}
+
+interface RawVerify {
+  status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  type: "FULL" | "PARTIAL";
+  amount: number;
+  totalAmount: number;
+  reference: string | null;
+  channel: string | null;
+  paidAt: string | null;
+  appointment?: {
+    fullName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    service?: { name: string } | null;
+  } | null;
+}
+
+export const paymentsApi = {
+  async getSettings(): Promise<PaymentSettingsDTO> {
+    const res = await apiRequest<Envelope<RawPaymentSettings>>(
+      "/payments/settings",
+    );
+    return normalizePaymentSettings(res.data);
+  },
+
+  async updateSettings(input: {
+    enabled?: boolean;
+    allowFull?: boolean;
+    allowPartial?: boolean;
+    depositPercent?: number;
+  }): Promise<PaymentSettingsDTO> {
+    const res = await apiRequest<Envelope<RawPaymentSettings>>(
+      "/payments/settings",
+      { method: "PUT", auth: true, body: input },
+    );
+    return normalizePaymentSettings(res.data);
+  },
+
+  async initialize(
+    appointmentId: string,
+    type: "FULL" | "PARTIAL",
+  ): Promise<InitializePaymentResult> {
+    const res = await apiRequest<Envelope<RawInitialize>>(
+      "/payments/initialize",
+      { method: "POST", auth: true, body: { appointmentId, type } },
+    );
+    return {
+      authorization_url: res.data.authorizationUrl,
+      reference: res.data.reference,
+      amount: res.data.amount,
+      type: res.data.type,
+    };
+  },
+
+  async verify(reference: string): Promise<PaymentReceiptDTO> {
+    const res = await apiRequest<Envelope<RawVerify>>(
+      `/payments/verify?reference=${encodeURIComponent(reference)}`,
+      { auth: true },
+    );
+    const p = res.data;
+    return {
+      status: p.status.toLowerCase() as PaymentStatus,
+      type: p.type.toLowerCase() as PaymentType,
+      amount: p.amount,
+      total_amount: p.totalAmount,
+      balance: Math.max(0, p.totalAmount - p.amount),
+      reference: p.reference,
+      channel: p.channel,
+      paid_at: p.paidAt,
+      full_name: p.appointment?.fullName ?? "",
+      service_name: p.appointment?.service?.name ?? "your service",
+      appointment_date: p.appointment?.appointmentDate?.slice(0, 10) ?? "",
+      appointment_time: p.appointment?.appointmentTime ?? "",
+    };
   },
 };
 
