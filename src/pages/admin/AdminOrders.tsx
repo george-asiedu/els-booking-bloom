@@ -69,10 +69,13 @@ const AdminOrders = () => {
     total: orders?.length ?? 0,
     paid: orders?.filter((o) => o.status === "paid").length ?? 0,
     fulfilled: orders?.filter((o) => o.status === "fulfilled").length ?? 0,
-    revenue:
-      orders
-        ?.filter((o) => o.status === "paid" || o.status === "fulfilled")
-        .reduce((s, o) => s + o.total, 0) ?? 0,
+    // Commerce revenue = profit (selling − cost), delivery excluded.
+    profit:
+      Math.round(
+        (orders
+          ?.filter((o) => o.status === "paid" || o.status === "fulfilled")
+          .reduce((s, o) => s + o.profit, 0) ?? 0) * 100,
+      ) / 100,
   };
 
   return (
@@ -92,8 +95,8 @@ const AdminOrders = () => {
             className="text-blue-600"
           />
           <StatCard
-            label="Revenue"
-            value={`GHS ${stats.revenue.toLocaleString()}`}
+            label="Profit (revenue)"
+            value={`GHS ${stats.profit.toLocaleString()}`}
           />
         </div>
 
@@ -146,10 +149,27 @@ const AdminOrders = () => {
                       </p>
                     </TableCell>
                     <TableCell>
-                      <p className="text-sm">{order.customer_name || "—"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm">{order.customer_name || "—"}</p>
+                        {order.is_guest && (
+                          <Badge variant="outline" className="text-xs">
+                            Guest
+                          </Badge>
+                        )}
+                        {order.appointment_id && (
+                          <Badge variant="secondary" className="text-xs">
+                            Booking
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {order.customer_email}
                       </p>
+                      {order.customer_phone && (
+                        <p className="text-xs text-muted-foreground">
+                          {order.customer_phone}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="text-sm space-y-0.5 max-w-[220px]">
