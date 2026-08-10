@@ -10,6 +10,9 @@ import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Gallery from "./pages/Gallery";
 import Book from "./pages/Book";
+import Shop from "./pages/Shop";
+import Cart from "./pages/Cart";
+import OrderCallback from "./pages/OrderCallback";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
@@ -28,6 +31,10 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminContact from "./pages/admin/AdminContact";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPayments from "./pages/admin/AdminPayments";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminProductCategories from "./pages/admin/AdminProductCategories";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminCommerce from "./pages/admin/AdminCommerce";
 import PaymentCallback from "./pages/PaymentCallback";
 
 const queryClient = new QueryClient({
@@ -56,6 +63,9 @@ const App = () => (
               <Route path="/services" element={<Services />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/book" element={<Book />} />
+              <Route path="/shop" element={<Shop />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/order/callback" element={<OrderCallback />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
@@ -136,6 +146,38 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <AdminPayments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/products"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminProducts />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/product-categories"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminProductCategories />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/orders"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminOrders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/commerce"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminCommerce />
                   </ProtectedRoute>
                 }
               />
