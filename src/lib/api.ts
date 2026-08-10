@@ -740,6 +740,438 @@ export const paymentsApi = {
   },
 };
 
+// ---------------- Commerce: products ----------------
+
+export interface ProductDTO {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  promo_price: number | null;
+  on_promo: boolean;
+  effective_price: number;
+  image_url: string | null;
+  category: string;
+  stock: number;
+  track_stock: boolean;
+  in_stock: boolean;
+  active: boolean;
+  popular: boolean;
+}
+
+interface RawProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  promoPrice: number | null;
+  imageUrl: string | null;
+  category: string;
+  stock: number;
+  trackStock: boolean;
+  active: boolean;
+  popular: boolean;
+}
+
+const normalizeProduct = (p: RawProduct): ProductDTO => {
+  const onPromo = p.promoPrice != null && p.promoPrice < p.price;
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description ?? "",
+    price: p.price,
+    promo_price: p.promoPrice,
+    on_promo: onPromo,
+    effective_price: onPromo ? (p.promoPrice as number) : p.price,
+    image_url: p.imageUrl,
+    category: p.category,
+    stock: p.stock,
+    track_stock: p.trackStock,
+    in_stock: !p.trackStock || p.stock > 0,
+    active: p.active,
+    popular: p.popular,
+  };
+};
+
+export interface ProductInput {
+  name: string;
+  description?: string;
+  price: number;
+  promoPrice?: number | null;
+  category: string;
+  stock?: number;
+  trackStock?: boolean;
+  active?: boolean;
+  popular?: boolean;
+  image?: File | null;
+}
+
+const productForm = (input: Partial<ProductInput>): FormData => {
+  const form = new FormData();
+  if (input.name !== undefined) form.append("name", input.name);
+  if (input.description !== undefined) form.append("description", input.description);
+  if (input.price !== undefined) form.append("price", String(input.price));
+  if (input.promoPrice !== undefined && input.promoPrice !== null)
+    form.append("promoPrice", String(input.promoPrice));
+  if (input.promoPrice === null) form.append("promoPrice", "");
+  if (input.category !== undefined) form.append("category", input.category);
+  if (input.stock !== undefined) form.append("stock", String(input.stock));
+  if (input.trackStock !== undefined)
+    form.append("trackStock", String(input.trackStock));
+  if (input.active !== undefined) form.append("active", String(input.active));
+  if (input.popular !== undefined) form.append("popular", String(input.popular));
+  if (input.image) form.append("image", input.image);
+  return form;
+};
+
+export const productsApi = {
+  async listActive(): Promise<ProductDTO[]> {
+    const res = await apiRequest<Envelope<RawProduct[]>>("/products");
+    return res.data.map(normalizeProduct);
+  },
+  async listAll(): Promise<ProductDTO[]> {
+    const res = await apiRequest<Envelope<RawProduct[]>>("/products/all", {
+      auth: true,
+    });
+    return res.data.map(normalizeProduct);
+  },
+  async create(input: ProductInput): Promise<ProductDTO> {
+    const res = await apiRequest<Envelope<RawProduct>>("/products", {
+      method: "POST",
+      auth: true,
+      formData: productForm(input),
+    });
+    return normalizeProduct(res.data);
+  },
+  async update(id: string, input: Partial<ProductInput>): Promise<ProductDTO> {
+    const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`, {
+      method: "PUT",
+      auth: true,
+      formData: productForm(input),
+    });
+    return normalizeProduct(res.data);
+  },
+  async remove(id: string): Promise<void> {
+    await apiRequest<Envelope<null>>(`/products/${id}`, {
+      method: "DELETE",
+      auth: true,
+    });
+  },
+};
+
+export const productCategoriesApi = {
+  async listActive(): Promise<CategoryDTO[]> {
+    const res = await apiRequest<Envelope<CategoryDTO[]>>("/product-categories");
+    return res.data;
+  },
+  async listAll(): Promise<CategoryDTO[]> {
+    const res = await apiRequest<Envelope<CategoryDTO[]>>(
+      "/product-categories/all",
+      { auth: true },
+    );
+    return res.data;
+  },
+  async create(name: string): Promise<CategoryDTO> {
+    const res = await apiRequest<Envelope<CategoryDTO>>("/product-categories", {
+      method: "POST",
+      auth: true,
+      body: { name },
+    });
+    return res.data;
+  },
+  async update(
+    id: string,
+    input: { name?: string; active?: boolean; order?: number },
+  ): Promise<CategoryDTO> {
+    const res = await apiRequest<Envelope<CategoryDTO>>(
+      `/product-categories/${id}`,
+      { method: "PUT", auth: true, body: input },
+    );
+    return res.data;
+  },
+  async remove(id: string): Promise<void> {
+    await apiRequest<Envelope<null>>(`/product-categories/${id}`, {
+      method: "DELETE",
+      auth: true,
+    });
+  },
+};
+
+// ---------------- Commerce: cart ----------------
+
+export interface CartItemDTO {
+  product_id: string;
+  name: string;
+  unit_price: number;
+  image_url: string | null;
+  quantity: number;
+  line_total: number;
+  in_stock: boolean;
+  max_qty: number | null; // null when stock isn't tracked
+}
+
+export interface CartDTO {
+  items: CartItemDTO[];
+  subtotal: number;
+  count: number;
+}
+
+interface RawCart {
+  items: {
+    productId: string;
+    quantity: number;
+    product: {
+      id: string;
+      name: string;
+      price: number;
+      promoPrice: number | null;
+      imageUrl: string | null;
+      stock: number;
+      trackStock: boolean;
+      active: boolean;
+    };
+  }[];
+}
+
+const normalizeCart = (c: RawCart | null): CartDTO => {
+  const items = (c?.items ?? []).map((it) => {
+    const p = it.product;
+    const onPromo = p.promoPrice != null && p.promoPrice < p.price;
+    const unit = onPromo ? (p.promoPrice as number) : p.price;
+    return {
+      product_id: it.productId,
+      name: p.name,
+      unit_price: unit,
+      image_url: p.imageUrl,
+      quantity: it.quantity,
+      line_total: Math.round(unit * it.quantity * 100) / 100,
+      in_stock: p.active && (!p.trackStock || p.stock > 0),
+      max_qty: p.trackStock ? p.stock : null,
+    };
+  });
+  const subtotal =
+    Math.round(items.reduce((s, i) => s + i.line_total, 0) * 100) / 100;
+  const count = items.reduce((s, i) => s + i.quantity, 0);
+  return { items, subtotal, count };
+};
+
+export const cartApi = {
+  async getMine(): Promise<CartDTO> {
+    const res = await apiRequest<Envelope<RawCart | null>>("/cart", {
+      auth: true,
+    });
+    return normalizeCart(res.data);
+  },
+  async addItem(productId: string, quantity = 1): Promise<CartDTO> {
+    const res = await apiRequest<Envelope<RawCart>>("/cart/items", {
+      method: "POST",
+      auth: true,
+      body: { productId, quantity },
+    });
+    return normalizeCart(res.data);
+  },
+  async updateItem(productId: string, quantity: number): Promise<CartDTO> {
+    const res = await apiRequest<Envelope<RawCart>>("/cart/items", {
+      method: "PUT",
+      auth: true,
+      body: { productId, quantity },
+    });
+    return normalizeCart(res.data);
+  },
+  async removeItem(productId: string): Promise<CartDTO> {
+    const res = await apiRequest<Envelope<RawCart>>(
+      `/cart/items/${productId}`,
+      { method: "DELETE", auth: true },
+    );
+    return normalizeCart(res.data);
+  },
+  async clear(): Promise<CartDTO> {
+    const res = await apiRequest<Envelope<RawCart>>("/cart", {
+      method: "DELETE",
+      auth: true,
+    });
+    return normalizeCart(res.data);
+  },
+};
+
+// ---------------- Commerce: orders ----------------
+
+export type OrderStatus = "pending_payment" | "paid" | "fulfilled" | "cancelled";
+export type Fulfillment = "pickup" | "delivery";
+
+export interface OrderItemDTO {
+  name: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+}
+
+export interface OrderDTO {
+  id: string;
+  order_number: string;
+  status: OrderStatus;
+  fulfillment: Fulfillment;
+  delivery_address: string | null;
+  delivery_phone: string | null;
+  subtotal: number;
+  delivery_fee: number;
+  total: number;
+  reference: string | null;
+  paid_at: string | null;
+  created_at: string;
+  items: OrderItemDTO[];
+  customer_name?: string | null;
+  customer_email?: string | null;
+}
+
+interface RawOrder {
+  id: string;
+  orderNumber: string;
+  status: "PENDING_PAYMENT" | "PAID" | "FULFILLED" | "CANCELLED";
+  fulfillment: "PICKUP" | "DELIVERY";
+  deliveryAddress: string | null;
+  deliveryPhone: string | null;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  reference: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  items: { name: string; unitPrice: number; quantity: number }[];
+  user?: { email: string; profile?: { fullName: string | null } | null } | null;
+}
+
+const normalizeOrder = (o: RawOrder): OrderDTO => ({
+  id: o.id,
+  order_number: o.orderNumber,
+  status: o.status.toLowerCase() as OrderStatus,
+  fulfillment: o.fulfillment.toLowerCase() as Fulfillment,
+  delivery_address: o.deliveryAddress,
+  delivery_phone: o.deliveryPhone,
+  subtotal: o.subtotal,
+  delivery_fee: o.deliveryFee,
+  total: o.total,
+  reference: o.reference,
+  paid_at: o.paidAt,
+  created_at: o.createdAt,
+  items: o.items.map((i) => ({
+    name: i.name,
+    unit_price: i.unitPrice,
+    quantity: i.quantity,
+    line_total: Math.round(i.unitPrice * i.quantity * 100) / 100,
+  })),
+  customer_name: o.user?.profile?.fullName ?? null,
+  customer_email: o.user?.email ?? null,
+});
+
+export interface CheckoutInput {
+  fulfillment: "PICKUP" | "DELIVERY";
+  deliveryAddress?: string;
+  deliveryPhone?: string;
+}
+
+export interface CheckoutResult {
+  authorization_url: string;
+  reference: string;
+  order_id: string;
+  order_number: string;
+  total: number;
+}
+
+export const ordersApi = {
+  async checkout(input: CheckoutInput): Promise<CheckoutResult> {
+    const res = await apiRequest<
+      Envelope<{
+        authorizationUrl: string;
+        reference: string;
+        orderId: string;
+        orderNumber: string;
+        total: number;
+      }>
+    >("/orders/checkout", { method: "POST", auth: true, body: input });
+    return {
+      authorization_url: res.data.authorizationUrl,
+      reference: res.data.reference,
+      order_id: res.data.orderId,
+      order_number: res.data.orderNumber,
+      total: res.data.total,
+    };
+  },
+  async listMine(): Promise<OrderDTO[]> {
+    const res = await apiRequest<Envelope<RawOrder[]>>("/orders/me", {
+      auth: true,
+    });
+    return res.data.map(normalizeOrder);
+  },
+  async listAll(): Promise<OrderDTO[]> {
+    const res = await apiRequest<Envelope<RawOrder[]>>("/orders", {
+      auth: true,
+    });
+    return res.data.map(normalizeOrder);
+  },
+  async verify(reference: string): Promise<OrderDTO> {
+    const res = await apiRequest<Envelope<RawOrder>>(
+      `/orders/verify?reference=${encodeURIComponent(reference)}`,
+      { auth: true },
+    );
+    return normalizeOrder(res.data);
+  },
+  async updateStatus(id: string, status: OrderStatus): Promise<OrderDTO> {
+    const res = await apiRequest<Envelope<RawOrder>>(`/orders/${id}/status`, {
+      method: "PATCH",
+      auth: true,
+      body: { status: status.toUpperCase() },
+    });
+    return normalizeOrder(res.data);
+  },
+};
+
+// ---------------- Commerce: settings ----------------
+
+export interface CommerceSettingsDTO {
+  enabled: boolean;
+  enable_pickup: boolean;
+  enable_delivery: boolean;
+  delivery_fee: number;
+}
+
+interface RawCommerceSettings {
+  enabled: boolean;
+  enablePickup: boolean;
+  enableDelivery: boolean;
+  deliveryFee: number;
+}
+
+const normalizeCommerceSettings = (
+  s: RawCommerceSettings,
+): CommerceSettingsDTO => ({
+  enabled: s.enabled,
+  enable_pickup: s.enablePickup,
+  enable_delivery: s.enableDelivery,
+  delivery_fee: s.deliveryFee,
+});
+
+export const commerceApi = {
+  async getSettings(): Promise<CommerceSettingsDTO> {
+    const res = await apiRequest<Envelope<RawCommerceSettings>>(
+      "/commerce/settings",
+    );
+    return normalizeCommerceSettings(res.data);
+  },
+  async updateSettings(input: {
+    enabled?: boolean;
+    enablePickup?: boolean;
+    enableDelivery?: boolean;
+    deliveryFee?: number;
+  }): Promise<CommerceSettingsDTO> {
+    const res = await apiRequest<Envelope<RawCommerceSettings>>(
+      "/commerce/settings",
+      { method: "PUT", auth: true, body: input },
+    );
+    return normalizeCommerceSettings(res.data);
+  },
+};
+
 // ---------------- Reviews ----------------
 
 export interface ReviewDTO {
