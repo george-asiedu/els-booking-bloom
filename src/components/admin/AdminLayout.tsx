@@ -13,7 +13,8 @@ import {
   BarChart3,
   Phone,
   User,
-  Tag
+  Tag,
+  CreditCard
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const navItems = [
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
+  { name: "Payments", path: "/admin/payments", icon: CreditCard },
   { name: "Contact", path: "/admin/contact", icon: Phone },
 ];
 
