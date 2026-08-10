@@ -52,6 +52,23 @@ const statusConfig = {
   cancelled: { label: "Cancelled", variant: "destructive" as const, icon: XCircle },
 };
 
+// Receipt message the admin sends to the customer on WhatsApp.
+const buildReceiptMessage = (a: Appointment): string => {
+  const p = a.payment;
+  if (!p) return "";
+  const label = p.type === "partial" ? "Deposit paid" : "Amount paid";
+  const balanceLine = p.balance > 0 ? `Balance due at studio: GHS ${p.balance}\n` : "";
+  return (
+    `Hi ${a.full_name}, here's your payment receipt from El's Beauty Studio:\n\n` +
+    `Service: ${a.services?.name ?? "your service"}\n` +
+    `Date: ${a.appointment_date} at ${a.appointment_time}\n` +
+    `${label}: GHS ${p.amount}\n` +
+    balanceLine +
+    `Reference: ${p.reference ?? "—"}\n\n` +
+    `Thank you!`
+  );
+};
+
 const AdminAppointments = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const queryClient = useQueryClient();
@@ -174,6 +191,7 @@ const AdminAppointments = () => {
                   <TableHead>Service</TableHead>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Payment</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -266,6 +284,34 @@ const AdminAppointments = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        {(() => {
+                          const p = appointment.payment;
+                          if (!p || p.status === "pending") {
+                            return (
+                              <Badge variant="secondary">Payment pending</Badge>
+                            );
+                          }
+                          if (p.status === "paid") {
+                            return (
+                              <div className="space-y-0.5">
+                                <Badge className="bg-green-600 hover:bg-green-600">
+                                  {p.type === "partial" ? "Deposit paid" : "Paid"}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground">
+                                  GHS {p.amount}
+                                  {p.balance > 0 && ` · GHS ${p.balance} due`}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <Badge variant="destructive">
+                              {p.status === "failed" ? "Failed" : "Refunded"}
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex flex-col gap-2">
                           <Select
                             value={appointment.status}
@@ -304,6 +350,26 @@ const AdminAppointments = () => {
                               Notify
                             </a>
                           </Button>
+                          {appointment.payment?.status === "paid" && (
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              className="w-32 border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
+                            >
+                              <a
+                                href={whatsappLink(
+                                  appointment.phone,
+                                  buildReceiptMessage(appointment),
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <WhatsappIcon className="h-4 w-4 mr-1" />
+                                Send receipt
+                              </a>
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
