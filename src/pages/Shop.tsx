@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 
 const titleize = (slug: string) =>
   slug
@@ -45,6 +46,23 @@ const Shop = () => {
     queryFn: () => productCategoriesApi.listActive(),
   });
 
+  // Resume an add-to-cart a guest attempted before being sent to log in.
+  useEffect(() => {
+    if (user && user.role !== "ADMIN") {
+      const pid = takePendingCartAdd();
+      if (pid) {
+        cartApi
+          .addItem(pid, 1)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ["cart"] });
+            toast({ title: "Added to cart", description: "Picked up where you left off." });
+          })
+          .catch(() => {});
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const addMutation = useMutation({
     mutationFn: (productId: string) => cartApi.addItem(productId, 1),
     onMutate: (productId) => setAddingId(productId),
@@ -63,6 +81,7 @@ const Shop = () => {
 
   const handleAdd = (product: ProductDTO) => {
     if (!user) {
+      setPendingCartAdd(product.id);
       navigate("/login?redirect=/shop");
       return;
     }
@@ -187,7 +206,10 @@ const ProductGrid = ({ products, onAdd, addingId }: GridProps) => (
         className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow animate-fade-in flex flex-col"
         style={{ animationDelay: `${index * 40}ms` }}
       >
-        <div className="relative aspect-square bg-secondary flex items-center justify-center overflow-hidden">
+        <Link
+          to={`/shop/${product.id}`}
+          className="relative aspect-square bg-secondary flex items-center justify-center overflow-hidden"
+        >
           {product.image_url ? (
             <img
               src={product.image_url}
@@ -208,10 +230,14 @@ const ProductGrid = ({ products, onAdd, addingId }: GridProps) => (
               <Badge variant="secondary">Out of stock</Badge>
             </div>
           )}
-        </div>
+        </Link>
 
         <div className="p-4 flex flex-col flex-1">
-          <h3 className="font-semibold text-foreground">{product.name}</h3>
+          <Link to={`/shop/${product.id}`}>
+            <h3 className="font-semibold text-foreground hover:text-primary transition-colors">
+              {product.name}
+            </h3>
+          </Link>
           {product.description && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
               {product.description}
