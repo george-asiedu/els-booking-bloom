@@ -11,8 +11,10 @@ import Services from "./pages/Services";
 import Gallery from "./pages/Gallery";
 import Book from "./pages/Book";
 import Shop from "./pages/Shop";
+import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import OrderCallback from "./pages/OrderCallback";
+import BookingCallback from "./pages/BookingCallback";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
@@ -64,8 +66,10 @@ const App = () => (
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/book" element={<Book />} />
               <Route path="/shop" element={<Shop />} />
+              <Route path="/shop/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/order/callback" element={<OrderCallback />} />
+              <Route path="/booking/callback" element={<BookingCallback />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
