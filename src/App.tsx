@@ -27,6 +27,8 @@ import AdminReviews from "./pages/admin/AdminReviews";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminContact from "./pages/admin/AdminContact";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminPayments from "./pages/admin/AdminPayments";
+import PaymentCallback from "./pages/PaymentCallback";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +63,7 @@ const App = () => (
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/account" element={<Account />} />
               <Route path="/review" element={<Reviews />} />
+              <Route path="/payment/callback" element={<PaymentCallback />} />
               
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
@@ -125,6 +128,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <AdminContact />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/payments"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminPayments />
                   </ProtectedRoute>
                 }
               />
