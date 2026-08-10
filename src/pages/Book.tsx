@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle, Plus, Minus, ShoppingBag } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -40,6 +40,9 @@ import {
   contactInfoApi,
   accountApi,
   paymentsApi,
+  productsApi,
+  commerceApi,
+  ordersApi,
   AppointmentDTO,
 } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -89,6 +92,8 @@ const Book = () => {
   const [applyPoints, setApplyPoints] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"full" | "partial">("full");
   const [redirecting, setRedirecting] = useState(false);
+  // Products added to the booking: productId -> quantity.
+  const [addOns, setAddOns] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -136,6 +141,38 @@ const Book = () => {
       setPaymentMethod(paymentSettings.allow_full ? "full" : "partial");
     }
   }, [paymentSettings]);
+
+  // Product add-ons for the booking (only when the shop is enabled).
+  const { data: commerce } = useQuery({
+    queryKey: ["commerce-settings"],
+    queryFn: () => commerceApi.getSettings(),
+  });
+  const shopEnabled = commerce?.enabled ?? false;
+  const { data: products = [] } = useQuery({
+    queryKey: ["public-products"],
+    queryFn: () => productsApi.listActive(),
+    enabled: shopEnabled,
+  });
+
+  const addOnItems = Object.entries(addOns)
+    .map(([id, qty]) => {
+      const p = products.find((pr) => pr.id === id);
+      return p ? { product: p, qty } : null;
+    })
+    .filter((x): x is { product: (typeof products)[number]; qty: number } => !!x);
+  const productSubtotal = addOnItems.reduce(
+    (s, i) => s + i.product.effective_price * i.qty,
+    0,
+  );
+  const hasAddOns = addOnItems.length > 0;
+
+  const setAddOnQty = (id: string, qty: number) =>
+    setAddOns((prev) => {
+      const next = { ...prev };
+      if (qty <= 0) delete next[id];
+      else next[id] = qty;
+      return next;
+    });
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -210,6 +247,11 @@ const Book = () => {
   const depositAmount = Math.round(amountDue * (depositPercent / 100) * 100) / 100;
   const payNowAmount = paymentMethod === "partial" ? depositAmount : amountDue;
   const balanceAfterDeposit = Math.max(0, amountDue - depositAmount);
+  // Combined amount charged now when products are added (service due + products).
+  const bookingPayNow =
+    Math.round(
+      ((paymentEnabled ? payNowAmount : 0) + productSubtotal) * 100,
+    ) / 100;
 
   const bookingMutation = useMutation({
     mutationFn: (data: BookingFormValues) =>
@@ -229,8 +271,31 @@ const Book = () => {
       queryClient.invalidateQueries({ queryKey: ["loyalty-points", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["taken-slots"] });
 
-      // If online payment is required, hand off to Paystack now.
-      if (paymentEnabled) {
+      // Products added → one combined charge (service + products) via Paystack.
+      if (hasAddOns) {
+        try {
+          setRedirecting(true);
+          const res = await ordersApi.bookingCheckout({
+            appointmentId: appointment.id,
+            items: addOnItems.map((i) => ({
+              productId: i.product.id,
+              quantity: i.qty,
+            })),
+            serviceType: paymentMethod === "partial" ? "PARTIAL" : "FULL",
+          });
+          window.location.href = res.authorization_url;
+          return;
+        } catch (error) {
+          setRedirecting(false);
+          toast({
+            variant: "destructive",
+            title: "Couldn't start payment",
+            description:
+              error instanceof Error ? error.message : "Please try again.",
+          });
+        }
+      } else if (paymentEnabled) {
+        // Service-only online payment.
         try {
           setRedirecting(true);
           const init = await paymentsApi.initialize(
@@ -626,6 +691,77 @@ const Book = () => {
                   />
                 </div>
 
+                {/* Product add-ons */}
+                {shopEnabled && products.length > 0 && (
+                  <div className="space-y-2">
+                    <FormLabel className="flex items-center gap-2">
+                      <ShoppingBag className="h-4 w-4" />
+                      Add products (optional)
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Grab products to go with your appointment — paid together
+                      and collected at the studio.
+                    </p>
+                    <div className="space-y-2">
+                      {products.map((p) => {
+                        const qty = addOns[p.id] ?? 0;
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between rounded-md border border-border p-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {p.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                GHS {p.effective_price}
+                                {p.on_promo ? " (Promo)" : ""}
+                              </p>
+                            </div>
+                            {qty > 0 ? (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setAddOnQty(p.id, qty - 1)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-6 text-center text-sm">
+                                  {qty}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={p.track_stock && qty >= p.stock}
+                                  onClick={() => setAddOnQty(p.id, qty + 1)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={!p.in_stock}
+                                onClick={() => setAddOnQty(p.id, 1)}
+                              >
+                                {p.in_stock ? "Add" : "Out of stock"}
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Loyalty points discount + order summary */}
                 {selectedService && (
                   <div className="rounded-lg border border-border p-4 space-y-3 bg-secondary/40">
@@ -679,12 +815,63 @@ const Book = () => {
                     )}
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <span className="font-semibold text-foreground">
-                        Amount due
+                        {hasAddOns ? "Service" : "Amount due"}
                       </span>
-                      <span className="text-xl font-bold text-primary">
+                      <span
+                        className={
+                          hasAddOns
+                            ? "font-semibold text-foreground"
+                            : "text-xl font-bold text-primary"
+                        }
+                      >
                         GHS {amountDue}
                       </span>
                     </div>
+
+                    {/* Product add-ons */}
+                    {hasAddOns && (
+                      <>
+                        {addOnItems.map((i) => (
+                          <div
+                            key={i.product.id}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <span className="text-muted-foreground">
+                              {i.product.name}{" "}
+                              <span className="text-xs">x{i.qty}</span>
+                            </span>
+                            <span className="text-foreground">
+                              GHS{" "}
+                              {Math.round(
+                                i.product.effective_price * i.qty * 100,
+                              ) / 100}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="font-semibold text-foreground">
+                            Products
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            GHS {productSubtotal}
+                          </span>
+                        </div>
+                        {!paymentEnabled && (
+                          <p className="text-xs text-muted-foreground">
+                            The service is settled at the studio; products are
+                            paid now.
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="font-semibold text-foreground">
+                            You'll pay now
+                          </span>
+                          <span className="text-xl font-bold text-primary">
+                            GHS {bookingPayNow}
+                          </span>
+                        </div>
+                      </>
+                    )}
 
                     {/* Payment method — only when the admin requires payment. */}
                     {paymentEnabled && (
@@ -776,9 +963,11 @@ const Book = () => {
                   )}
                   {redirecting
                     ? "Redirecting to payment…"
-                    : paymentEnabled
-                      ? `Pay GHS ${payNowAmount} & Book`
-                      : "Request Appointment"}
+                    : hasAddOns
+                      ? `Pay GHS ${bookingPayNow} & Book`
+                      : paymentEnabled
+                        ? `Pay GHS ${payNowAmount} & Book`
+                        : "Request Appointment"}
                 </Button>
               </form>
             </Form>
