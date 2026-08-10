@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -38,6 +39,7 @@ import {
   appointmentsApi,
   contactInfoApi,
   accountApi,
+  paymentsApi,
   AppointmentDTO,
 } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -85,6 +87,8 @@ const Book = () => {
   const [designImage, setDesignImage] = useState<File | null>(null);
   const [designPreview, setDesignPreview] = useState<string | null>(null);
   const [applyPoints, setApplyPoints] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"full" | "partial">("full");
+  const [redirecting, setRedirecting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -116,6 +120,22 @@ const Book = () => {
     enabled: !!user,
   });
   const availablePoints = loyalty?.points ?? 0;
+
+  // Payment policy — controls whether the customer pays at booking.
+  const { data: paymentSettings } = useQuery({
+    queryKey: ["payment-settings"],
+    queryFn: () => paymentsApi.getSettings(),
+  });
+  const paymentEnabled =
+    !!paymentSettings?.enabled &&
+    (paymentSettings.allow_full || paymentSettings.allow_partial);
+
+  // Default the method to whatever the admin allows (full preferred).
+  useEffect(() => {
+    if (paymentSettings) {
+      setPaymentMethod(paymentSettings.allow_full ? "full" : "partial");
+    }
+  }, [paymentSettings]);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -185,6 +205,12 @@ const Book = () => {
   const effectiveApplyPoints = applyPoints && canUsePoints;
   const amountDue = servicePrice - (effectiveApplyPoints ? discount : 0);
 
+  // Payment split preview.
+  const depositPercent = paymentSettings?.deposit_percent ?? 50;
+  const depositAmount = Math.round(amountDue * (depositPercent / 100) * 100) / 100;
+  const payNowAmount = paymentMethod === "partial" ? depositAmount : amountDue;
+  const balanceAfterDeposit = Math.max(0, amountDue - depositAmount);
+
   const bookingMutation = useMutation({
     mutationFn: (data: BookingFormValues) =>
       appointmentsApi.create({
@@ -198,12 +224,35 @@ const Book = () => {
         design_image: designImage,
         apply_points: effectiveApplyPoints,
       }),
-    onSuccess: (appointment) => {
-      setBookedAppointment(appointment);
-      setIsSubmitted(true);
+    onSuccess: async (appointment) => {
       // Points were spent and this slot is now taken — refresh both.
       queryClient.invalidateQueries({ queryKey: ["loyalty-points", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["taken-slots"] });
+
+      // If online payment is required, hand off to Paystack now.
+      if (paymentEnabled) {
+        try {
+          setRedirecting(true);
+          const init = await paymentsApi.initialize(
+            appointment.id,
+            paymentMethod === "partial" ? "PARTIAL" : "FULL",
+          );
+          window.location.href = init.authorization_url;
+          return;
+        } catch (error) {
+          setRedirecting(false);
+          toast({
+            variant: "destructive",
+            title: "Couldn't start payment",
+            description:
+              (error instanceof Error ? error.message : "Please try again.") +
+              " Your booking is saved as payment pending.",
+          });
+        }
+      }
+
+      setBookedAppointment(appointment);
+      setIsSubmitted(true);
     },
     onError: (error) => {
       toast({
@@ -272,6 +321,61 @@ const Book = () => {
                   Book Another Appointment
                 </Button>
               </div>
+            </div>
+          </div>
+        </section>
+      </Layout>
+    );
+  }
+
+  // Booking is customer-only — guests must log in, admins can't book.
+  if (!user) {
+    return (
+      <Layout>
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="max-w-md mx-auto text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+                <CalendarIcon className="h-8 w-8 text-primary" />
+              </div>
+              <h1 className="text-3xl font-serif font-bold text-foreground mb-3">
+                Log in to book
+              </h1>
+              <p className="text-muted-foreground mb-6">
+                Appointments are for registered customers. Log in or create an
+                account to book, earn loyalty points and track your visits.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button asChild>
+                  <Link to="/login?redirect=/book">Log in</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/signup">Create an account</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </Layout>
+    );
+  }
+
+  if (user.role === "ADMIN") {
+    return (
+      <Layout>
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="max-w-md mx-auto text-center">
+              <h1 className="text-3xl font-serif font-bold text-foreground mb-3">
+                Admins can't book appointments
+              </h1>
+              <p className="text-muted-foreground mb-6">
+                Appointment booking is for customer accounts only. Log in with a
+                customer account to make a booking.
+              </p>
+              <Button asChild>
+                <Link to="/admin">Back to dashboard</Link>
+              </Button>
             </div>
           </div>
         </section>
@@ -581,6 +685,71 @@ const Book = () => {
                         GHS {amountDue}
                       </span>
                     </div>
+
+                    {/* Payment method — only when the admin requires payment. */}
+                    {paymentEnabled && (
+                      <div className="pt-3 border-t border-border space-y-3">
+                        <p className="text-sm font-medium text-foreground">
+                          Pay to confirm your booking
+                        </p>
+                        <div className="grid gap-2">
+                          {paymentSettings?.allow_full && (
+                            <button
+                              type="button"
+                              onClick={() => setPaymentMethod("full")}
+                              className={cn(
+                                "flex items-center justify-between rounded-md border p-3 text-left transition-colors",
+                                paymentMethod === "full"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50",
+                              )}
+                            >
+                              <span className="text-sm font-medium text-foreground">
+                                Pay in full
+                              </span>
+                              <span className="text-sm font-semibold text-primary">
+                                GHS {amountDue}
+                              </span>
+                            </button>
+                          )}
+                          {paymentSettings?.allow_partial && (
+                            <button
+                              type="button"
+                              onClick={() => setPaymentMethod("partial")}
+                              className={cn(
+                                "flex items-center justify-between rounded-md border p-3 text-left transition-colors",
+                                paymentMethod === "partial"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50",
+                              )}
+                            >
+                              <span className="text-sm font-medium text-foreground">
+                                Pay {depositPercent}% deposit
+                                <span className="block text-xs text-muted-foreground">
+                                  GHS {balanceAfterDeposit} due at the studio
+                                </span>
+                              </span>
+                              <span className="text-sm font-semibold text-primary">
+                                GHS {depositAmount}
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            You'll pay now
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            GHS {payNowAmount}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {!paymentEnabled && (
+                      <p className="text-xs text-muted-foreground">
+                        No payment needed to book — you'll settle at the studio.
+                      </p>
+                    )}
                     {onPromo && (
                       <p className="text-xs text-muted-foreground">
                         This service is on promo — loyalty points can't be applied.
@@ -594,9 +763,22 @@ const Book = () => {
                   </div>
                 )}
 
-                <Button type="submit" size="lg" className="w-full" disabled={bookingMutation.isPending || servicesLoading}>
-                  {bookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Request Appointment
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full"
+                  disabled={
+                    bookingMutation.isPending || servicesLoading || redirecting
+                  }
+                >
+                  {(bookingMutation.isPending || redirecting) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {redirecting
+                    ? "Redirecting to payment…"
+                    : paymentEnabled
+                      ? `Pay GHS ${payNowAmount} & Book`
+                      : "Request Appointment"}
                 </Button>
               </form>
             </Form>
