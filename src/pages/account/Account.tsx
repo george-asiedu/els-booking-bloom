@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
@@ -91,7 +91,9 @@ const PaymentBadge = ({ apt }: { apt: AppointmentDTO }) => {
 const Account = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const initialTab = searchParams.get("tab") || "appointments";
   const [payingId, setPayingId] = useState<string | null>(null);
 
   // Resume/complete a payment for an existing booking.
@@ -300,7 +302,7 @@ const Account = () => {
             </Card>
           </div>
 
-          <Tabs defaultValue="appointments" className="space-y-6">
+          <Tabs defaultValue={initialTab} className="space-y-6">
             <TabsList>
               <TabsTrigger value="appointments">
                 <Calendar className="h-4 w-4 mr-2" />
