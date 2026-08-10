@@ -50,6 +50,7 @@ interface ProductFormData {
   category: string;
   description: string;
   price: string;
+  costPrice: string;
   promoPrice: string;
   stock: string;
   trackStock: boolean;
@@ -61,6 +62,7 @@ const emptyForm: ProductFormData = {
   category: "",
   description: "",
   price: "",
+  costPrice: "",
   promoPrice: "",
   stock: "0",
   trackStock: true,
@@ -98,6 +100,7 @@ const AdminProducts = () => {
         category: data.category,
         description: data.description,
         price: parseFloat(data.price),
+        costPrice: data.costPrice.trim() ? parseFloat(data.costPrice) : 0,
         promoPrice: data.promoPrice.trim() ? parseFloat(data.promoPrice) : null,
         stock: parseInt(data.stock || "0", 10),
         trackStock: data.trackStock,
@@ -158,6 +161,7 @@ const AdminProducts = () => {
       category: p.category,
       description: p.description,
       price: p.price.toString(),
+      costPrice: p.cost_price ? p.cost_price.toString() : "",
       promoPrice: p.promo_price != null ? p.promo_price.toString() : "",
       stock: p.stock.toString(),
       trackStock: p.track_stock,
@@ -365,16 +369,32 @@ const AdminProducts = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="promoPrice">Promo (GHS, optional)</Label>
+                <Label htmlFor="costPrice">Cost price (GHS)</Label>
                 <Input
-                  id="promoPrice"
+                  id="costPrice"
                   type="number"
                   step="0.01"
                   min="0"
-                  value={form.promoPrice}
-                  onChange={(e) => setForm({ ...form, promoPrice: e.target.value })}
+                  placeholder="Your cost"
+                  value={form.costPrice}
+                  onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="promoPrice">Promo price (GHS, optional)</Label>
+              <Input
+                id="promoPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Leave empty for no promo"
+                value={form.promoPrice}
+                onChange={(e) => setForm({ ...form, promoPrice: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Profit (your commerce revenue) = selling price − cost price.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4 items-end">
               <div className="space-y-2">
