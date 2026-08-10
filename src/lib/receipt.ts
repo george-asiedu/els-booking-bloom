@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import { format } from "date-fns";
-import { AppointmentDTO, PaymentReceiptDTO } from "./api";
+import { AppointmentDTO, PaymentReceiptDTO, OrderDTO } from "./api";
 
 const BRAND = "El's Beauty Studio";
 const PINK: [number, number, number] = [190, 24, 93];
@@ -181,4 +181,109 @@ export const downloadReceipt = (data: ReceiptData) => {
   );
 
   doc.save(`receipt-${data.reference ?? "els"}.pdf`);
+};
+
+// Generate and download a branded PDF receipt for a product order.
+export const downloadOrderReceipt = (order: OrderDTO) => {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const left = 48;
+  const right = pageWidth - 48;
+  let y = 64;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(...PINK);
+  doc.text(BRAND, left, y);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(...GREY);
+  doc.text("Order Receipt", left, y + 20);
+
+  const issued = order.paid_at ? new Date(order.paid_at) : new Date(order.created_at);
+  doc.setFontSize(10);
+  doc.text(`Order: ${order.order_number}`, right, y, { align: "right" });
+  doc.text(`Issued: ${format(issued, "MMM d, yyyy")}`, right, y + 15, {
+    align: "right",
+  });
+
+  y += 44;
+  doc.setDrawColor(...PINK);
+  doc.setLineWidth(1.5);
+  doc.line(left, y, right, y);
+
+  // Fulfillment
+  y += 26;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...DARK);
+  doc.text("Fulfillment", left, y);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...GREY);
+  doc.text(
+    order.fulfillment === "delivery" ? "Delivery" : "Pickup at studio",
+    right,
+    y,
+    { align: "right" },
+  );
+  if (order.fulfillment === "delivery" && order.delivery_address) {
+    y += 16;
+    doc.text(order.delivery_address, right, y, { align: "right" });
+  }
+
+  // Items
+  y += 30;
+  doc.setDrawColor(229, 231, 235);
+  doc.setLineWidth(1);
+  doc.line(left, y, right, y);
+  y += 22;
+
+  const money = (n: number) => `GHS ${n.toLocaleString()}`;
+  doc.setFontSize(11);
+  order.items.forEach((it) => {
+    doc.setTextColor(...DARK);
+    doc.text(`${it.name}  x${it.quantity}`, left, y);
+    doc.text(money(it.line_total), right, y, { align: "right" });
+    y += 22;
+  });
+
+  // Totals
+  y += 6;
+  doc.setDrawColor(229, 231, 235);
+  doc.line(left, y, right, y);
+  y += 24;
+  doc.setTextColor(...GREY);
+  doc.text("Subtotal", left, y);
+  doc.setTextColor(...DARK);
+  doc.text(money(order.subtotal), right, y, { align: "right" });
+  y += 22;
+  if (order.delivery_fee > 0) {
+    doc.setTextColor(...GREY);
+    doc.text("Delivery", left, y);
+    doc.setTextColor(...DARK);
+    doc.text(money(order.delivery_fee), right, y, { align: "right" });
+    y += 22;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...PINK);
+  doc.text("Total", left, y);
+  doc.text(money(order.total), right, y, { align: "right" });
+
+  y += 30;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(22, 163, 74);
+  doc.text(`STATUS: ${order.status.toUpperCase()}`, left, y);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(...GREY);
+  doc.text(`Reference: ${order.reference ?? "—"}`, left, y + 18);
+  doc.text(
+    "Thank you for shopping with El's Beauty Studio.",
+    left,
+    doc.internal.pageSize.getHeight() - 56,
+  );
+
+  doc.save(`order-${order.order_number}.pdf`);
 };
