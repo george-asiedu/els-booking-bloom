@@ -203,22 +203,22 @@ const Account = () => {
     <Layout>
       <section className="py-16 bg-secondary">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Avatar className="w-16 h-16">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4 min-w-0">
+              <Avatar className="w-16 h-16 shrink-0">
                 <AvatarImage src={profile?.avatar_url || undefined} alt="Avatar" />
                 <AvatarFallback className="bg-primary/10">
                   <User className="h-8 w-8 text-primary" />
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <h1 className="text-2xl font-serif font-bold text-foreground">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-serif font-bold text-foreground truncate">
                   {profileLoading ? <Skeleton className="h-8 w-40" /> : profile?.full_name || "My Account"}
                 </h1>
-                <p className="text-muted-foreground">{profile?.email || user.email}</p>
+                <p className="text-muted-foreground truncate">{profile?.email || user.email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               {shopEnabled && (
                 <Button variant="outline" asChild>
                   <Link to="/shop">
@@ -303,7 +303,7 @@ const Account = () => {
           </div>
 
           <Tabs defaultValue={initialTab} className="space-y-6">
-            <TabsList>
+            <TabsList className="flex w-full flex-wrap h-auto sm:inline-flex sm:w-auto sm:flex-nowrap">
               <TabsTrigger value="appointments">
                 <Calendar className="h-4 w-4 mr-2" />
                 Appointments
