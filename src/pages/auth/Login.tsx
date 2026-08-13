@@ -34,6 +34,7 @@ const Login = () => {
   const { signIn } = useAuth();
   
   const redirectTo = searchParams.get("redirect") || "/account";
+  const expired = searchParams.get("expired") === "1";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -82,6 +83,11 @@ const Login = () => {
               <p className="text-muted-foreground">
                 Sign in to view your appointments and rewards
               </p>
+              {expired && (
+                <p className="mt-3 text-sm rounded-md border border-destructive/30 bg-destructive/10 text-destructive px-3 py-2">
+                  Your session expired. Sign in again to pick up where you left off.
+                </p>
+              )}
             </div>
 
             <div className="bg-card border border-border rounded-lg p-6">
