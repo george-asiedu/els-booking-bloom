@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -21,9 +21,10 @@ import { Layout } from "@/components/layout/Layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { productsApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
+import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { setPendingCartAdd } from "@/lib/pendingCart";
+import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 
 const ProductDetail = () => {
   const { id = "" } = useParams();
@@ -61,13 +62,39 @@ const ProductDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast({ title: "Added to cart", description: `${product?.name} × ${qty}` });
     },
-    onError: (e) =>
+    onError: (e) => {
+      // Session expired: stash the item so it's added right after re-login;
+      // SessionGuard shows the message and redirects back to this page.
+      if (e instanceof ApiError && e.status === 401) {
+        setPendingCartAdd(id);
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Couldn't add to cart",
         description: e instanceof Error ? e.message : "Please try again.",
-      }),
+      });
+    },
   });
+
+  // Resume an add-to-cart attempted before being sent to log in (guest or an
+  // expired session), once the customer is back and authenticated.
+  useEffect(() => {
+    if (!isCustomer) return;
+    const pid = takePendingCartAdd();
+    if (!pid) return;
+    cartApi
+      .addItem(pid, 1)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        toast({
+          title: "Added to cart",
+          description: "Picked up where you left off.",
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCustomer]);
 
   const handleAddToCart = () => {
     if (!user) {
