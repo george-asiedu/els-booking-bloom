@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { SessionGuard } from "@/components/SessionGuard";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Gallery from "./pages/Gallery";
@@ -62,6 +63,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <SessionGuard />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/services" element={<Services />} />
