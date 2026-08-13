@@ -56,6 +56,16 @@ export class ApiError extends Error {
   }
 }
 
+// Global handler invoked once when an authenticated request comes back 401 —
+// i.e. the access token has expired or been invalidated. The app registers a
+// handler (see SessionGuard) that signs the user out and sends them to the
+// login screen so they can re-authenticate and resume what they were doing.
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+export const setUnauthorizedHandler = (fn: UnauthorizedHandler | null) => {
+  unauthorizedHandler = fn;
+};
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
@@ -93,6 +103,13 @@ export async function apiRequest<T>(
   }
 
   if (!res.ok) {
+    // An expired/invalid token on an authenticated request: the refresh flow
+    // couldn't renew it, so clear the dead session and let the app redirect to
+    // login. Guarded on `token` so failed logins (no token) don't trigger it.
+    if (res.status === 401 && auth && token) {
+      tokenStore.clear();
+      unauthorizedHandler?.();
+    }
     const message =
       (json as { message?: string } | null)?.message ||
       `Request failed with status ${res.status}`;
