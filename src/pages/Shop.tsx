@@ -14,6 +14,7 @@ import {
   cartApi,
   ProductDTO,
 } from "@/lib/api";
+import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
@@ -70,12 +71,19 @@ const Shop = () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast({ title: "Added to cart", description: "Item added to your cart." });
     },
-    onError: (error) =>
+    onError: (error, productId) => {
+      // Session expired: remember the item so it's added right after re-login;
+      // SessionGuard shows the "session expired" message and redirects.
+      if (error instanceof ApiError && error.status === 401) {
+        setPendingCartAdd(productId);
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Couldn't add to cart",
         description: error instanceof Error ? error.message : "Please try again.",
-      }),
+      });
+    },
     onSettled: () => setAddingId(null),
   });
 
