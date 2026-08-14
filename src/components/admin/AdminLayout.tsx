@@ -17,12 +17,14 @@ import {
   CreditCard,
   ShoppingBag,
   Package,
-  Store
+  Store,
+  Palette
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useStudio } from "@/hooks/useStudio";
 import { profileApi } from "@/lib/api";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -39,6 +41,7 @@ const navItems = [
   { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
+  { name: "Appearance", path: "/admin/appearance", icon: Palette },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
   { name: "Products", path: "/admin/products", icon: ShoppingBag },
   { name: "Product Categories", path: "/admin/product-categories", icon: Tag },
@@ -52,6 +55,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { name: studioName } = useStudio();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { data: profile } = useQuery({
@@ -82,7 +86,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             <Link to="/admin" className="flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-primary" />
               <span className="text-lg font-serif font-semibold hidden sm:inline">
-                El's Beauty Studio
+                {studioName}
               </span>
               <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
                 Admin
