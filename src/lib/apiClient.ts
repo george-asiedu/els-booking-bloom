@@ -7,6 +7,7 @@ const API_URL: string =
 
 const TOKEN_KEY = "els_token";
 const USER_KEY = "els_user";
+const STUDIO_SLUG_KEY = "els_studio_slug";
 
 export interface AuthUser {
   id: string;
@@ -36,6 +37,22 @@ export const tokenStore = {
   clear() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+  },
+};
+
+// The studio (tenant) the app is currently acting within. Normally empty — the
+// server falls back to its default studio slug — but it's set when a super admin
+// impersonates a studio, and (later) will be derived from the subdomain. When
+// present it's sent as the X-Studio-Slug header so the API scopes to it.
+export const studioStore = {
+  getSlug(): string | null {
+    return localStorage.getItem(STUDIO_SLUG_KEY);
+  },
+  setSlug(slug: string) {
+    localStorage.setItem(STUDIO_SLUG_KEY, slug);
+  },
+  clear() {
+    localStorage.removeItem(STUDIO_SLUG_KEY);
   },
 };
 
@@ -76,6 +93,13 @@ export async function apiRequest<T>(
   const token = tokenStore.getToken();
   if (auth && token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Scope the request to a specific studio when one is active (e.g. during
+  // super-admin impersonation). Absent, the server uses its default studio.
+  const studioSlug = studioStore.getSlug();
+  if (studioSlug) {
+    headers["X-Studio-Slug"] = studioSlug;
   }
 
   let payload: BodyInit | undefined;
