@@ -34,6 +34,7 @@ import AdminGallery from "./pages/admin/AdminGallery";
 import AdminHours from "./pages/admin/AdminHours";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminAppearance from "./pages/admin/AdminAppearance";
+import AdminFeatureRequests from "./pages/admin/AdminFeatureRequests";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminContact from "./pages/admin/AdminContact";
 import AdminCategories from "./pages/admin/AdminCategories";
@@ -49,6 +50,7 @@ import PlatformLogin from "./pages/platform/PlatformLogin";
 import PlatformDashboard from "./pages/platform/PlatformDashboard";
 import PlatformStudioNew from "./pages/platform/PlatformStudioNew";
 import PlatformStudioDetail from "./pages/platform/PlatformStudioDetail";
+import PlatformRequests from "./pages/platform/PlatformRequests";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -187,6 +189,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/admin/feature-requests"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminFeatureRequests />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/analytics"
                 element={
                   <ProtectedRoute requireAdmin>
@@ -274,6 +284,14 @@ const App = () => (
                   element={
                     <PlatformProtectedRoute>
                       <PlatformStudioDetail />
+                    </PlatformProtectedRoute>
+                  }
+                />
+                <Route
+                  path="requests"
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformRequests />
                     </PlatformProtectedRoute>
                   }
                 />
