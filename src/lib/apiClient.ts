@@ -40,13 +40,36 @@ export const tokenStore = {
   },
 };
 
-// The studio (tenant) the app is currently acting within. Normally empty — the
-// server falls back to its default studio slug — but it's set when a super admin
-// impersonates a studio, and (later) will be derived from the subdomain. When
-// present it's sent as the X-Studio-Slug header so the API scopes to it.
+// Root domain of the platform (e.g. "app.example.com"). When set, a request to
+// "<slug>.app.example.com" resolves to that studio's slug. Left empty in local
+// dev, where the slug comes from impersonation or the server default instead.
+const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)
+  ?.trim()
+  .toLowerCase();
+
+// Derive the studio slug from the current subdomain, if this host is a studio
+// subdomain of ROOT_DOMAIN. Computed once at load — the host doesn't change
+// without a full navigation.
+const subdomainSlug = (() => {
+  if (!ROOT_DOMAIN || typeof window === "undefined") return null;
+  const host = window.location.hostname.toLowerCase();
+  if (host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) return null;
+  if (host.endsWith(`.${ROOT_DOMAIN}`)) {
+    const sub = host.slice(0, -(ROOT_DOMAIN.length + 1));
+    // Only the left-most label; ignore "www" and nested subdomains.
+    const label = sub.split(".")[0];
+    if (label && label !== "www") return label;
+  }
+  return null;
+})();
+
+// The studio (tenant) the app is acting within. The subdomain wins when present
+// (production multi-studio hosting); otherwise it's whatever was stored — set
+// when a super admin impersonates a studio. Empty means the server falls back to
+// its default studio. When resolved it's sent as the X-Studio-Slug header.
 export const studioStore = {
   getSlug(): string | null {
-    return localStorage.getItem(STUDIO_SLUG_KEY);
+    return subdomainSlug ?? localStorage.getItem(STUDIO_SLUG_KEY);
   },
   setSlug(slug: string) {
     localStorage.setItem(STUDIO_SLUG_KEY, slug);
