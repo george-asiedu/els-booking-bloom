@@ -246,6 +246,50 @@ export const authApi = {
   },
 };
 
+// ---------------- Studio (storefront branding/content/features) ----------------
+
+export interface StudioFeatureFlags {
+  commerce: boolean;
+  loyalty: boolean;
+  referrals: boolean;
+  reviews: boolean;
+  gallery: boolean;
+  onlinePayments: boolean;
+  productsInBooking: boolean;
+}
+
+export interface StudioFeatureCard {
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface StudioConfigDTO {
+  name: string;
+  slug: string;
+  branding: {
+    logoUrl: string | null;
+    primaryColor: string | null;
+    accentColor: string | null;
+    fontFamily: string | null;
+  };
+  content: {
+    heroHeadline: string | null;
+    heroSubtext: string | null;
+    aboutText: string | null;
+    featureCards: StudioFeatureCard[] | null;
+    showTestimonials: boolean;
+  };
+  settings: StudioFeatureFlags;
+}
+
+export const studioApi = {
+  async getConfig(): Promise<StudioConfigDTO> {
+    const res = await apiRequest<Envelope<StudioConfigDTO>>("/studio");
+    return res.data;
+  },
+};
+
 // ---------------- Services ----------------
 
 export interface ServiceInput {
