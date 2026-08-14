@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
+import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SessionGuard } from "@/components/SessionGuard";
@@ -62,6 +63,7 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+   <StudioProvider>
     <AuthProvider>
       <ThemeProvider>
         <TooltipProvider>
@@ -239,6 +241,7 @@ const App = () => (
         </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
+   </StudioProvider>
   </QueryClientProvider>
 );
 
