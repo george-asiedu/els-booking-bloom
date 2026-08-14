@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
+import { useStudio } from "@/hooks/useStudio";
 import {
   profileApi,
   appointmentsApi,
@@ -90,6 +91,7 @@ const PaymentBadge = ({ apt }: { apt: AppointmentDTO }) => {
 
 const Account = () => {
   const { user, signOut } = useAuth();
+  const { features } = useStudio();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -151,7 +153,7 @@ const Account = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const shopEnabled = commerce?.enabled ?? false;
+  const shopEnabled = features.commerce && (commerce?.enabled ?? false);
 
   const { data: orders = [] } = useQuery({
     queryKey: ["my-orders", user?.id],
@@ -245,6 +247,7 @@ const Account = () => {
         <div className="container mx-auto px-4">
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {features.loyalty && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -261,6 +264,7 @@ const Account = () => {
                 </p>
               </CardContent>
             </Card>
+            )}
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -279,6 +283,7 @@ const Account = () => {
               </CardContent>
             </Card>
 
+            {features.referrals && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -300,6 +305,7 @@ const Account = () => {
                 </p>
               </CardContent>
             </Card>
+            )}
           </div>
 
           <Tabs defaultValue={initialTab} className="space-y-6">
@@ -308,18 +314,22 @@ const Account = () => {
                 <Calendar className="h-4 w-4 mr-2" />
                 Appointments
               </TabsTrigger>
-              <TabsTrigger value="orders">
-                <Package className="h-4 w-4 mr-2" />
-                Orders
-              </TabsTrigger>
+              {features.commerce && (
+                <TabsTrigger value="orders">
+                  <Package className="h-4 w-4 mr-2" />
+                  Orders
+                </TabsTrigger>
+              )}
               <TabsTrigger value="transactions">
                 <Receipt className="h-4 w-4 mr-2" />
                 Transactions
               </TabsTrigger>
-              <TabsTrigger value="rewards">
-                <Gift className="h-4 w-4 mr-2" />
-                Rewards
-              </TabsTrigger>
+              {(features.loyalty || features.referrals) && (
+                <TabsTrigger value="rewards">
+                  <Gift className="h-4 w-4 mr-2" />
+                  Rewards
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="appointments" className="space-y-6">
@@ -421,7 +431,7 @@ const Account = () => {
                               <Badge className={statusColors[apt.status]}>
                                 {apt.status}
                               </Badge>
-                              {apt.status === "completed" && (
+                              {features.reviews && apt.status === "completed" && (
                                 <Button variant="outline" size="sm" asChild>
                                   <Link
                                     to={`/review?appointment=${apt.id}${
@@ -443,6 +453,7 @@ const Account = () => {
               )}
             </TabsContent>
 
+            {features.commerce && (
             <TabsContent value="orders" className="space-y-6">
               {/* Current cart */}
               {cart && cart.items.length > 0 && (
@@ -550,6 +561,7 @@ const Account = () => {
                 )}
               </div>
             </TabsContent>
+            )}
 
             <TabsContent value="transactions" className="space-y-6">
               <div>
@@ -651,7 +663,10 @@ const Account = () => {
               </div>
             </TabsContent>
 
+            {(features.loyalty || features.referrals) && (
             <TabsContent value="rewards" className="space-y-6">
+              {features.loyalty && (
+              <>
               {/* Points Info */}
               <Card className="bg-gradient-to-r from-primary/10 to-accent">
                 <CardContent className="py-6">
@@ -701,7 +716,11 @@ const Account = () => {
                 </CardContent>
               </Card>
 
+              </>
+              )}
+
               {/* Referral Card */}
+              {features.referrals && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -721,9 +740,10 @@ const Account = () => {
                   </div>
                 </CardContent>
               </Card>
+              )}
 
               {/* Recent Transactions */}
-              {loyaltyTransactions.length > 0 && (
+              {features.loyalty && loyaltyTransactions.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Points History</CardTitle>
@@ -748,6 +768,7 @@ const Account = () => {
                 </Card>
               )}
             </TabsContent>
+            )}
           </Tabs>
         </div>
       </section>
