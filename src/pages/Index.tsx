@@ -1,11 +1,25 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles, Clock, Star, Heart, ShoppingBag } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  Clock,
+  Star,
+  Heart,
+  ShoppingBag,
+  Award,
+  Gem,
+  Palette,
+  Smile,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
 import { TestimonialsSection } from "@/components/reviews/TestimonialsSection";
 import { services as staticServices } from "@/data/services";
 import { servicesApi, commerceApi, productsApi } from "@/lib/api";
+import { useStudio } from "@/hooks/useStudio";
 import heroImage from "@/assets/hero-beauty.jpg";
 import nails1 from "@/assets/gallery/nails-1.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
@@ -16,7 +30,47 @@ const titleize = (slug: string) =>
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
     .join(" ");
 
+// Named icons a studio can reference in its feature cards.
+const FEATURE_ICONS: Record<string, LucideIcon> = {
+  star: Star,
+  clock: Clock,
+  heart: Heart,
+  sparkles: Sparkles,
+  award: Award,
+  gem: Gem,
+  palette: Palette,
+  smile: Smile,
+  shield: ShieldCheck,
+};
+
+const DEFAULT_FEATURE_CARDS = [
+  {
+    icon: "star",
+    title: "Quality First",
+    description: "Using only premium products for results that last",
+  },
+  {
+    icon: "clock",
+    title: "Flexible Booking",
+    description: "Easy online scheduling that fits your busy life",
+  },
+  {
+    icon: "heart",
+    title: "Personal Touch",
+    description: "Customized designs tailored to your style",
+  },
+];
+
 const Index = () => {
+  const { name: studioName, config } = useStudio();
+  const heroHeadline = config?.content.heroHeadline;
+  const heroSubtext = config?.content.heroSubtext;
+  const showTestimonials = config?.content.showTestimonials ?? true;
+  const featureCards =
+    config?.content.featureCards && config.content.featureCards.length > 0
+      ? config.content.featureCards
+      : DEFAULT_FEATURE_CARDS;
+
   // Featured services come from the live catalog; fall back to the static menu.
   const { data: apiServices } = useQuery({
     queryKey: ["public-services-catalog"],
@@ -59,20 +113,25 @@ const Index = () => {
             <div className="flex items-center gap-2 mb-6 animate-fade-in">
               <Sparkles className="h-5 w-5 text-primary" />
               <span className="text-sm font-medium text-primary uppercase tracking-wider">
-                Welcome to El's Beauty Studio
+                Welcome to {studioName}
               </span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-serif font-bold text-foreground mb-6 animate-fade-in [animation-delay:100ms]">
-              Where Beauty
-              <br />
-              <span className="text-primary">Meets Artistry</span>
-            </h1>
+            {heroHeadline ? (
+              <h1 className="text-4xl md:text-6xl font-serif font-bold text-foreground mb-6 animate-fade-in [animation-delay:100ms]">
+                {heroHeadline}
+              </h1>
+            ) : (
+              <h1 className="text-4xl md:text-6xl font-serif font-bold text-foreground mb-6 animate-fade-in [animation-delay:100ms]">
+                Where Beauty
+                <br />
+                <span className="text-primary">Meets Artistry</span>
+              </h1>
+            )}
 
             <p className="text-lg text-muted-foreground mb-8 animate-fade-in [animation-delay:200ms]">
-              Specializing in stunning nail art, luxurious lash extensions and
-              statement hairstyling. Let me help you feel confident and beautiful,
-              one appointment at a time.
+              {heroSubtext ||
+                "Specializing in stunning nail art, luxurious lash extensions and statement hairstyling. Let me help you feel confident and beautiful, one appointment at a time."}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 animate-fade-in [animation-delay:300ms]">
@@ -102,37 +161,24 @@ const Index = () => {
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Star,
-                title: "Quality First",
-                description: "Using only premium products for results that last",
-              },
-              {
-                icon: Clock,
-                title: "Flexible Booking",
-                description: "Easy online scheduling that fits your busy life",
-              },
-              {
-                icon: Heart,
-                title: "Personal Touch",
-                description: "Customized designs tailored to your style",
-              },
-            ].map((feature, index) => (
-              <div
-                key={feature.title}
-                className="flex flex-col items-center text-center p-6 animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-primary" />
+            {featureCards.map((feature, index) => {
+              const Icon = FEATURE_ICONS[feature.icon?.toLowerCase() ?? ""] ?? Sparkles;
+              return (
+                <div
+                  key={`${feature.title}-${index}`}
+                  className="flex flex-col items-center text-center p-6 animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center mb-4">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground">{feature.description}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -317,7 +363,7 @@ const Index = () => {
       </section>
 
       {/* Testimonials Section */}
-      <TestimonialsSection />
+      {showTestimonials && <TestimonialsSection />}
 
       {/* CTA Section */}
       <section className="py-20">
