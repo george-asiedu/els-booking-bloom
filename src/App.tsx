@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
@@ -40,6 +40,12 @@ import AdminProductCategories from "./pages/admin/AdminProductCategories";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCommerce from "./pages/admin/AdminCommerce";
 import PaymentCallback from "./pages/PaymentCallback";
+import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
+import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
+import PlatformLogin from "./pages/platform/PlatformLogin";
+import PlatformDashboard from "./pages/platform/PlatformDashboard";
+import PlatformStudioNew from "./pages/platform/PlatformStudioNew";
+import PlatformStudioDetail from "./pages/platform/PlatformStudioDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -190,6 +196,42 @@ const App = () => (
                 }
               />
               
+              {/* Platform (super-admin) Routes — own auth session */}
+              <Route
+                path="/platform"
+                element={
+                  <PlatformAuthProvider>
+                    <Outlet />
+                  </PlatformAuthProvider>
+                }
+              >
+                <Route path="login" element={<PlatformLogin />} />
+                <Route
+                  index
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformDashboard />
+                    </PlatformProtectedRoute>
+                  }
+                />
+                <Route
+                  path="studios/new"
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformStudioNew />
+                    </PlatformProtectedRoute>
+                  }
+                />
+                <Route
+                  path="studios/:id"
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformStudioDetail />
+                    </PlatformProtectedRoute>
+                  }
+                />
+              </Route>
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
