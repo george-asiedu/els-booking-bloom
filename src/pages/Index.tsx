@@ -62,7 +62,7 @@ const DEFAULT_FEATURE_CARDS = [
 ];
 
 const Index = () => {
-  const { name: studioName, config } = useStudio();
+  const { name: studioName, config, features } = useStudio();
   const heroHeadline = config?.content.heroHeadline;
   const heroSubtext = config?.content.heroSubtext;
   const showTestimonials = config?.content.showTestimonials ?? true;
@@ -85,7 +85,7 @@ const Index = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const shopEnabled = commerce?.enabled ?? false;
+  const shopEnabled = features.commerce && (commerce?.enabled ?? false);
 
   const { data: products = [] } = useQuery({
     queryKey: ["public-products"],
@@ -323,6 +323,7 @@ const Index = () => {
       )}
 
       {/* Gallery Preview */}
+      {features.gallery && (
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -361,9 +362,10 @@ const Index = () => {
           </div>
         </div>
       </section>
+      )}
 
       {/* Testimonials Section */}
-      {showTestimonials && <TestimonialsSection />}
+      {features.reviews && showTestimonials && <TestimonialsSection />}
 
       {/* CTA Section */}
       <section className="py-20">
