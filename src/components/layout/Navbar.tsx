@@ -22,7 +22,7 @@ export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
-  const { name: studioName, config } = useStudio();
+  const { name: studioName, config, features } = useStudio();
   const logoUrl = config?.branding.logoUrl ?? null;
 
   // Hide the shop entirely when the admin has disabled it.
@@ -30,10 +30,14 @@ export const Navbar = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const shopEnabled = commerce?.enabled ?? true;
-  const visibleLinks = navLinks.filter(
-    (l) => l.path !== "/shop" || shopEnabled,
-  );
+  // A module is visible only when the studio's feature flag allows it (and, for
+  // the shop, when the studio has also turned commerce on in its settings).
+  const shopEnabled = features.commerce && (commerce?.enabled ?? true);
+  const visibleLinks = navLinks.filter((l) => {
+    if (l.path === "/shop") return shopEnabled;
+    if (l.path === "/gallery") return features.gallery;
+    return true;
+  });
 
   // Show a cart icon with a live item count for logged-in customers.
   const isCustomer = !!user && user.role !== "ADMIN";
