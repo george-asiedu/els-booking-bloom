@@ -61,6 +61,14 @@ export interface StudioBranding {
 const PRIMARY_VARS = ["--primary", "--primary-foreground", "--ring", "--rose"];
 const ACCENT_VARS = ["--accent", "--accent-foreground"];
 
+// Fonts already @imported in index.css — a studio can pick one of these and it
+// renders without loading anything extra. Unknown names fall back to sans.
+const KNOWN_FONTS: Record<string, string> = {
+  inter: "'Inter', sans-serif",
+  lora: "'Lora', serif",
+  "space mono": "'Space Mono', monospace",
+};
+
 /**
  * Apply (or clear) a studio's brand colors on the document root. Primary drives
  * buttons/links/rings; accent drives the soft highlight backgrounds. Foreground
@@ -96,5 +104,13 @@ export const applyStudioTheme = (branding?: StudioBranding | null) => {
     );
   } else {
     ACCENT_VARS.forEach((v) => root.style.removeProperty(v));
+  }
+
+  const font = branding?.fontFamily?.trim();
+  if (font) {
+    const stack = KNOWN_FONTS[font.toLowerCase()] || `'${font}', sans-serif`;
+    document.body.style.fontFamily = stack;
+  } else {
+    document.body.style.removeProperty("font-family");
   }
 };
