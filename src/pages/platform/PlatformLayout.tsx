@@ -1,12 +1,19 @@
 import { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { LayoutGrid, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LayoutGrid, LogOut, Building2, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
+
+const navItems = [
+  { name: "Studios", path: "/platform", icon: Building2 },
+  { name: "Requests", path: "/platform/requests", icon: Lightbulb },
+];
 
 export const PlatformLayout = ({ children }: { children: ReactNode }) => {
   const { user, signOut } = usePlatformAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = () => {
     signOut();
@@ -37,6 +44,29 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
               Sign out
             </Button>
           </div>
+        </div>
+        <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 pb-2">
+          {navItems.map((item) => {
+            const active =
+              item.path === "/platform"
+                ? location.pathname === "/platform"
+                : location.pathname.startsWith(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.name}
+              </Link>
+            );
+          })}
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
