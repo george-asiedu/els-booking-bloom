@@ -9,6 +9,7 @@ import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SessionGuard } from "@/components/SessionGuard";
+import { FeatureRoute } from "@/components/FeatureRoute";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Gallery from "./pages/Gallery";
@@ -76,11 +77,39 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/services" element={<Services />} />
-              <Route path="/gallery" element={<Gallery />} />
+              <Route
+                path="/gallery"
+                element={
+                  <FeatureRoute feature="gallery">
+                    <Gallery />
+                  </FeatureRoute>
+                }
+              />
               <Route path="/book" element={<Book />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/shop/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
+              <Route
+                path="/shop"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Shop />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/shop/:id"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <ProductDetail />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Cart />
+                  </FeatureRoute>
+                }
+              />
               <Route path="/order/callback" element={<OrderCallback />} />
               <Route path="/booking/callback" element={<BookingCallback />} />
               <Route path="/contact" element={<Contact />} />
@@ -89,7 +118,14 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/account" element={<Account />} />
-              <Route path="/review" element={<Reviews />} />
+              <Route
+                path="/review"
+                element={
+                  <FeatureRoute feature="reviews">
+                    <Reviews />
+                  </FeatureRoute>
+                }
+              />
               <Route path="/payment/callback" element={<PaymentCallback />} />
               
               {/* Admin Routes */}
