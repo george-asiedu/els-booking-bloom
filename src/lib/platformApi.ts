@@ -5,6 +5,7 @@
 // normal els_token/els_user — doesn't sign the super admin out of /platform.
 
 import { ApiError } from "./apiClient";
+import { FeatureRequestDTO, FeatureRequestStatus } from "./api";
 
 const API_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -156,6 +157,10 @@ export interface ProvisionStudioInput {
   settings?: Partial<StudioFeatureSettings>;
 }
 
+export interface PlatformFeatureRequest extends FeatureRequestDTO {
+  studio: { id: string; name: string; slug: string } | null;
+}
+
 export interface ImpersonateResult {
   token: { accessToken: string; refreshToken: string };
   studio: { id: string; slug: string; name: string };
@@ -233,5 +238,26 @@ export const platformApi = {
     return platformRequest<ImpersonateResult>(`/studios/${id}/impersonate`, {
       method: "POST",
     });
+  },
+
+  async listFeatureRequests(
+    status?: FeatureRequestStatus,
+  ): Promise<PlatformFeatureRequest[]> {
+    const qs = status ? `?status=${status}` : "";
+    const res = await platformRequest<Envelope<PlatformFeatureRequest[]>>(
+      `/feature-requests${qs}`,
+    );
+    return res.data;
+  },
+
+  async updateFeatureRequestStatus(
+    id: string,
+    status: FeatureRequestStatus,
+  ): Promise<PlatformFeatureRequest> {
+    const res = await platformRequest<Envelope<PlatformFeatureRequest>>(
+      `/feature-requests/${id}`,
+      { method: "PATCH", body: { status } },
+    );
+    return res.data;
   },
 };
