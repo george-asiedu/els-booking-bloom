@@ -32,6 +32,7 @@ import AdminServices from "./pages/admin/AdminServices";
 import AdminGallery from "./pages/admin/AdminGallery";
 import AdminHours from "./pages/admin/AdminHours";
 import AdminReviews from "./pages/admin/AdminReviews";
+import AdminAppearance from "./pages/admin/AdminAppearance";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminContact from "./pages/admin/AdminContact";
 import AdminCategories from "./pages/admin/AdminCategories";
@@ -138,6 +139,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <AdminReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/appearance"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAppearance />
                   </ProtectedRoute>
                 }
               />
