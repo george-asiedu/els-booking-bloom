@@ -18,7 +18,8 @@ import {
   ShoppingBag,
   Package,
   Store,
-  Palette
+  Palette,
+  Lightbulb
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const navItems = [
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
   { name: "Appearance", path: "/admin/appearance", icon: Palette },
+  { name: "Feature Requests", path: "/admin/feature-requests", icon: Lightbulb },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
   { name: "Products", path: "/admin/products", icon: ShoppingBag },
   { name: "Product Categories", path: "/admin/product-categories", icon: Tag },
