@@ -246,6 +246,159 @@ export const authApi = {
   },
 };
 
+// ---------------- Studio (storefront branding/content/features) ----------------
+
+export interface StudioFeatureFlags {
+  commerce: boolean;
+  loyalty: boolean;
+  referrals: boolean;
+  reviews: boolean;
+  gallery: boolean;
+  onlinePayments: boolean;
+  productsInBooking: boolean;
+}
+
+export interface StudioFeatureCard {
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface StudioConfigDTO {
+  name: string;
+  slug: string;
+  branding: {
+    logoUrl: string | null;
+    primaryColor: string | null;
+    accentColor: string | null;
+    fontFamily: string | null;
+  };
+  content: {
+    heroHeadline: string | null;
+    heroSubtext: string | null;
+    aboutText: string | null;
+    featureCards: StudioFeatureCard[] | null;
+    showTestimonials: boolean;
+  };
+  settings: StudioFeatureFlags;
+}
+
+export const studioApi = {
+  async getConfig(): Promise<StudioConfigDTO> {
+    const res = await apiRequest<Envelope<StudioConfigDTO>>("/studio");
+    return res.data;
+  },
+};
+
+// ---- Admin: the studio's own branding + landing content ----
+
+export interface StudioBrandingDTO {
+  logoUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+  fontFamily: string | null;
+}
+
+export interface StudioContentDTO {
+  heroHeadline: string | null;
+  heroSubtext: string | null;
+  aboutText: string | null;
+  featureCards: StudioFeatureCard[] | null;
+  showTestimonials: boolean;
+}
+
+export interface BrandingUpdateInput {
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  fontFamily?: string | null;
+  logo?: File | null;
+  removeLogo?: boolean;
+}
+
+export const studioAdminApi = {
+  async getBranding(): Promise<StudioBrandingDTO> {
+    const res = await apiRequest<Envelope<StudioBrandingDTO>>("/studio/branding", {
+      auth: true,
+    });
+    return res.data;
+  },
+
+  async updateBranding(input: BrandingUpdateInput): Promise<StudioBrandingDTO> {
+    const form = new FormData();
+    if (input.primaryColor !== undefined)
+      form.append("primaryColor", input.primaryColor ?? "");
+    if (input.accentColor !== undefined)
+      form.append("accentColor", input.accentColor ?? "");
+    if (input.fontFamily !== undefined)
+      form.append("fontFamily", input.fontFamily ?? "");
+    if (input.removeLogo) form.append("removeLogo", "true");
+    if (input.logo) form.append("logo", input.logo);
+
+    const res = await apiRequest<Envelope<StudioBrandingDTO>>("/studio/branding", {
+      method: "PUT",
+      auth: true,
+      formData: form,
+    });
+    return res.data;
+  },
+
+  async getContent(): Promise<StudioContentDTO> {
+    const res = await apiRequest<Envelope<StudioContentDTO>>("/studio/content", {
+      auth: true,
+    });
+    return res.data;
+  },
+
+  async updateContent(
+    input: Partial<StudioContentDTO>,
+  ): Promise<StudioContentDTO> {
+    const res = await apiRequest<Envelope<StudioContentDTO>>("/studio/content", {
+      method: "PUT",
+      auth: true,
+      body: input,
+    });
+    return res.data;
+  },
+};
+
+// ---------------- Feature requests (studio -> platform) ----------------
+
+export type FeatureRequestStatus =
+  | "NEW"
+  | "PLANNED"
+  | "IN_PROGRESS"
+  | "DONE"
+  | "DECLINED";
+
+export interface FeatureRequestDTO {
+  id: string;
+  title: string;
+  description: string;
+  status: FeatureRequestStatus;
+  createdAt: string;
+}
+
+export const featureRequestsApi = {
+  async list(): Promise<FeatureRequestDTO[]> {
+    const res = await apiRequest<Envelope<FeatureRequestDTO[]>>(
+      "/feature-requests",
+      { auth: true },
+    );
+    return res.data;
+  },
+
+  async create(input: {
+    title: string;
+    description: string;
+  }): Promise<FeatureRequestDTO> {
+    const res = await apiRequest<Envelope<FeatureRequestDTO>>(
+      "/feature-requests",
+      { method: "POST", auth: true, body: input },
+    );
+    return res.data;
+  },
+};
+
 // ---------------- Services ----------------
 
 export interface ServiceInput {

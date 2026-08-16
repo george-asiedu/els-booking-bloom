@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
+import { useStudio } from "@/hooks/useStudio";
 import { cartApi, commerceApi } from "@/lib/api";
 
 const navLinks = [
@@ -21,16 +22,22 @@ export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+  const { name: studioName, config, features } = useStudio();
+  const logoUrl = config?.branding.logoUrl ?? null;
 
   // Hide the shop entirely when the admin has disabled it.
   const { data: commerce } = useQuery({
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const shopEnabled = commerce?.enabled ?? true;
-  const visibleLinks = navLinks.filter(
-    (l) => l.path !== "/shop" || shopEnabled,
-  );
+  // A module is visible only when the studio's feature flag allows it (and, for
+  // the shop, when the studio has also turned commerce on in its settings).
+  const shopEnabled = features.commerce && (commerce?.enabled ?? true);
+  const visibleLinks = navLinks.filter((l) => {
+    if (l.path === "/shop") return shopEnabled;
+    if (l.path === "/gallery") return features.gallery;
+    return true;
+  });
 
   // Show a cart icon with a live item count for logged-in customers.
   const isCustomer = !!user && user.role !== "ADMIN";
@@ -58,10 +65,18 @@ export const Navbar = () => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <nav className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
-            <Sparkles className="h-6 w-6 text-primary transition-transform group-hover:rotate-12" />
-            <span className="text-xl font-serif font-semibold text-foreground">
-              El's Beauty Studio
+          <Link to="/" className="flex items-center gap-2 group min-w-0">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={studioName}
+                className="h-8 w-8 rounded object-cover shrink-0"
+              />
+            ) : (
+              <Sparkles className="h-6 w-6 text-primary transition-transform group-hover:rotate-12 shrink-0" />
+            )}
+            <span className="truncate text-xl font-serif font-semibold text-foreground">
+              {studioName}
             </span>
           </Link>
 

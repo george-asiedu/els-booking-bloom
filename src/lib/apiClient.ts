@@ -7,6 +7,7 @@ const API_URL: string =
 
 const TOKEN_KEY = "els_token";
 const USER_KEY = "els_user";
+const STUDIO_SLUG_KEY = "els_studio_slug";
 
 export interface AuthUser {
   id: string;
@@ -36,6 +37,45 @@ export const tokenStore = {
   clear() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+  },
+};
+
+// Root domain of the platform (e.g. "app.example.com"). When set, a request to
+// "<slug>.app.example.com" resolves to that studio's slug. Left empty in local
+// dev, where the slug comes from impersonation or the server default instead.
+const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)
+  ?.trim()
+  .toLowerCase();
+
+// Derive the studio slug from the current subdomain, if this host is a studio
+// subdomain of ROOT_DOMAIN. Computed once at load — the host doesn't change
+// without a full navigation.
+const subdomainSlug = (() => {
+  if (!ROOT_DOMAIN || typeof window === "undefined") return null;
+  const host = window.location.hostname.toLowerCase();
+  if (host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) return null;
+  if (host.endsWith(`.${ROOT_DOMAIN}`)) {
+    const sub = host.slice(0, -(ROOT_DOMAIN.length + 1));
+    // Only the left-most label; ignore "www" and nested subdomains.
+    const label = sub.split(".")[0];
+    if (label && label !== "www") return label;
+  }
+  return null;
+})();
+
+// The studio (tenant) the app is acting within. The subdomain wins when present
+// (production multi-studio hosting); otherwise it's whatever was stored — set
+// when a super admin impersonates a studio. Empty means the server falls back to
+// its default studio. When resolved it's sent as the X-Studio-Slug header.
+export const studioStore = {
+  getSlug(): string | null {
+    return subdomainSlug ?? localStorage.getItem(STUDIO_SLUG_KEY);
+  },
+  setSlug(slug: string) {
+    localStorage.setItem(STUDIO_SLUG_KEY, slug);
+  },
+  clear() {
+    localStorage.removeItem(STUDIO_SLUG_KEY);
   },
 };
 
@@ -76,6 +116,13 @@ export async function apiRequest<T>(
   const token = tokenStore.getToken();
   if (auth && token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Scope the request to a specific studio when one is active (e.g. during
+  // super-admin impersonation). Absent, the server uses its default studio.
+  const studioSlug = studioStore.getSlug();
+  if (studioSlug) {
+    headers["X-Studio-Slug"] = studioSlug;
   }
 
   let payload: BodyInit | undefined;

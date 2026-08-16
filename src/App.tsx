@@ -2,12 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
+import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SessionGuard } from "@/components/SessionGuard";
+import { FeatureRoute } from "@/components/FeatureRoute";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Gallery from "./pages/Gallery";
@@ -31,6 +33,8 @@ import AdminServices from "./pages/admin/AdminServices";
 import AdminGallery from "./pages/admin/AdminGallery";
 import AdminHours from "./pages/admin/AdminHours";
 import AdminReviews from "./pages/admin/AdminReviews";
+import AdminAppearance from "./pages/admin/AdminAppearance";
+import AdminFeatureRequests from "./pages/admin/AdminFeatureRequests";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminContact from "./pages/admin/AdminContact";
 import AdminCategories from "./pages/admin/AdminCategories";
@@ -40,6 +44,13 @@ import AdminProductCategories from "./pages/admin/AdminProductCategories";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCommerce from "./pages/admin/AdminCommerce";
 import PaymentCallback from "./pages/PaymentCallback";
+import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
+import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
+import PlatformLogin from "./pages/platform/PlatformLogin";
+import PlatformDashboard from "./pages/platform/PlatformDashboard";
+import PlatformStudioNew from "./pages/platform/PlatformStudioNew";
+import PlatformStudioDetail from "./pages/platform/PlatformStudioDetail";
+import PlatformRequests from "./pages/platform/PlatformRequests";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +67,7 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+   <StudioProvider>
     <AuthProvider>
       <ThemeProvider>
         <TooltipProvider>
@@ -67,11 +79,39 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/services" element={<Services />} />
-              <Route path="/gallery" element={<Gallery />} />
+              <Route
+                path="/gallery"
+                element={
+                  <FeatureRoute feature="gallery">
+                    <Gallery />
+                  </FeatureRoute>
+                }
+              />
               <Route path="/book" element={<Book />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/shop/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
+              <Route
+                path="/shop"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Shop />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/shop/:id"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <ProductDetail />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Cart />
+                  </FeatureRoute>
+                }
+              />
               <Route path="/order/callback" element={<OrderCallback />} />
               <Route path="/booking/callback" element={<BookingCallback />} />
               <Route path="/contact" element={<Contact />} />
@@ -80,7 +120,14 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/account" element={<Account />} />
-              <Route path="/review" element={<Reviews />} />
+              <Route
+                path="/review"
+                element={
+                  <FeatureRoute feature="reviews">
+                    <Reviews />
+                  </FeatureRoute>
+                }
+              />
               <Route path="/payment/callback" element={<PaymentCallback />} />
               
               {/* Admin Routes */}
@@ -130,6 +177,22 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <AdminReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/appearance"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAppearance />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/feature-requests"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminFeatureRequests />
                   </ProtectedRoute>
                 }
               />
@@ -190,6 +253,50 @@ const App = () => (
                 }
               />
               
+              {/* Platform (super-admin) Routes — own auth session */}
+              <Route
+                path="/platform"
+                element={
+                  <PlatformAuthProvider>
+                    <Outlet />
+                  </PlatformAuthProvider>
+                }
+              >
+                <Route path="login" element={<PlatformLogin />} />
+                <Route
+                  index
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformDashboard />
+                    </PlatformProtectedRoute>
+                  }
+                />
+                <Route
+                  path="studios/new"
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformStudioNew />
+                    </PlatformProtectedRoute>
+                  }
+                />
+                <Route
+                  path="studios/:id"
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformStudioDetail />
+                    </PlatformProtectedRoute>
+                  }
+                />
+                <Route
+                  path="requests"
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformRequests />
+                    </PlatformProtectedRoute>
+                  }
+                />
+              </Route>
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
@@ -197,6 +304,7 @@ const App = () => (
         </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
+   </StudioProvider>
   </QueryClientProvider>
 );
 

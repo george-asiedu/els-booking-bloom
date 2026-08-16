@@ -48,6 +48,7 @@ import {
 import { whatsappLink } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useStudio } from "@/hooks/useStudio";
 
 const timeSlots = [
   "9:00 AM",
@@ -97,6 +98,7 @@ const Book = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { features } = useStudio();
   const queryClient = useQueryClient();
 
   // Fetch services from the API
@@ -132,6 +134,7 @@ const Book = () => {
     queryFn: () => paymentsApi.getSettings(),
   });
   const paymentEnabled =
+    features.onlinePayments &&
     !!paymentSettings?.enabled &&
     (paymentSettings.allow_full || paymentSettings.allow_partial);
 
@@ -147,7 +150,10 @@ const Book = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const shopEnabled = commerce?.enabled ?? false;
+  const shopEnabled =
+    features.productsInBooking &&
+    features.commerce &&
+    (commerce?.enabled ?? false);
   const { data: products = [] } = useQuery({
     queryKey: ["public-products"],
     queryFn: () => productsApi.listActive(),
