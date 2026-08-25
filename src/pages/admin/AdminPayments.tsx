@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, CreditCard, Info } from "lucide-react";
+import { Loader2, CreditCard, Info, Wallet, CheckCircle2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { paymentsApi } from "@/lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { paymentsApi, studioAdminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminPayments = () => {
@@ -52,6 +59,44 @@ const AdminPayments = () => {
       toast({
         variant: "destructive",
         title: "Couldn't save settings",
+        description: error instanceof Error ? error.message : "Please try again.",
+      }),
+  });
+
+  // ---- Payout account (Paystack subaccount, mobile money) ----
+  const { data: payout } = useQuery({
+    queryKey: ["studio-payout"],
+    queryFn: () => studioAdminApi.getPayout(),
+  });
+  const [payProvider, setPayProvider] = useState("");
+  const [payNumber, setPayNumber] = useState("");
+  const [payName, setPayName] = useState("");
+  useEffect(() => {
+    if (payout) {
+      setPayProvider(payout.provider ?? "");
+      setPayNumber(payout.accountNumber ?? "");
+      setPayName(payout.accountName ?? "");
+    }
+  }, [payout]);
+
+  const payoutMutation = useMutation({
+    mutationFn: () =>
+      studioAdminApi.updatePayout({
+        provider: payProvider,
+        accountNumber: payNumber,
+        accountName: payName,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["studio-payout"] });
+      toast({
+        title: "Payout account saved",
+        description: "Payments will settle to this mobile-money account.",
+      });
+    },
+    onError: (error) =>
+      toast({
+        variant: "destructive",
+        title: "Couldn't save payout account",
         description: error instanceof Error ? error.message : "Please try again.",
       }),
   });
@@ -195,6 +240,86 @@ const AdminPayments = () => {
               )}
               Save Settings
             </Button>
+
+            {/* Payout account — where your money settles */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  Payout account
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Connect a mobile-money account so customer payments settle to
+                  you automatically.
+                  {payout && payout.platformFeePercent > 0 && (
+                    <> A platform fee of {payout.platformFeePercent}% applies.</>
+                  )}
+                </p>
+
+                {payout?.connected && (
+                  <p className="flex items-center gap-2 text-sm text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Connected — payments settle to your account.
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Mobile-money provider</Label>
+                  <Select value={payProvider} onValueChange={setPayProvider}>
+                    <SelectTrigger className="max-w-sm">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(payout?.providers ?? []).map((p) => (
+                        <SelectItem key={p.code} value={p.code}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payout-number">Mobile-money number</Label>
+                  <Input
+                    id="payout-number"
+                    value={payNumber}
+                    onChange={(e) => setPayNumber(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="0244123456"
+                    className="max-w-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payout-name">Account name</Label>
+                  <Input
+                    id="payout-name"
+                    value={payName}
+                    onChange={(e) => setPayName(e.target.value)}
+                    placeholder="Registered name on the wallet"
+                    className="max-w-sm"
+                  />
+                </div>
+
+                <Button
+                  onClick={() => payoutMutation.mutate()}
+                  disabled={
+                    payoutMutation.isPending ||
+                    !payProvider ||
+                    !payNumber ||
+                    !payName
+                  }
+                >
+                  {payoutMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {payout?.connected ? "Update payout account" : "Connect account"}
+                </Button>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

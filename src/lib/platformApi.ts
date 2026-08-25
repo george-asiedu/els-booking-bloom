@@ -134,6 +134,9 @@ export interface StudioDetail {
   customDomain: string | null;
   ownerUserId: string | null;
   paystackSubaccountCode: string | null;
+  platformFeePercent: number;
+  payoutProvider: string | null;
+  payoutAccountNumber: string | null;
   createdAt: string;
   owner: { id: string; email: string; role: string } | null;
   settings: StudioFeatureSettings | null;
@@ -209,7 +212,11 @@ export const platformApi = {
 
   async updateStudio(
     id: string,
-    input: { name?: string; customDomain?: string | null },
+    input: {
+      name?: string;
+      customDomain?: string | null;
+      platformFeePercent?: number;
+    },
   ): Promise<StudioDetail> {
     return platformRequest<StudioDetail>(`/studios/${id}`, {
       method: "PATCH",

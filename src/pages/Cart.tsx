@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingBag,
@@ -18,7 +18,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Layout } from "@/components/layout/Layout";
 import { cn } from "@/lib/utils";
-import { cartApi, commerceApi, ordersApi, accountApi } from "@/lib/api";
+import { cartApi, commerceApi, ordersApi, accountApi, PaymentTarget } from "@/lib/api";
+import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,6 +34,9 @@ const Cart = () => {
   const [applyPoints, setApplyPoints] = useState(false);
   const [referral, setReferral] = useState("");
   const [redirecting, setRedirecting] = useState(false);
+  const navigate = useNavigate();
+  const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const isCustomer = !!user && user.role !== "ADMIN";
 
@@ -98,7 +102,16 @@ const Cart = () => {
         applyPoints: applyPoints && canUsePoints,
         referralCode: referral.trim() || undefined,
       });
-      window.location.href = result.authorization_url;
+      setRedirecting(false);
+      setPaymentTarget({
+        reference: result.reference,
+        amount: result.total,
+        email: result.email,
+        access_code: result.access_code,
+        subaccount: result.subaccount,
+        public_key: result.public_key,
+      });
+      setPaymentOpen(true);
     } catch (error) {
       setRedirecting(false);
       onError(error);
@@ -420,6 +433,16 @@ const Cart = () => {
           )}
         </div>
       </section>
+
+      <PaymentDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        target={paymentTarget}
+        title="Pay for your order"
+        onSuccess={(reference) =>
+          navigate(`/order/callback?reference=${encodeURIComponent(reference)}`)
+        }
+      />
     </Layout>
   );
 };

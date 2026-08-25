@@ -359,7 +359,36 @@ export const studioAdminApi = {
     });
     return res.data;
   },
+
+  async getPayout(): Promise<StudioPayoutDTO> {
+    const res = await apiRequest<Envelope<StudioPayoutDTO>>("/studio/payout", {
+      auth: true,
+    });
+    return res.data;
+  },
+
+  async updatePayout(input: {
+    provider: string;
+    accountNumber: string;
+    accountName: string;
+  }): Promise<StudioPayoutDTO> {
+    const res = await apiRequest<Envelope<StudioPayoutDTO>>("/studio/payout", {
+      method: "PUT",
+      auth: true,
+      body: input,
+    });
+    return res.data;
+  },
 };
+
+export interface StudioPayoutDTO {
+  connected: boolean;
+  platformFeePercent: number;
+  provider: string | null;
+  accountNumber: string | null;
+  accountName: string | null;
+  providers: { name: string; code: string }[];
+}
 
 // ---------------- Feature requests (studio -> platform) ----------------
 
@@ -789,17 +818,37 @@ const normalizePaymentSettings = (
 
 export interface InitializePaymentResult {
   authorization_url: string;
+  access_code: string;
   reference: string;
   amount: number;
+  email: string;
+  subaccount: string | null;
+  public_key: string;
   type: "FULL" | "PARTIAL";
 }
 
 interface RawInitialize {
   authorizationUrl: string;
+  accessCode: string;
   reference: string;
   amount: number;
+  email: string;
+  subaccount: string | null;
+  publicKey: string;
   type: "FULL" | "PARTIAL";
 }
+
+// Shared payment-target shape the in-app PaymentDialog consumes.
+export interface PaymentTarget {
+  reference: string;
+  amount: number;
+  email: string;
+  access_code?: string;
+  subaccount: string | null;
+  public_key: string;
+}
+
+export type ChargeStatus = "success" | "pending" | "failed";
 
 // Receipt shape returned by verify (payment + its appointment/service).
 export interface PaymentReceiptDTO {
@@ -864,10 +913,51 @@ export const paymentsApi = {
     );
     return {
       authorization_url: res.data.authorizationUrl,
+      access_code: res.data.accessCode,
       reference: res.data.reference,
       amount: res.data.amount,
+      email: res.data.email,
+      subaccount: res.data.subaccount,
+      public_key: res.data.publicKey,
       type: res.data.type,
     };
+  },
+
+  // Mobile-money charge (phone prompt) for a booking.
+  async chargeMomo(input: {
+    appointmentId: string;
+    type: "FULL" | "PARTIAL";
+    phone: string;
+    provider: string;
+  }): Promise<{ reference: string; status: string; displayText: string | null; amount: number }> {
+    // status is Paystack's raw charge lifecycle: send_otp | pay_offline |
+    // pending | success | failed — the dialog branches on it.
+    const res = await apiRequest<
+      Envelope<{ reference: string; status: string; displayText: string | null; amount: number }>
+    >("/payments/charge/momo", { method: "POST", auth: true, body: input });
+    return res.data;
+  },
+
+  async submitOtp(
+    reference: string,
+    otp: string,
+  ): Promise<{ reference: string; status: string; displayText: string | null }> {
+    const res = await apiRequest<
+      Envelope<{ reference: string; status: string; displayText: string | null }>
+    >("/payments/charge/submit-otp", {
+      method: "POST",
+      auth: true,
+      body: { reference, otp },
+    });
+    return res.data;
+  },
+
+  async status(reference: string): Promise<ChargeStatus> {
+    const res = await apiRequest<Envelope<{ reference: string; status: ChargeStatus }>>(
+      `/payments/status?reference=${encodeURIComponent(reference)}`,
+      { auth: true },
+    );
+    return res.data.status;
   },
 
   async verify(reference: string): Promise<PaymentReceiptDTO> {
@@ -1294,26 +1384,38 @@ export interface GuestCheckoutInput {
 
 export interface CheckoutResult {
   authorization_url: string;
+  access_code: string;
   reference: string;
   order_id: string;
   order_number: string;
   total: number;
+  email: string;
+  subaccount: string | null;
+  public_key: string;
 }
 
 interface RawCheckout {
   authorizationUrl: string;
+  accessCode: string;
   reference: string;
   orderId: string;
   orderNumber?: string;
   total: number;
+  email: string;
+  subaccount: string | null;
+  publicKey: string;
 }
 
 const mapCheckout = (d: RawCheckout): CheckoutResult => ({
   authorization_url: d.authorizationUrl,
+  access_code: d.accessCode,
   reference: d.reference,
   order_id: d.orderId,
   order_number: d.orderNumber ?? "",
   total: d.total,
+  email: d.email,
+  subaccount: d.subaccount,
+  public_key: d.publicKey,
 });
 
 export const ordersApi = {
