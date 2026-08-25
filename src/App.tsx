@@ -42,6 +42,7 @@ const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
 const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
 const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureRequests"));
+const AdminOnboarding = lazy(() => import("./pages/admin/AdminOnboarding"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminContact = lazy(() => import("./pages/admin/AdminContact"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
@@ -56,6 +57,7 @@ const PlatformDashboard = lazy(() => import("./pages/platform/PlatformDashboard"
 const PlatformStudioNew = lazy(() => import("./pages/platform/PlatformStudioNew"));
 const PlatformStudioDetail = lazy(() => import("./pages/platform/PlatformStudioDetail"));
 const PlatformRequests = lazy(() => import("./pages/platform/PlatformRequests"));
+const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit"));
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -209,6 +211,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/admin/onboarding"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminOnboarding />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/analytics"
                 element={
                   <ProtectedRoute requireAdmin>
@@ -304,6 +314,14 @@ const App = () => (
                   element={
                     <PlatformProtectedRoute>
                       <PlatformRequests />
+                    </PlatformProtectedRoute>
+                  }
+                />
+                <Route
+                  path="audit"
+                  element={
+                    <PlatformProtectedRoute>
+                      <PlatformAudit />
                     </PlatformProtectedRoute>
                   }
                 />
