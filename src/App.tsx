@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,47 +12,56 @@ import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SessionGuard } from "@/components/SessionGuard";
 import { FeatureRoute } from "@/components/FeatureRoute";
-import Index from "./pages/Index";
-import Services from "./pages/Services";
-import Gallery from "./pages/Gallery";
-import Book from "./pages/Book";
-import Shop from "./pages/Shop";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import OrderCallback from "./pages/OrderCallback";
-import BookingCallback from "./pages/BookingCallback";
-import Contact from "./pages/Contact";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/auth/Login";
-import Signup from "./pages/auth/Signup";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
-import Account from "./pages/account/Account";
-import Reviews from "./pages/Reviews";
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminAppointments from "./pages/admin/AdminAppointments";
-import AdminServices from "./pages/admin/AdminServices";
-import AdminGallery from "./pages/admin/AdminGallery";
-import AdminHours from "./pages/admin/AdminHours";
-import AdminReviews from "./pages/admin/AdminReviews";
-import AdminAppearance from "./pages/admin/AdminAppearance";
-import AdminFeatureRequests from "./pages/admin/AdminFeatureRequests";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminContact from "./pages/admin/AdminContact";
-import AdminCategories from "./pages/admin/AdminCategories";
-import AdminPayments from "./pages/admin/AdminPayments";
-import AdminProducts from "./pages/admin/AdminProducts";
-import AdminProductCategories from "./pages/admin/AdminProductCategories";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminCommerce from "./pages/admin/AdminCommerce";
-import PaymentCallback from "./pages/PaymentCallback";
 import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
 import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
-import PlatformLogin from "./pages/platform/PlatformLogin";
-import PlatformDashboard from "./pages/platform/PlatformDashboard";
-import PlatformStudioNew from "./pages/platform/PlatformStudioNew";
-import PlatformStudioDetail from "./pages/platform/PlatformStudioDetail";
-import PlatformRequests from "./pages/platform/PlatformRequests";
+
+// Route components are code-split so each page loads on demand — the initial
+// bundle stays small and the admin/platform areas never ship to customers.
+const Index = lazy(() => import("./pages/Index"));
+const Services = lazy(() => import("./pages/Services"));
+const Gallery = lazy(() => import("./pages/Gallery"));
+const Book = lazy(() => import("./pages/Book"));
+const Shop = lazy(() => import("./pages/Shop"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const OrderCallback = lazy(() => import("./pages/OrderCallback"));
+const BookingCallback = lazy(() => import("./pages/BookingCallback"));
+const Contact = lazy(() => import("./pages/Contact"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Login = lazy(() => import("./pages/auth/Login"));
+const Signup = lazy(() => import("./pages/auth/Signup"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
+const Account = lazy(() => import("./pages/account/Account"));
+const Reviews = lazy(() => import("./pages/Reviews"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments"));
+const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
+const AdminGallery = lazy(() => import("./pages/admin/AdminGallery"));
+const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
+const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
+const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
+const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureRequests"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminContact = lazy(() => import("./pages/admin/AdminContact"));
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
+const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
+const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
+const AdminProductCategories = lazy(() => import("./pages/admin/AdminProductCategories"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminCommerce = lazy(() => import("./pages/admin/AdminCommerce"));
+const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
+const PlatformLogin = lazy(() => import("./pages/platform/PlatformLogin"));
+const PlatformDashboard = lazy(() => import("./pages/platform/PlatformDashboard"));
+const PlatformStudioNew = lazy(() => import("./pages/platform/PlatformStudioNew"));
+const PlatformStudioDetail = lazy(() => import("./pages/platform/PlatformStudioDetail"));
+const PlatformRequests = lazy(() => import("./pages/platform/PlatformRequests"));
+
+const PageLoader = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,6 +87,7 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <SessionGuard />
+            <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/services" element={<Services />} />
@@ -300,6 +312,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
