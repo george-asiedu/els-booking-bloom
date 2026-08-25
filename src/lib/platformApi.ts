@@ -164,6 +164,18 @@ export interface PlatformFeatureRequest extends FeatureRequestDTO {
   studio: { id: string; name: string; slug: string } | null;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  actorEmail: string;
+  actorRole: string;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  studioId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export interface ImpersonateResult {
   token: { accessToken: string; refreshToken: string };
   studio: { id: string; slug: string; name: string };
@@ -265,6 +277,11 @@ export const platformApi = {
       `/feature-requests/${id}`,
       { method: "PATCH", body: { status } },
     );
+    return res.data;
+  },
+
+  async listAuditLogs(): Promise<AuditLogEntry[]> {
+    const res = await platformRequest<Envelope<AuditLogEntry[]>>("/audit-logs");
     return res.data;
   },
 };
