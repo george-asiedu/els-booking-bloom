@@ -277,6 +277,8 @@ const Index = () => {
                       <img
                         src={product.image_url}
                         alt={product.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
@@ -348,6 +350,8 @@ const Index = () => {
                 <img
                   src={nails1}
                   alt="Nail art showcase"
+                  loading="lazy"
+                  decoding="async"
                   className="rounded-lg w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>
@@ -355,6 +359,8 @@ const Index = () => {
                 <img
                   src={lashes1}
                   alt="Lash extensions showcase"
+                  loading="lazy"
+                  decoding="async"
                   className="rounded-lg w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>

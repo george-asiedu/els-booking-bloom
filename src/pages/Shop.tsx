@@ -222,6 +222,8 @@ const ProductGrid = ({ products, onAdd, addingId }: GridProps) => (
             <img
               src={product.image_url}
               alt={product.name}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
             />
           ) : (
