@@ -19,7 +19,8 @@ import {
   Package,
   Store,
   Palette,
-  Lightbulb
+  Lightbulb,
+  Rocket
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ interface AdminLayoutProps {
 }
 
 const navItems = [
+  { name: "Setup", path: "/admin/onboarding", icon: Rocket },
   { name: "Appointments", path: "/admin", icon: Calendar },
   { name: "Services", path: "/admin/services", icon: Scissors },
   { name: "Categories", path: "/admin/categories", icon: Tag },
