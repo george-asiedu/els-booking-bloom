@@ -68,10 +68,12 @@ const PlatformStudioDetail = () => {
   // Local editable fields, seeded from the loaded studio.
   const [name, setName] = useState("");
   const [customDomain, setCustomDomain] = useState("");
+  const [feePercent, setFeePercent] = useState(0);
   useEffect(() => {
     if (studio) {
       setName(studio.name);
       setCustomDomain(studio.customDomain ?? "");
+      setFeePercent(studio.platformFeePercent ?? 0);
     }
   }, [studio]);
 
@@ -92,6 +94,7 @@ const PlatformStudioDetail = () => {
       platformApi.updateStudio(id, {
         name,
         customDomain: customDomain.trim() ? customDomain.trim() : null,
+        platformFeePercent: feePercent,
       }),
     onSuccess: () => {
       invalidate();
@@ -258,6 +261,25 @@ const PlatformStudioDetail = () => {
                   value={customDomain}
                   onChange={(e) => setCustomDomain(e.target.value)}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-fee">Platform fee (%)</Label>
+                <Input
+                  id="studio-fee"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.1"
+                  className="max-w-[140px]"
+                  value={feePercent}
+                  onChange={(e) => setFeePercent(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Percentage of each transaction the platform keeps.
+                  {studio.paystackSubaccountCode
+                    ? " Synced to the studio's Paystack subaccount on save."
+                    : " Applied once the studio connects a payout account."}
+                </p>
               </div>
               <Button
                 onClick={() => detailsMutation.mutate()}

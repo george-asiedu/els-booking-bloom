@@ -25,6 +25,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layout } from "@/components/layout/Layout";
+import { PaymentDialog } from "@/components/payment/PaymentDialog";
+import { PaymentTarget } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
 import {
@@ -97,25 +99,39 @@ const Account = () => {
   const { toast } = useToast();
   const initialTab = searchParams.get("tab") || "appointments";
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [payAppt, setPayAppt] = useState<{
+    id: string;
+    type: "FULL" | "PARTIAL";
+  } | null>(null);
 
-  // Resume/complete a payment for an existing booking.
+  // Resume/complete a payment for an existing booking — in-app dialog.
   const handlePay = async (apt: AppointmentDTO) => {
     if (!apt.payment) return;
+    const type = apt.payment.type === "partial" ? "PARTIAL" : "FULL";
     try {
       setPayingId(apt.id);
-      const init = await paymentsApi.initialize(
-        apt.id,
-        apt.payment.type === "partial" ? "PARTIAL" : "FULL",
-      );
-      window.location.href = init.authorization_url;
+      const init = await paymentsApi.initialize(apt.id, type);
+      setPayAppt({ id: apt.id, type });
+      setPaymentTarget({
+        reference: init.reference,
+        amount: init.amount,
+        email: init.email,
+        access_code: init.access_code,
+        subaccount: init.subaccount,
+        public_key: init.public_key,
+      });
+      setPaymentOpen(true);
     } catch (error) {
-      setPayingId(null);
       toast({
         variant: "destructive",
         title: "Couldn't start payment",
         description:
           error instanceof Error ? error.message : "Please try again.",
       });
+    } finally {
+      setPayingId(null);
     }
   };
 
@@ -772,6 +788,27 @@ const Account = () => {
           </Tabs>
         </div>
       </section>
+
+      <PaymentDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        target={paymentTarget}
+        title="Complete your payment"
+        momoCharge={
+          payAppt
+            ? (phone, provider) =>
+                paymentsApi.chargeMomo({
+                  appointmentId: payAppt.id,
+                  type: payAppt.type,
+                  phone,
+                  provider,
+                })
+            : undefined
+        }
+        onSuccess={(reference) =>
+          navigate(`/payment/callback?reference=${encodeURIComponent(reference)}`)
+        }
+      />
     </Layout>
   );
 };

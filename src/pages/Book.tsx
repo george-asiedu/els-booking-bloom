@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -49,6 +49,8 @@ import { whatsappLink } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
+import { PaymentDialog } from "@/components/payment/PaymentDialog";
+import { PaymentTarget } from "@/lib/api";
 
 const timeSlots = [
   "9:00 AM",
@@ -93,10 +95,19 @@ const Book = () => {
   const [applyPoints, setApplyPoints] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"full" | "partial">("full");
   const [redirecting, setRedirecting] = useState(false);
+  // In-app payment dialog state.
+  const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentKind, setPaymentKind] = useState<"service" | "combined">("service");
+  const [payAppointment, setPayAppointment] = useState<{
+    id: string;
+    type: "FULL" | "PARTIAL";
+  } | null>(null);
   // Products added to the booking: productId -> quantity.
   const [addOns, setAddOns] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { features } = useStudio();
   const queryClient = useQueryClient();
@@ -277,22 +288,33 @@ const Book = () => {
       queryClient.invalidateQueries({ queryKey: ["loyalty-points", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["taken-slots"] });
 
+      const type = paymentMethod === "partial" ? "PARTIAL" : "FULL";
+
       // Products added → one combined charge (service + products) via Paystack.
       if (hasAddOns) {
         try {
-          setRedirecting(true);
           const res = await ordersApi.bookingCheckout({
             appointmentId: appointment.id,
             items: addOnItems.map((i) => ({
               productId: i.product.id,
               quantity: i.qty,
             })),
-            serviceType: paymentMethod === "partial" ? "PARTIAL" : "FULL",
+            serviceType: type,
           });
-          window.location.href = res.authorization_url;
+          setBookedAppointment(appointment);
+          setPaymentKind("combined");
+          setPayAppointment({ id: appointment.id, type });
+          setPaymentTarget({
+            reference: res.reference,
+            amount: res.total,
+            email: res.email,
+            access_code: res.access_code,
+            subaccount: res.subaccount,
+            public_key: res.public_key,
+          });
+          setPaymentOpen(true);
           return;
         } catch (error) {
-          setRedirecting(false);
           toast({
             variant: "destructive",
             title: "Couldn't start payment",
@@ -303,15 +325,21 @@ const Book = () => {
       } else if (paymentEnabled) {
         // Service-only online payment.
         try {
-          setRedirecting(true);
-          const init = await paymentsApi.initialize(
-            appointment.id,
-            paymentMethod === "partial" ? "PARTIAL" : "FULL",
-          );
-          window.location.href = init.authorization_url;
+          const init = await paymentsApi.initialize(appointment.id, type);
+          setBookedAppointment(appointment);
+          setPaymentKind("service");
+          setPayAppointment({ id: appointment.id, type });
+          setPaymentTarget({
+            reference: init.reference,
+            amount: init.amount,
+            email: init.email,
+            access_code: init.access_code,
+            subaccount: init.subaccount,
+            public_key: init.public_key,
+          });
+          setPaymentOpen(true);
           return;
         } catch (error) {
-          setRedirecting(false);
           toast({
             variant: "destructive",
             title: "Couldn't start payment",
@@ -980,6 +1008,31 @@ const Book = () => {
           </div>
         </div>
       </section>
+
+      <PaymentDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        target={paymentTarget}
+        title="Pay to confirm your booking"
+        momoCharge={
+          paymentKind === "service" && payAppointment
+            ? (phone, provider) =>
+                paymentsApi.chargeMomo({
+                  appointmentId: payAppointment.id,
+                  type: payAppointment.type,
+                  phone,
+                  provider,
+                })
+            : undefined
+        }
+        onSuccess={(reference) => {
+          const path =
+            paymentKind === "combined"
+              ? "/booking/callback"
+              : "/payment/callback";
+          navigate(`${path}?reference=${encodeURIComponent(reference)}`);
+        }}
+      />
     </Layout>
   );
 };
