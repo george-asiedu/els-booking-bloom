@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
+import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
@@ -113,6 +114,7 @@ const AdminAppointments = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        <OnboardingBanner />
         <div>
           <h1 className="text-2xl font-bold text-foreground">Appointments</h1>
           <p className="text-muted-foreground">Manage your appointment bookings</p>
