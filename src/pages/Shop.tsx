@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
+import { PromoMarquee } from "@/components/PromoMarquee";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -138,6 +139,7 @@ const Shop = () => {
 
   return (
     <Layout>
+      <PromoMarquee placement="shop" />
       <section className="py-16 bg-secondary">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
