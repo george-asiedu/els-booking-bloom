@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle, Plus, Minus, ShoppingBag } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
+import { PromoMarquee } from "@/components/PromoMarquee";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -484,6 +485,7 @@ const Book = () => {
 
   return (
     <Layout>
+      <PromoMarquee placement="booking" />
       {/* Header */}
       <section className="py-16 bg-secondary">
         <div className="container mx-auto px-4 text-center">
