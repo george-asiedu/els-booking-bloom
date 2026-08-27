@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, LogIn, Save } from "lucide-react";
+import { ArrowLeft, Loader2, LogIn, Save, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -209,14 +209,22 @@ const PlatformStudioDetail = () => {
             {studio.owner ? ` · ${studio.owner.email}` : ""}
           </p>
         </div>
-        <Button onClick={handleEnter} disabled={entering} className="shrink-0">
-          {entering ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <LogIn className="mr-2 h-4 w-4" />
-          )}
-          Enter dashboard
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link to={`/platform/audit?studio=${id}`}>
+              <ScrollText className="mr-2 h-4 w-4" />
+              Activity
+            </Link>
+          </Button>
+          <Button onClick={handleEnter} disabled={entering}>
+            {entering ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <LogIn className="mr-2 h-4 w-4" />
+            )}
+            Enter dashboard
+          </Button>
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
