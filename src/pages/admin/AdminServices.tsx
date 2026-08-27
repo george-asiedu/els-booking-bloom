@@ -84,6 +84,25 @@ const AdminServices = () => {
     queryFn: () => categoriesApi.listAll(),
   });
 
+  // Create a category inline from the service dialog (new studios have none yet).
+  const [newCategory, setNewCategory] = useState("");
+  const createCategoryMutation = useMutation({
+    mutationFn: () => categoriesApi.create(newCategory.trim()),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      setFormData((prev) => ({ ...prev, category: created.slug }));
+      setNewCategory("");
+      toast({ title: "Category added", description: `"${created.name}" is ready.` });
+    },
+    onError: (error) =>
+      toast({
+        variant: "destructive",
+        title: "Couldn't add category",
+        description: error instanceof Error ? error.message : "Please try again.",
+      }),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (data: ServiceFormData & { id?: string }) => {
       const serviceData = {
@@ -308,22 +327,57 @@ const AdminServices = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.slug}>
-                      {c.name}
-                      {!c.active ? " (hidden)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {categories.length > 0 && (
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.slug}>
+                        {c.name}
+                        {!c.active ? " (hidden)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder={
+                    categories.length
+                      ? "…or add a new category"
+                      : "No categories yet — add your first one"
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (newCategory.trim()) createCategoryMutation.mutate();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => createCategoryMutation.mutate()}
+                  disabled={
+                    !newCategory.trim() || createCategoryMutation.isPending
+                  }
+                >
+                  {createCategoryMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Add"
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>

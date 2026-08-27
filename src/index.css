@@ -157,6 +157,28 @@ All colors MUST be HSL.
   }
 }
 
+/* Scrolling promo banner (marquee). The track holds two copies of the content,
+   so translating by -50% loops seamlessly. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: marquee 30s linear infinite;
+}
+
+.marquee-viewport:hover .marquee-track {
+  animation-play-state: paused;
+}
+
 @layer base {
   * {
     @apply border-border;

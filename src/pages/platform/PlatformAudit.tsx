@@ -1,8 +1,16 @@
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, ScrollText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PlatformLayout } from "./PlatformLayout";
 import { platformApi } from "@/lib/platformApi";
 
@@ -26,21 +34,53 @@ const summarize = (meta: Record<string, unknown> | null): string => {
 };
 
 const PlatformAudit = () => {
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ["platform", "audit"],
-    queryFn: () => platformApi.listAuditLogs(),
+  const [searchParams, setSearchParams] = useSearchParams();
+  const studioFilter = searchParams.get("studio") ?? "ALL";
+
+  const { data: studios = [] } = useQuery({
+    queryKey: ["platform", "studios"],
+    queryFn: () => platformApi.listStudios(),
   });
+  const studioName = (id: string | null) =>
+    id ? studios.find((s) => s.id === id)?.name ?? null : null;
+
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ["platform", "audit", studioFilter],
+    queryFn: () =>
+      platformApi.listAuditLogs(
+        studioFilter === "ALL" ? undefined : { studioId: studioFilter },
+      ),
+  });
+
+  const setStudio = (value: string) => {
+    setSearchParams(value === "ALL" ? {} : { studio: value });
+  };
 
   return (
     <PlatformLayout>
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold">
-          <ScrollText className="h-6 w-6 text-primary" />
-          Activity log
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          A trail of platform actions across all studios.
-        </p>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold">
+            <ScrollText className="h-6 w-6 text-primary" />
+            Activity log
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            A trail of platform actions — filter by studio to track a complaint.
+          </p>
+        </div>
+        <Select value={studioFilter} onValueChange={setStudio}>
+          <SelectTrigger className="w-full sm:w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All studios</SelectItem>
+            {studios.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -63,6 +103,9 @@ const PlatformAudit = () => {
                 </Badge>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-foreground">
+                    {studioName(log.studioId)
+                      ? `${studioName(log.studioId)} — `
+                      : ""}
                     {summarize(log.metadata) || log.targetId || "—"}
                   </p>
                   <p className="text-xs text-muted-foreground">

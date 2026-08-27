@@ -71,6 +71,32 @@ const AdminPayments = () => {
   const [payProvider, setPayProvider] = useState("");
   const [payNumber, setPayNumber] = useState("");
   const [payName, setPayName] = useState("");
+  const [resolving, setResolving] = useState(false);
+
+  // Verify the number with Paystack and auto-fill the registered account name.
+  const resolveName = async () => {
+    if (!payProvider || !/^\d{9,15}$/.test(payNumber.trim())) return;
+    setResolving(true);
+    try {
+      const name = await studioAdminApi.resolvePayoutName(
+        payNumber.trim(),
+        payProvider,
+      );
+      setPayName(name);
+    } catch (error) {
+      setPayName("");
+      toast({
+        variant: "destructive",
+        title: "Couldn't verify that number",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Check the number and provider and try again.",
+      });
+    } finally {
+      setResolving(false);
+    }
+  };
   useEffect(() => {
     if (payout) {
       setPayProvider(payout.provider ?? "");
@@ -267,7 +293,13 @@ const AdminPayments = () => {
 
                 <div className="space-y-2">
                   <Label>Mobile-money provider</Label>
-                  <Select value={payProvider} onValueChange={setPayProvider}>
+                  <Select
+                    value={payProvider}
+                    onValueChange={(v) => {
+                      setPayProvider(v);
+                      setPayName("");
+                    }}
+                  >
                     <SelectTrigger className="max-w-sm">
                       <SelectValue placeholder="Select provider" />
                     </SelectTrigger>
@@ -286,28 +318,43 @@ const AdminPayments = () => {
                   <Input
                     id="payout-number"
                     value={payNumber}
-                    onChange={(e) => setPayNumber(e.target.value)}
+                    onChange={(e) => {
+                      setPayNumber(e.target.value);
+                      setPayName("");
+                    }}
+                    onBlur={resolveName}
                     inputMode="numeric"
                     placeholder="0244123456"
                     className="max-w-sm"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    We'll verify the number and fetch the account name.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="payout-name">Account name</Label>
-                  <Input
-                    id="payout-name"
-                    value={payName}
-                    onChange={(e) => setPayName(e.target.value)}
-                    placeholder="Registered name on the wallet"
-                    className="max-w-sm"
-                  />
+                  <div className="relative max-w-sm">
+                    <Input
+                      id="payout-name"
+                      value={payName}
+                      readOnly
+                      placeholder={
+                        resolving ? "Verifying…" : "Auto-filled after verifying"
+                      }
+                      className="bg-muted/50"
+                    />
+                    {resolving && (
+                      <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
 
                 <Button
                   onClick={() => payoutMutation.mutate()}
                   disabled={
                     payoutMutation.isPending ||
+                    resolving ||
                     !payProvider ||
                     !payNumber ||
                     !payName

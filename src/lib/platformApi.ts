@@ -280,8 +280,17 @@ export const platformApi = {
     return res.data;
   },
 
-  async listAuditLogs(): Promise<AuditLogEntry[]> {
-    const res = await platformRequest<Envelope<AuditLogEntry[]>>("/audit-logs");
+  async listAuditLogs(params?: {
+    studioId?: string;
+    action?: string;
+  }): Promise<AuditLogEntry[]> {
+    const qs = new URLSearchParams();
+    if (params?.studioId) qs.set("studioId", params.studioId);
+    if (params?.action) qs.set("action", params.action);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await platformRequest<Envelope<AuditLogEntry[]>>(
+      `/audit-logs${suffix}`,
+    );
     return res.data;
   },
 };

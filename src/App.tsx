@@ -9,11 +9,14 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
 import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SessionGuard } from "@/components/SessionGuard";
+import { StudioTheme } from "@/components/StudioTheme";
 import { FeatureRoute } from "@/components/FeatureRoute";
 import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
 import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
+import { PlatformLayout } from "./pages/platform/PlatformLayout";
 
 // Route components are code-split so each page loads on demand — the initial
 // bundle stays small and the admin/platform areas never ship to customers.
@@ -43,6 +46,7 @@ const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
 const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureRequests"));
 const AdminOnboarding = lazy(() => import("./pages/admin/AdminOnboarding"));
+const AdminPromos = lazy(() => import("./pages/admin/AdminPromos"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminContact = lazy(() => import("./pages/admin/AdminContact"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
@@ -58,11 +62,49 @@ const PlatformStudioNew = lazy(() => import("./pages/platform/PlatformStudioNew"
 const PlatformStudioDetail = lazy(() => import("./pages/platform/PlatformStudioDetail"));
 const PlatformRequests = lazy(() => import("./pages/platform/PlatformRequests"));
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit"));
+const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
+);
+
+// Guards all /admin/* pages once and keeps the sidebar mounted while a page's
+// chunk loads (only the content area shows a spinner), so navigating between
+// admin sections no longer flashes a blank full-screen loader.
+const AdminOutlet = () => (
+  <ProtectedRoute requireAdmin>
+    <Suspense
+      fallback={
+        <AdminLayout>
+          <div className="flex justify-center py-24">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </AdminLayout>
+      }
+    >
+      <Outlet />
+    </Suspense>
+  </ProtectedRoute>
+);
+
+// Same pattern for the platform console: guard once, keep the chrome mounted
+// while a page's chunk loads.
+const PlatformOutlet = () => (
+  <PlatformProtectedRoute>
+    <Suspense
+      fallback={
+        <PlatformLayout>
+          <div className="flex justify-center py-24">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </PlatformLayout>
+      }
+    >
+      <Outlet />
+    </Suspense>
+  </PlatformProtectedRoute>
 );
 
 const queryClient = new QueryClient({
@@ -89,9 +131,11 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <SessionGuard />
+            <StudioTheme />
             <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/s/:slug" element={<StudioEntry />} />
               <Route path="/services" element={<Services />} />
               <Route
                 path="/gallery"
@@ -144,137 +188,28 @@ const App = () => (
               />
               <Route path="/payment/callback" element={<PaymentCallback />} />
               
-              {/* Admin Routes */}
+              {/* Admin Routes — one guard + persistent sidebar for all */}
               <Route path="/admin/login" element={<AdminLogin />} />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminAppointments />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/services"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminServices />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/categories"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminCategories />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/gallery"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminGallery />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/hours"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminHours />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/reviews"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminReviews />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/appearance"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminAppearance />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/feature-requests"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminFeatureRequests />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/onboarding"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminOnboarding />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/analytics"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminAnalytics />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/contact"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminContact />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/payments"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminPayments />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/products"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminProducts />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/product-categories"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminProductCategories />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/orders"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminOrders />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/commerce"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminCommerce />
-                  </ProtectedRoute>
-                }
-              />
-              
+              <Route path="/admin" element={<AdminOutlet />}>
+                <Route index element={<AdminAppointments />} />
+                <Route path="services" element={<AdminServices />} />
+                <Route path="categories" element={<AdminCategories />} />
+                <Route path="gallery" element={<AdminGallery />} />
+                <Route path="hours" element={<AdminHours />} />
+                <Route path="reviews" element={<AdminReviews />} />
+                <Route path="appearance" element={<AdminAppearance />} />
+                <Route path="promos" element={<AdminPromos />} />
+                <Route path="feature-requests" element={<AdminFeatureRequests />} />
+                <Route path="onboarding" element={<AdminOnboarding />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="contact" element={<AdminContact />} />
+                <Route path="payments" element={<AdminPayments />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="product-categories" element={<AdminProductCategories />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="commerce" element={<AdminCommerce />} />
+              </Route>
+
               {/* Platform (super-admin) Routes — own auth session */}
               <Route
                 path="/platform"
@@ -285,46 +220,13 @@ const App = () => (
                 }
               >
                 <Route path="login" element={<PlatformLogin />} />
-                <Route
-                  index
-                  element={
-                    <PlatformProtectedRoute>
-                      <PlatformDashboard />
-                    </PlatformProtectedRoute>
-                  }
-                />
-                <Route
-                  path="studios/new"
-                  element={
-                    <PlatformProtectedRoute>
-                      <PlatformStudioNew />
-                    </PlatformProtectedRoute>
-                  }
-                />
-                <Route
-                  path="studios/:id"
-                  element={
-                    <PlatformProtectedRoute>
-                      <PlatformStudioDetail />
-                    </PlatformProtectedRoute>
-                  }
-                />
-                <Route
-                  path="requests"
-                  element={
-                    <PlatformProtectedRoute>
-                      <PlatformRequests />
-                    </PlatformProtectedRoute>
-                  }
-                />
-                <Route
-                  path="audit"
-                  element={
-                    <PlatformProtectedRoute>
-                      <PlatformAudit />
-                    </PlatformProtectedRoute>
-                  }
-                />
+                <Route element={<PlatformOutlet />}>
+                  <Route index element={<PlatformDashboard />} />
+                  <Route path="studios/new" element={<PlatformStudioNew />} />
+                  <Route path="studios/:id" element={<PlatformStudioDetail />} />
+                  <Route path="requests" element={<PlatformRequests />} />
+                  <Route path="audit" element={<PlatformAudit />} />
+                </Route>
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -20,7 +20,8 @@ import {
   Store,
   Palette,
   Lightbulb,
-  Rocket
+  Rocket,
+  Megaphone
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ const navItems = [
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
   { name: "Appearance", path: "/admin/appearance", icon: Palette },
+  { name: "Promotions", path: "/admin/promos", icon: Megaphone },
   { name: "Feature Requests", path: "/admin/feature-requests", icon: Lightbulb },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
   { name: "Products", path: "/admin/products", icon: ShoppingBag },
@@ -121,7 +123,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
       <div className="flex">
         {/* Sidebar - Desktop */}
-        <aside className="hidden md:flex w-64 flex-col border-r border-border min-h-[calc(100vh-57px)]">
+        <aside className="hidden md:flex w-64 flex-col border-r border-border sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
           <nav className="flex-1 p-4">
             <ul className="space-y-1">
               {navItems.map((item) => (
