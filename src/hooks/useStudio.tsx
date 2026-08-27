@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, ReactNode } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { studioApi, StudioConfigDTO, StudioFeatureFlags } from "@/lib/api";
-import { applyStudioTheme } from "@/lib/theme";
 
 interface StudioContextType {
   config: StudioConfigDTO | null;
@@ -34,13 +33,8 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     staleTime: 10 * 60 * 1000,
   });
 
-  // Apply brand colors whenever the config changes; set the document title.
-  useEffect(() => {
-    if (!config) return;
-    applyStudioTheme(config.branding);
-    if (config.name) document.title = config.name;
-  }, [config]);
-
+  // Theming is applied by <StudioTheme/> inside the router, so the platform
+  // console stays neutral and a studio's colors never bleed onto other areas.
   const name = config?.name || FALLBACK_NAME;
   const features = config?.settings ?? ALL_ON;
 
