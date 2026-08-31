@@ -73,6 +73,15 @@ const AdminPayments = () => {
   const [payName, setPayName] = useState("");
   const [resolving, setResolving] = useState(false);
 
+  // Auto-verify once a full (10-digit) number is entered.
+  useEffect(() => {
+    const digits = payNumber.replace(/\D/g, "");
+    if (!payProvider || digits.length < 10 || payName || resolving) return;
+    const t = setTimeout(() => resolveName(), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payNumber, payProvider]);
+
   // Verify the number with Paystack and auto-fill the registered account name.
   const resolveName = async () => {
     if (!payProvider || !/^\d{9,15}$/.test(payNumber.trim())) return;
@@ -123,6 +132,33 @@ const AdminPayments = () => {
       toast({
         variant: "destructive",
         title: "Couldn't save payout account",
+        description: error instanceof Error ? error.message : "Please try again.",
+      }),
+  });
+
+  // ---- Loyalty redemption cap ----
+  const { data: loyalty } = useQuery({
+    queryKey: ["studio-loyalty"],
+    queryFn: () => studioAdminApi.getLoyalty(),
+  });
+  const [loyaltyCap, setLoyaltyCap] = useState(30);
+  useEffect(() => {
+    if (loyalty) setLoyaltyCap(loyalty.loyaltyCapPercent);
+  }, [loyalty]);
+  const loyaltyMutation = useMutation({
+    mutationFn: () => studioAdminApi.updateLoyalty(loyaltyCap),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["studio-loyalty"] });
+      queryClient.invalidateQueries({ queryKey: ["studio-config"] });
+      toast({
+        title: "Loyalty cap saved",
+        description: `Customers can pay up to ${loyaltyCap}% of a booking with points.`,
+      });
+    },
+    onError: (error) =>
+      toast({
+        variant: "destructive",
+        title: "Couldn't save",
         description: error instanceof Error ? error.message : "Please try again.",
       }),
   });
@@ -315,18 +351,22 @@ const AdminPayments = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="payout-number">Mobile-money number</Label>
-                  <Input
-                    id="payout-number"
-                    value={payNumber}
-                    onChange={(e) => {
-                      setPayNumber(e.target.value);
-                      setPayName("");
-                    }}
-                    onBlur={resolveName}
-                    inputMode="numeric"
-                    placeholder="0244123456"
-                    className="max-w-sm"
-                  />
+                  <div className="relative max-w-sm">
+                    <Input
+                      id="payout-number"
+                      value={payNumber}
+                      onChange={(e) => {
+                        setPayNumber(e.target.value);
+                        setPayName("");
+                      }}
+                      onBlur={resolveName}
+                      inputMode="numeric"
+                      placeholder="0244123456"
+                    />
+                    {resolving && (
+                      <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     We'll verify the number and fetch the account name.
                   </p>
@@ -364,6 +404,46 @@ const AdminPayments = () => {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   {payout?.connected ? "Update payout account" : "Connect account"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Loyalty redemption cap */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Loyalty redemption</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  The most of a booking a customer can pay for with loyalty
+                  points.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="loyalty-cap">Maximum discount from points</Label>
+                  <div className="flex items-center gap-2 max-w-[160px]">
+                    <Input
+                      id="loyalty-cap"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={loyaltyCap}
+                      onChange={(e) => setLoyaltyCap(Number(e.target.value))}
+                    />
+                    <span className="text-muted-foreground">%</span>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => loyaltyMutation.mutate()}
+                  disabled={
+                    loyaltyMutation.isPending ||
+                    loyaltyCap < 0 ||
+                    loyaltyCap > 100
+                  }
+                >
+                  {loyaltyMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save loyalty cap
                 </Button>
               </CardContent>
             </Card>
