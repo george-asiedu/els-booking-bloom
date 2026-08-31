@@ -1,0 +1,60 @@
+# Deploys the frontend to Cloudflare Pages on every push to `main`.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN      - a token with "Cloudflare Pages: Edit" permission
+#   CLOUDFLARE_ACCOUNT_ID     - your Cloudflare account id
+# Required repository variables:
+#   CLOUDFLARE_PROJECT_NAME   - the Pages project name (e.g. "zuri")
+#   VITE_API_URL              - the ELS-Server API base URL
+# Optional variables (build-time config): VITE_ROOT_DOMAIN, VITE_PLATFORM_NAME,
+#   VITE_PLATFORM_WHATSAPP, VITE_PLATFORM_EMAIL, VITE_UMAMI_SRC,
+#   VITE_UMAMI_WEBSITE_ID, VITE_PRICE_* etc.
+
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_ROOT_DOMAIN: ${{ vars.VITE_ROOT_DOMAIN }}
+          VITE_PLATFORM_NAME: ${{ vars.VITE_PLATFORM_NAME }}
+          VITE_PLATFORM_TAGLINE: ${{ vars.VITE_PLATFORM_TAGLINE }}
+          VITE_PLATFORM_HERO_BADGE: ${{ vars.VITE_PLATFORM_HERO_BADGE }}
+          VITE_PLATFORM_WHATSAPP: ${{ vars.VITE_PLATFORM_WHATSAPP }}
+          VITE_PLATFORM_EMAIL: ${{ vars.VITE_PLATFORM_EMAIL }}
+          VITE_DEMO_STUDIO_SLUG: ${{ vars.VITE_DEMO_STUDIO_SLUG }}
+          VITE_UMAMI_SRC: ${{ vars.VITE_UMAMI_SRC }}
+          VITE_UMAMI_WEBSITE_ID: ${{ vars.VITE_UMAMI_WEBSITE_ID }}
+          VITE_PRICE_STANDARD_MONTHLY: ${{ vars.VITE_PRICE_STANDARD_MONTHLY }}
+          VITE_PRICE_STANDARD_YEARLY: ${{ vars.VITE_PRICE_STANDARD_YEARLY }}
+          VITE_PRICE_PREMIUM_MONTHLY: ${{ vars.VITE_PRICE_PREMIUM_MONTHLY }}
+          VITE_PRICE_PREMIUM_YEARLY: ${{ vars.VITE_PRICE_PREMIUM_YEARLY }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }} --branch=main
