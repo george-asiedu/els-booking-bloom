@@ -118,12 +118,26 @@ export interface StudioSummary {
   name: string;
   slug: string;
   status: StudioStatus;
+  plan: "STANDARD" | "PREMIUM";
+  billingCadence: "MONTHLY" | "YEARLY";
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
   customDomain: string | null;
   ownerEmail: string | null;
   userCount: number;
   appointmentCount: number;
+  revenue: number;
   settings: StudioFeatureSettings | null;
   createdAt: string;
+}
+
+export interface PlatformAnalytics {
+  totalStudios: number;
+  activeStudios: number;
+  suspendedStudios: number;
+  trialStudios: number;
+  totalUsers: number;
+  totalRevenue: number;
 }
 
 export interface StudioDetail {
@@ -137,6 +151,10 @@ export interface StudioDetail {
   platformFeePercent: number;
   payoutProvider: string | null;
   payoutAccountNumber: string | null;
+  plan: "STANDARD" | "PREMIUM";
+  billingCadence: "MONTHLY" | "YEARLY";
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
   createdAt: string;
   owner: { id: string; email: string; role: string } | null;
   settings: StudioFeatureSettings | null;
@@ -162,6 +180,18 @@ export interface ProvisionStudioInput {
 
 export interface PlatformFeatureRequest extends FeatureRequestDTO {
   studio: { id: string; name: string; slug: string } | null;
+}
+
+export interface PlatformReviewRow {
+  id: string;
+  studioId: string | null;
+  studioName: string | null;
+  authorName: string;
+  authorRole: string | null;
+  content: string;
+  rating: number;
+  approved: boolean;
+  createdAt: string;
 }
 
 export interface AuditLogEntry {
@@ -209,6 +239,11 @@ export const platformApi = {
 
   async listStudios(): Promise<StudioSummary[]> {
     return platformRequest<StudioSummary[]>("/studios");
+  },
+
+  async getAnalytics(): Promise<PlatformAnalytics> {
+    const res = await platformRequest<Envelope<PlatformAnalytics>>("/analytics");
+    return res.data;
   },
 
   async getStudio(id: string): Promise<StudioDetail> {
@@ -278,6 +313,24 @@ export const platformApi = {
       { method: "PATCH", body: { status } },
     );
     return res.data;
+  },
+
+  async listReviews(): Promise<PlatformReviewRow[]> {
+    const res = await platformRequest<Envelope<PlatformReviewRow[]>>("/reviews");
+    return res.data;
+  },
+  async setReviewApproved(
+    id: string,
+    approved: boolean,
+  ): Promise<PlatformReviewRow> {
+    const res = await platformRequest<Envelope<PlatformReviewRow>>(
+      `/reviews/${id}`,
+      { method: "PATCH", body: { approved } },
+    );
+    return res.data;
+  },
+  async removeReview(id: string): Promise<void> {
+    await platformRequest(`/reviews/${id}`, { method: "DELETE" });
   },
 
   async listAuditLogs(params?: {
