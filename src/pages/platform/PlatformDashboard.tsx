@@ -39,15 +39,45 @@ const StatusBadge = ({ status }: { status: StudioStatus }) => (
   <Badge variant={statusVariant[status]}>{status.toLowerCase()}</Badge>
 );
 
+const Stat = ({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) => (
+  <Card>
+    <CardContent className="py-4">
+      <div className="text-2xl font-semibold">{value}</div>
+      <div className="text-xs text-muted-foreground">
+        {label}
+        {sub ? ` · ${sub}` : ""}
+      </div>
+    </CardContent>
+  </Card>
+);
+
 const PlatformDashboard = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const { data: studios, isLoading, isError, error } = useQuery({
+  const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED">("ALL");
+
+  const { data: allStudios, isLoading, isError, error } = useQuery({
     queryKey: ["platform", "studios"],
     queryFn: () => platformApi.listStudios(),
   });
+  const { data: analytics } = useQuery({
+    queryKey: ["platform", "analytics"],
+    queryFn: () => platformApi.getAnalytics(),
+  });
+
+  const studios = allStudios?.filter(
+    (s) => filter === "ALL" || s.status === filter,
+  );
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: StudioStatus }) =>
@@ -100,6 +130,38 @@ const PlatformDashboard = () => {
         </Button>
       </div>
 
+      {/* Platform analytics */}
+      {analytics && (
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Stat label="Total revenue" value={`GHS ${analytics.totalRevenue.toLocaleString()}`} />
+          <Stat label="Total users" value={analytics.totalUsers.toLocaleString()} />
+          <Stat
+            label="Active studios"
+            value={`${analytics.activeStudios}`}
+            sub={`of ${analytics.totalStudios}`}
+          />
+          <Stat
+            label="Suspended"
+            value={`${analytics.suspendedStudios}`}
+            sub={analytics.trialStudios ? `${analytics.trialStudios} trial` : undefined}
+          />
+        </div>
+      )}
+
+      {/* Status filter */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(["ALL", "ACTIVE", "SUSPENDED"] as const).map((f) => (
+          <Button
+            key={f}
+            size="sm"
+            variant={filter === f ? "default" : "outline"}
+            onClick={() => setFilter(f)}
+          >
+            {f === "ALL" ? "All" : f === "ACTIVE" ? "Active" : "Inactive"}
+          </Button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -131,7 +193,8 @@ const PlatformDashboard = () => {
                 <TableRow>
                   <TableHead>Studio</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Owner</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
                   <TableHead className="text-right">Members</TableHead>
                   <TableHead className="text-right">Bookings</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -159,8 +222,13 @@ const PlatformDashboard = () => {
                       <TableCell>
                         <StatusBadge status={s.status} />
                       </TableCell>
-                      <TableCell className="max-w-[180px] truncate text-sm text-muted-foreground">
-                        {s.ownerEmail ?? "—"}
+                      <TableCell>
+                        <Badge variant={s.plan === "PREMIUM" ? "default" : "secondary"}>
+                          {s.plan === "PREMIUM" ? "Premium" : "Standard"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        GHS {s.revenue.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">{s.userCount}</TableCell>
                       <TableCell className="text-right">
