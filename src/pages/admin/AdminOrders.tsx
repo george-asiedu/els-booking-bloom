@@ -21,6 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ordersApi, OrderDTO, OrderStatus } from "@/lib/api";
+import { FilterBar } from "@/components/admin/FilterBar";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
@@ -38,6 +40,10 @@ const statusLabel: Record<string, string> = {
 
 const AdminOrders = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [oSearch, setOSearch] = useState("");
+  const [oFulfil, setOFulfil] = useState("all");
+  const [oFrom, setOFrom] = useState("");
+  const [oTo, setOTo] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -61,9 +67,28 @@ const AdminOrders = () => {
       }),
   });
 
-  const filtered = orders?.filter((o) =>
-    statusFilter === "all" ? true : o.status === statusFilter,
-  );
+  const oq = oSearch.trim().toLowerCase();
+  const filtered = (orders ?? []).filter((o) => {
+    if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (oFulfil !== "all" && o.fulfillment !== oFulfil) return false;
+    if (oq) {
+      const hay = `${o.order_number} ${o.customer_name ?? ""} ${o.customer_email ?? ""} ${o.customer_phone ?? ""}`.toLowerCase();
+      if (!hay.includes(oq)) return false;
+    }
+    const d = o.created_at.slice(0, 10);
+    if (oFrom && d < oFrom) return false;
+    if (oTo && d > oTo) return false;
+    return true;
+  });
+  const oFiltersActive =
+    statusFilter !== "all" || oFulfil !== "all" || oq !== "" || oFrom !== "" || oTo !== "";
+  const clearO = () => {
+    setStatusFilter("all");
+    setOFulfil("all");
+    setOSearch("");
+    setOFrom("");
+    setOTo("");
+  };
 
   const stats = {
     total: orders?.length ?? 0,
@@ -100,20 +125,35 @@ const AdminOrders = () => {
           />
         </div>
 
-        <div className="flex items-center gap-4">
+        <FilterBar
+          search={oSearch}
+          onSearch={setOSearch}
+          searchPlaceholder="Search order #, customer…"
+          onClear={clearO}
+          active={oFiltersActive}
+          count={filtered.length}
+        >
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Orders</SelectItem>
+              <SelectItem value="all">Any status</SelectItem>
               <SelectItem value="pending_payment">Payment pending</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
               <SelectItem value="fulfilled">Fulfilled</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+          <Select value={oFulfil} onValueChange={setOFulfil}>
+            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Fulfilment" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any fulfilment</SelectItem>
+              <SelectItem value="pickup">Pickup</SelectItem>
+              <SelectItem value="delivery">Delivery</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="date" value={oFrom} onChange={(e) => setOFrom(e.target.value)} className="w-[150px]" title="From date" />
+          <Input type="date" value={oTo} onChange={(e) => setOTo(e.target.value)} className="w-[150px]" title="To date" />
+        </FilterBar>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
