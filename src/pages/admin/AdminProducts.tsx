@@ -43,6 +43,14 @@ import {
 } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { productsApi, productCategoriesApi, ProductDTO } from "@/lib/api";
+import { FilterBar } from "@/components/admin/FilterBar";
+import {
+  Select as FSelect,
+  SelectContent as FSelectContent,
+  SelectItem as FSelectItem,
+  SelectTrigger as FSelectTrigger,
+  SelectValue as FSelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProductFormData {
@@ -75,6 +83,11 @@ const AdminProducts = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
   const [image, setImage] = useState<File | null>(null);
+  // Filters
+  const [pSearch, setPSearch] = useState("");
+  const [pCategory, setPCategory] = useState("all");
+  const [pActive, setPActive] = useState("all");
+  const [pStock, setPStock] = useState("all");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -184,6 +197,25 @@ const AdminProducts = () => {
     saveMutation.mutate({ ...form, id: editing?.id });
   };
 
+  const filtersActive =
+    pSearch.trim() !== "" || pCategory !== "all" || pActive !== "all" || pStock !== "all";
+  const filtered = (products ?? []).filter((p) => {
+    if (pSearch.trim() && !p.name.toLowerCase().includes(pSearch.trim().toLowerCase()))
+      return false;
+    if (pCategory !== "all" && p.category !== pCategory) return false;
+    if (pActive === "active" && !p.active) return false;
+    if (pActive === "inactive" && p.active) return false;
+    if (pStock === "in" && !p.in_stock) return false;
+    if (pStock === "out" && p.in_stock) return false;
+    return true;
+  });
+  const clearFilters = () => {
+    setPSearch("");
+    setPCategory("all");
+    setPActive("all");
+    setPStock("all");
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -197,6 +229,43 @@ const AdminProducts = () => {
             Add Product
           </Button>
         </div>
+
+        {products && products.length > 0 && (
+          <FilterBar
+            search={pSearch}
+            onSearch={setPSearch}
+            searchPlaceholder="Search products…"
+            onClear={clearFilters}
+            active={filtersActive}
+            count={filtered.length}
+          >
+            <FSelect value={pCategory} onValueChange={setPCategory}>
+              <FSelectTrigger className="w-[150px]"><FSelectValue placeholder="Category" /></FSelectTrigger>
+              <FSelectContent>
+                <FSelectItem value="all">All categories</FSelectItem>
+                {categories.map((c) => (
+                  <FSelectItem key={c.id} value={c.slug}>{c.name}</FSelectItem>
+                ))}
+              </FSelectContent>
+            </FSelect>
+            <FSelect value={pActive} onValueChange={setPActive}>
+              <FSelectTrigger className="w-[130px]"><FSelectValue /></FSelectTrigger>
+              <FSelectContent>
+                <FSelectItem value="all">Any status</FSelectItem>
+                <FSelectItem value="active">Active</FSelectItem>
+                <FSelectItem value="inactive">Inactive</FSelectItem>
+              </FSelectContent>
+            </FSelect>
+            <FSelect value={pStock} onValueChange={setPStock}>
+              <FSelectTrigger className="w-[130px]"><FSelectValue /></FSelectTrigger>
+              <FSelectContent>
+                <FSelectItem value="all">Any stock</FSelectItem>
+                <FSelectItem value="in">In stock</FSelectItem>
+                <FSelectItem value="out">Out of stock</FSelectItem>
+              </FSelectContent>
+            </FSelect>
+          </FilterBar>
+        )}
 
         {categories.length === 0 && (
           <Card>
@@ -235,7 +304,14 @@ const AdminProducts = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products?.map((p) => (
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      No products match your filters.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filtered.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
