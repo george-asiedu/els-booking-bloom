@@ -84,9 +84,8 @@ interface Service {
   duration: string;
 }
 
-// Loyalty: 10 points = GHS 1 off, capped at 30% of the service price.
+// Loyalty: 10 points = GHS 1 off, capped at the studio's loyalty cap %.
 const POINTS_PER_GHS = 10;
-const MAX_DISCOUNT_RATIO = 0.3;
 
 const Book = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -110,7 +109,8 @@ const Book = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { features } = useStudio();
+  const { features, config } = useStudio();
+  const loyaltyCap = config?.settings.loyaltyCapPercent ?? 30;
   const queryClient = useQueryClient();
 
   // Fetch services from the API
@@ -251,7 +251,7 @@ const Book = () => {
   const onPromo = selectedService?.on_promo ?? false;
   const servicePrice = selectedService?.effective_price ?? 0;
   const maxPointsByCap = Math.floor(
-    servicePrice * MAX_DISCOUNT_RATIO * POINTS_PER_GHS,
+    servicePrice * (loyaltyCap / 100) * POINTS_PER_GHS,
   );
   const pointsToUse = Math.min(availablePoints, maxPointsByCap);
   const discount = pointsToUse / POINTS_PER_GHS;
@@ -813,7 +813,7 @@ const Book = () => {
                               GHS {discount}
                             </span>{" "}
                             ({pointsToUse.toLocaleString()} pts) on this booking —
-                            up to 30% off.
+                            up to {loyaltyCap}% off.
                           </p>
                         </div>
                         <Switch
