@@ -7,6 +7,15 @@ interface Envelope<T> {
 
 export type Plan = "STANDARD" | "PREMIUM";
 export type Cadence = "MONTHLY" | "YEARLY";
+export type BillingMode = "SUBSCRIPTION" | "REVENUE_SHARE";
+
+export interface OnboardingConfig {
+  revenueShareEnabled: boolean;
+  commissionStandardPercent: number;
+  commissionPremiumPercent: number;
+  setupFeeStandard: number;
+  setupFeePremium: number;
+}
 
 export interface OnboardingStartInput {
   name: string;
@@ -16,17 +25,26 @@ export interface OnboardingStartInput {
   ownerFullName?: string;
   plan: Plan;
   cadence: Cadence;
+  billingMode: BillingMode;
 }
 
 export interface OnboardingStartResult {
   reference: string;
-  accessCode: string;
-  authorizationUrl: string;
+  accessCode?: string;
+  authorizationUrl?: string;
   email: string;
-  publicKey: string;
+  publicKey?: string;
+  // Set when a free (no-setup-fee) revenue-share signup provisions immediately.
+  provisioned?: boolean;
+  slug?: string;
 }
 
 export const onboardingApi = {
+  async config(): Promise<OnboardingConfig> {
+    const res = await apiRequest<Envelope<OnboardingConfig>>("/onboarding/config");
+    return res.data;
+  },
+
   async availability(
     slug: string,
   ): Promise<{ available: boolean; reason?: string; slug?: string }> {
