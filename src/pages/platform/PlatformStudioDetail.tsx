@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, LogIn, Save, ScrollText } from "lucide-react";
+import { ArrowLeft, Loader2, LogIn, Save, ScrollText, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,18 @@ const PlatformStudioDetail = () => {
   const { data: studio, isLoading, isError, error } = useQuery({
     queryKey: ["platform", "studio", id],
     queryFn: () => platformApi.getStudio(id),
+    enabled: Boolean(id),
+  });
+
+  // Per-studio payment transaction audit trail.
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ["platform", "studio", id, "payments"],
+    queryFn: () =>
+      platformApi.listAuditLogs({
+        studioId: id,
+        actionPrefix: "payment.",
+        limit: 200,
+      }),
     enabled: Boolean(id),
   });
 
@@ -359,8 +371,92 @@ const PlatformStudioDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment transactions audit log (per studio) */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Receipt className="h-4 w-4 text-primary" />
+            Payment transactions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {paymentsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : payments.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No payment transactions recorded yet.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">When</th>
+                    <th className="py-2 pr-3 font-medium">Event</th>
+                    <th className="py-2 pr-3 font-medium">Amount</th>
+                    <th className="py-2 pr-3 font-medium">Channel</th>
+                    <th className="py-2 pr-3 font-medium">Customer</th>
+                    <th className="py-2 pr-3 font-medium">Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((p) => {
+                    const m = (p.metadata ?? {}) as Record<string, unknown>;
+                    const amount = m.amount as number | undefined;
+                    const failed = p.action.endsWith(".failed");
+                    return (
+                      <tr key={p.id} className="border-b last:border-0 align-top">
+                        <td className="py-2 pr-3 whitespace-nowrap text-muted-foreground">
+                          {new Date(p.createdAt).toLocaleString()}
+                        </td>
+                        <td className="py-2 pr-3">
+                          <Badge variant={failed ? "destructive" : "secondary"}>
+                            {paymentEventLabel(p.action)}
+                          </Badge>
+                        </td>
+                        <td className="py-2 pr-3 whitespace-nowrap font-medium">
+                          {typeof amount === "number" ? `₵${amount.toLocaleString()}` : "—"}
+                        </td>
+                        <td className="py-2 pr-3 whitespace-nowrap">
+                          {(m.channel as string) ?? "—"}
+                        </td>
+                        <td className="py-2 pr-3">
+                          {(m.customerName as string) ||
+                            (m.customerEmail as string) ||
+                            (m.ownerEmail as string) ||
+                            "—"}
+                        </td>
+                        <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                          {(m.reference as string) ?? "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </PlatformLayout>
   );
+};
+
+// Human labels for the payment audit action codes.
+const paymentEventLabel = (action: string): string => {
+  const map: Record<string, string> = {
+    "payment.booking.succeeded": "Booking paid",
+    "payment.booking.failed": "Booking failed",
+    "payment.order.succeeded": "Order paid",
+    "payment.order.failed": "Order failed",
+    "payment.signup.succeeded": "Signup paid",
+    "payment.renewal.succeeded": "Renewal",
+    "payment.plan_change.succeeded": "Plan change",
+  };
+  return map[action] ?? action.replace(/^payment\./, "").replace(/\./g, " ");
 };
 
 export default PlatformStudioDetail;
