@@ -14,7 +14,7 @@ interface StudioContextType {
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
-const FALLBACK_NAME = "El's Beauty Studio";
+const FALLBACK_NAME = "Zuri Studios";
 
 const ALL_ON: StudioFeatureFlags = {
   commerce: true,
