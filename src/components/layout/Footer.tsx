@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Sparkles, Instagram, Phone, Mail, MapPin } from "lucide-react";
 import { useStudio } from "@/hooks/useStudio";
+import { contactInfoApi } from "@/lib/api";
 
 export const Footer = () => {
   const { name: studioName, config } = useStudio();
+  const { data: contact } = useQuery({
+    queryKey: ["contact-info"],
+    queryFn: () => contactInfoApi.get(),
+  });
   const logoUrl = config?.branding.logoUrl ?? null;
   const tagline =
     config?.content.aboutText ||
@@ -65,22 +71,30 @@ export const Footer = () => {
           <div>
             <h4 className="font-semibold text-foreground mb-4">Contact</h4>
             <ul className="space-y-3">
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 text-primary" />
-                <span>+1 (555) 123-4567</span>
-              </li>
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4 text-primary" />
-                <span>hello@elsbeauty.com</span>
-              </li>
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Instagram className="h-4 w-4 text-primary" />
-                <span>@elsbeautystudio</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                <span>123 Beauty Lane, Suite 101</span>
-              </li>
+              {contact?.showPhone && contact.phone && (
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Phone className="h-4 w-4 text-primary" />
+                  <span>{contact.phone}</span>
+                </li>
+              )}
+              {contact?.showEmail && contact.email && (
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4 text-primary" />
+                  <span>{contact.email}</span>
+                </li>
+              )}
+              {contact?.showInstagram && contact.instagram && (
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Instagram className="h-4 w-4 text-primary" />
+                  <span>{contact.instagram}</span>
+                </li>
+              )}
+              {contact?.showAddress && contact.address && (
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4 text-primary mt-0.5" />
+                  <span>{contact.address}</span>
+                </li>
+              )}
             </ul>
           </div>
         </div>
