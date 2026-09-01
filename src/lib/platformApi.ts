@@ -140,6 +140,14 @@ export interface PlatformAnalytics {
   totalRevenue: number;
 }
 
+export interface PlatformBillingConfig {
+  revenueShareEnabled: boolean;
+  commissionStandardPercent: number;
+  commissionPremiumPercent: number;
+  setupFeeStandard: number;
+  setupFeePremium: number;
+}
+
 export interface StudioDetail {
   id: string;
   name: string;
@@ -243,6 +251,23 @@ export const platformApi = {
 
   async getAnalytics(): Promise<PlatformAnalytics> {
     const res = await platformRequest<Envelope<PlatformAnalytics>>("/analytics");
+    return res.data;
+  },
+
+  async getBillingConfig(): Promise<PlatformBillingConfig> {
+    const res = await platformRequest<Envelope<PlatformBillingConfig>>(
+      "/billing-config",
+    );
+    return res.data;
+  },
+
+  async updateBillingConfig(
+    input: Partial<PlatformBillingConfig>,
+  ): Promise<PlatformBillingConfig> {
+    const res = await platformRequest<Envelope<PlatformBillingConfig>>(
+      "/billing-config",
+      { method: "PATCH", body: input },
+    );
     return res.data;
   },
 

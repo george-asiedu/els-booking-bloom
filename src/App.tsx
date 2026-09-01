@@ -68,6 +68,7 @@ const PlatformStudioDetail = lazy(() => import("./pages/platform/PlatformStudioD
 const PlatformRequests = lazy(() => import("./pages/platform/PlatformRequests"));
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit"));
 const PlatformReviews = lazy(() => import("./pages/platform/PlatformReviews"));
+const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
@@ -251,6 +252,7 @@ const App = () => (
                   <Route path="studios/:id" element={<PlatformStudioDetail />} />
                   <Route path="requests" element={<PlatformRequests />} />
                 <Route path="reviews" element={<PlatformReviews />} />
+                  <Route path="billing" element={<PlatformBilling />} />
                   <Route path="audit" element={<PlatformAudit />} />
                 </Route>
               </Route>

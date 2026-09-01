@@ -15,7 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PLATFORM, PLANS, planPrice } from "@/config/platform";
-import { onboardingApi, Plan, Cadence } from "@/lib/onboardingApi";
+import {
+  onboardingApi,
+  Plan,
+  Cadence,
+  BillingMode,
+  OnboardingConfig,
+} from "@/lib/onboardingApi";
 import { useToast } from "@/hooks/use-toast";
 
 const slugify = (s: string) =>
@@ -34,6 +40,8 @@ const Onboarding = () => {
   const [cadence, setCadence] = useState<Cadence>(
     params.get("cadence") === "YEARLY" ? "YEARLY" : "MONTHLY",
   );
+  const [billingMode, setBillingMode] = useState<BillingMode>("SUBSCRIPTION");
+  const [cfg, setCfg] = useState<OnboardingConfig | null>(null);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -55,6 +63,32 @@ const Onboarding = () => {
 
   const selectedPlan = PLANS.find((p) => p.id === plan)!;
   const price = planPrice(selectedPlan, cadence);
+
+  // Revenue-share economics for the selected plan (only when enabled).
+  const commissionPct =
+    plan === "PREMIUM"
+      ? cfg?.commissionPremiumPercent ?? 0
+      : cfg?.commissionStandardPercent ?? 0;
+  const setupFee =
+    plan === "PREMIUM" ? cfg?.setupFeePremium ?? 0 : cfg?.setupFeeStandard ?? 0;
+  const revShare = billingMode === "REVENUE_SHARE";
+  // Amount charged now: plan price (subscription) or one-time setup fee (rev-share).
+  const dueToday = revShare ? setupFee : price;
+
+  // Load the platform billing config so we know whether to offer revenue-share.
+  useEffect(() => {
+    onboardingApi
+      .config()
+      .then(setCfg)
+      .catch(() => setCfg(null));
+  }, []);
+
+  // If the super admin disables revenue-share, fall back to subscription.
+  useEffect(() => {
+    if (cfg && !cfg.revenueShareEnabled && billingMode === "REVENUE_SHARE") {
+      setBillingMode("SUBSCRIPTION");
+    }
+  }, [cfg, billingMode]);
 
   // Live slug availability (debounced).
   useEffect(() => {
@@ -123,8 +157,20 @@ const Onboarding = () => {
         ownerFullName: fullName.trim() || undefined,
         plan,
         cadence,
+        billingMode,
       });
       setReference(res.reference);
+
+      // Free revenue-share signup (no setup fee) — provisioned immediately.
+      if (res.provisioned) {
+        setStudioSlug(res.slug ?? slug);
+        setDone(true);
+        return;
+      }
+      if (!res.accessCode) {
+        throw new Error("Couldn't start checkout. Please try again.");
+      }
+
       const popup = new PaystackPop();
       popup.resumeTransaction(res.accessCode, {
         onSuccess: () => {
@@ -264,6 +310,48 @@ const Onboarding = () => {
                 </button>
               ))}
             </div>
+            {/* Billing mode — only when the platform offers revenue-share. */}
+            {cfg?.revenueShareEnabled && (
+              <div className="mt-8">
+                <h2 className="mb-1 font-semibold">How would you like to pay?</h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Your plan features stay the same — this only changes how you're
+                  billed.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    onClick={() => setBillingMode("SUBSCRIPTION")}
+                    className={`rounded-xl border p-4 text-left transition-colors ${
+                      billingMode === "SUBSCRIPTION"
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <span className="font-semibold">Plan subscription</span>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Pay {GHS(price)}/{cadence === "MONTHLY" ? "mo" : "yr"} up front.
+                      No cut of your sales.
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setBillingMode("REVENUE_SHARE")}
+                    className={`rounded-xl border p-4 text-left transition-colors ${
+                      billingMode === "REVENUE_SHARE"
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <span className="font-semibold">Pay as you earn</span>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {commissionPct}% per transaction
+                      {setupFee > 0
+                        ? `, plus a one-time ${GHS(setupFee)} setup fee.`
+                        : `. No upfront plan fee.`}
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
             <Button className="mt-8 w-full" onClick={() => setStep(2)}>
               Continue <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -334,24 +422,38 @@ const Onboarding = () => {
             <h1 className="mb-6 font-serif text-2xl font-bold">Review & pay</h1>
             <div className="space-y-3 rounded-xl border border-border p-5">
               <Row label="Plan" value={`${selectedPlan.name} · ${cadence === "MONTHLY" ? "Monthly" : "Yearly"}`} />
+              <Row
+                label="Billing"
+                value={
+                  revShare
+                    ? `Pay as you earn — ${commissionPct}% per transaction`
+                    : "Plan subscription"
+                }
+              />
               <Row label="Studio" value={name} />
               <Row label="Web address" value={`${slug}`} mono />
               <Row label="Owner" value={email} />
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-semibold">Due today</span>
                 <span className="font-serif text-xl font-bold text-primary">
-                  {GHS(price)}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    /{cadence === "MONTHLY" ? "mo" : "yr"}
-                  </span>
+                  {dueToday > 0 ? GHS(dueToday) : "₵0"}
+                  {!revShare && (
+                    <span className="text-sm font-normal text-muted-foreground">
+                      /{cadence === "MONTHLY" ? "mo" : "yr"}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              Renews automatically each {cadence === "MONTHLY" ? "month" : "year"}. Cancel anytime.
+              {revShare
+                ? setupFee > 0
+                  ? `A one-time ${GHS(setupFee)} setup fee today, then ${commissionPct}% of each customer payment. No recurring plan fee.`
+                  : `No upfront fee — the platform takes ${commissionPct}% of each customer payment.`
+                : `Covers one ${cadence === "MONTHLY" ? "month" : "year"}. You'll renew from your dashboard before it ends — no automatic charges.`}{" "}
               By continuing you agree to our{" "}
-              <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{" "}
-              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms</a> and{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.
             </p>
             <div className="mt-8 flex gap-3">
               <Button variant="outline" onClick={() => setStep(2)} disabled={submitting}>
@@ -359,7 +461,9 @@ const Onboarding = () => {
               </Button>
               <Button className="flex-1" onClick={pay} disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Pay {GHS(price)} & create my studio
+                {dueToday > 0
+                  ? `Pay ${GHS(dueToday)} & create my studio`
+                  : "Create my studio"}
               </Button>
             </div>
           </div>

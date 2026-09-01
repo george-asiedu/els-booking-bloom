@@ -71,6 +71,47 @@ const AdminBilling = () => {
     }
   };
 
+  const renew = async () => {
+    setBusy(true);
+    try {
+      const { reference, accessCode } = await studioBillingApi.startRenewal();
+      const popup = new PaystackPop();
+      popup.resumeTransaction(accessCode, {
+        onSuccess: async () => {
+          try {
+            await studioBillingApi.applyRenewal({ reference });
+            queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
+            queryClient.invalidateQueries({ queryKey: ["studio-config"] });
+            toast({
+              title: "Renewed",
+              description: "Your plan has been extended for another period.",
+            });
+          } catch (err) {
+            toast({
+              variant: "destructive",
+              title: "Payment received, but the renewal didn't apply",
+              description: err instanceof Error ? err.message : "Please contact support.",
+            });
+          } finally {
+            setBusy(false);
+          }
+        },
+        onCancel: () => setBusy(false),
+        onError: (e: { message?: string }) => {
+          setBusy(false);
+          toast({ variant: "destructive", title: "Payment failed", description: e?.message });
+        },
+      });
+    } catch (error) {
+      setBusy(false);
+      toast({
+        variant: "destructive",
+        title: "Couldn't start the renewal",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="max-w-3xl space-y-6">
@@ -80,8 +121,8 @@ const AdminBilling = () => {
             Billing & plan
           </h1>
           <p className="text-muted-foreground">
-            Manage your subscription. Upgrade, downgrade or switch billing period
-            anytime.
+            Manage your plan. Upgrade, downgrade or switch billing period anytime,
+            and renew each period with Mobile Money.
           </p>
         </div>
 
@@ -89,9 +130,29 @@ const AdminBilling = () => {
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : billing.billingMode === "REVENUE_SHARE" ? (
+          <Card>
+            <CardContent className="space-y-3 py-6">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Current plan</span>
+                <Badge variant={billing.plan === "PREMIUM" ? "default" : "secondary"}>
+                  {billing.plan === "PREMIUM" ? "Premium" : "Standard"}
+                </Badge>
+                <Badge variant="outline">Pay as you earn</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your account bills per transaction — the platform takes{" "}
+                <span className="font-semibold text-foreground">
+                  {billing.commissionPercent}%
+                </span>{" "}
+                of each customer payment. There's no recurring plan fee and nothing
+                to renew. To change your plan or billing, contact the Zuri team.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <>
-            <Card>
+            <Card className={billing.lapsed ? "border-destructive" : ""}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5">
                 <div>
                   <div className="flex items-center gap-2">
@@ -102,16 +163,26 @@ const AdminBilling = () => {
                     <Badge variant="outline">
                       {billing.cadence === "YEARLY" ? "Yearly" : "Monthly"}
                     </Badge>
+                    <Badge variant={billing.lapsed ? "destructive" : "secondary"}>
+                      {billing.lapsed ? "Lapsed" : "Active"}
+                    </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {billing.subscriptionStatus
-                      ? `Status: ${billing.subscriptionStatus}`
-                      : "Status: active"}
                     {billing.currentPeriodEnd
-                      ? ` · renews ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`
-                      : ""}
+                      ? billing.lapsed
+                        ? `Expired ${new Date(billing.currentPeriodEnd).toLocaleDateString()} — renew to restore your studio.`
+                        : `Active until ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`
+                      : "No active period — renew to activate."}
                   </p>
                 </div>
+                <Button
+                  variant={billing.lapsed ? "default" : "outline"}
+                  disabled={busy}
+                  onClick={renew}
+                >
+                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {billing.lapsed ? "Renew now" : "Renew early"}
+                </Button>
               </CardContent>
             </Card>
 
@@ -176,8 +247,9 @@ const AdminBilling = () => {
               })}
             </div>
             <p className="text-center text-xs text-muted-foreground">
-              Switching starts a new subscription for the selected plan; your
-              previous subscription is cancelled to avoid double billing.
+              Switching charges the selected plan once and starts a fresh billing
+              period. Plans don't auto-renew — you'll renew each period with
+              Mobile Money before it lapses.
             </p>
           </>
         )}
