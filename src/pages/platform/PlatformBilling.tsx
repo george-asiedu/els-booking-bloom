@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { platformApi, PlatformBillingConfig } from "@/lib/platformApi";
+import { PlatformLayout } from "./PlatformLayout";
 import { useToast } from "@/hooks/use-toast";
 
 const PlatformBilling = () => {
@@ -47,13 +48,16 @@ const PlatformBilling = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PlatformLayout>
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </PlatformLayout>
     );
   }
 
   return (
+    <PlatformLayout>
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold">
@@ -142,6 +146,7 @@ const PlatformBilling = () => {
         Save billing settings
       </Button>
     </div>
+    </PlatformLayout>
   );
 };
 
