@@ -109,7 +109,7 @@ const Book = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { features, config } = useStudio();
+  const { features, config, name: studioName } = useStudio();
   const loyaltyCap = config?.settings.loyaltyCapPercent ?? 30;
   const queryClient = useQueryClient();
 
@@ -382,7 +382,7 @@ const Book = () => {
     studioWhatsapp && bookedAppointment
       ? whatsappLink(
           studioWhatsapp,
-          `Hi El's Beauty Studio, I've just requested an appointment:\n\n` +
+          `Hi ${studioName}, I've just requested an appointment:\n\n` +
             `Service: ${bookedAppointment.services?.name ?? "Service"}\n` +
             `Name: ${bookedAppointment.full_name}\n` +
             `Date: ${bookedAppointment.appointment_date}\n` +
@@ -404,7 +404,7 @@ const Book = () => {
                 Booking Request Received!
               </h1>
               <p className="text-muted-foreground mb-6">
-                Thank you for booking with El's Beauty Studio. Your request is
+                Thank you for booking with {studioName}. Your request is
                 <span className="font-medium text-foreground"> pending confirmation</span> —
                 we'll confirm shortly. Send us a quick WhatsApp so we can keep you updated.
               </p>

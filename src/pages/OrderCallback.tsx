@@ -8,11 +8,13 @@ import { ordersApi, contactInfoApi } from "@/lib/api";
 import { downloadOrderReceipt } from "@/lib/receipt";
 import { whatsappLink } from "@/lib/whatsapp";
 import { celebrate } from "@/lib/confetti";
+import { useStudio } from "@/hooks/useStudio";
 
 const OrderCallback = () => {
   const [params] = useSearchParams();
   const reference = params.get("reference") || params.get("trxref") || "";
   const queryClient = useQueryClient();
+  const { name: studioName } = useStudio();
 
   const {
     data: order,
@@ -47,7 +49,7 @@ const OrderCallback = () => {
     studioWhatsapp && order && paid
       ? whatsappLink(
           studioWhatsapp,
-          `Hi El's Beauty Studio, I've just placed order ${order.order_number} ` +
+          `Hi ${studioName}, I've just placed order ${order.order_number} ` +
             `(GHS ${order.total}). Looking forward to it!`,
         )
       : null;
@@ -153,7 +155,7 @@ const OrderCallback = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <Button onClick={() => downloadOrderReceipt(order)}>
+                  <Button onClick={() => downloadOrderReceipt(order, studioName)}>
                     <Download className="mr-2 h-4 w-4" />
                     Download receipt
                   </Button>

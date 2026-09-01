@@ -1,6 +1,6 @@
-# El's Beauty Studio
+# Zuri Studios
 
-The customer-facing website and admin dashboard for **El's Beauty Studio** — a nail, lash and hair studio. Customers browse services, book appointments (with an optional design reference photo), leave reviews and earn/redeem loyalty points; the studio admin manages services, appointments, gallery, business hours, reviews, contact details and views analytics.
+**Zuri Studios** is a multi-tenant SaaS platform for beauty businesses. Each studio gets its own branded storefront (custom subdomain) where customers browse services, book appointments (with an optional design reference photo), shop products, leave reviews and earn/redeem loyalty points; the studio admin manages services, appointments, gallery, business hours, reviews, contact details and views analytics, all governed by a super-admin platform console. El's Beauty Studio is one studio hosted on Zuri.
 
 Built with **React + Vite + TypeScript**, **Tailwind CSS** and **shadcn/ui**, talking to the [ELS-Server](../ELS-Server) REST API (Express + Prisma + MongoDB, JWT auth).
 

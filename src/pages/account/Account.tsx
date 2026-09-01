@@ -93,7 +93,7 @@ const PaymentBadge = ({ apt }: { apt: AppointmentDTO }) => {
 
 const Account = () => {
   const { user, signOut } = useAuth();
-  const { features, config } = useStudio();
+  const { features, config, name: studioName } = useStudio();
   const loyaltyCap = config?.settings.loyaltyCapPercent ?? 30;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -563,7 +563,7 @@ const Account = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => downloadOrderReceipt(order)}
+                                  onClick={() => downloadOrderReceipt(order, studioName)}
                                 >
                                   <Download className="h-4 w-4 mr-1" />
                                   Receipt
@@ -663,7 +663,7 @@ const Account = () => {
                                   }
                                   onClick={() => {
                                     const data = receiptFromAppointment(apt);
-                                    if (data) downloadReceipt(data);
+                                    if (data) downloadReceipt(data, studioName);
                                   }}
                                 >
                                   <Download className="h-4 w-4 mr-1" />

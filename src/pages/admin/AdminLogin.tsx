@@ -18,6 +18,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useStudio } from "@/hooks/useStudio";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -31,6 +32,7 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const { signIn, signOut } = useAuth();
   const { toast } = useToast();
+  const { name: studioName } = useStudio();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -78,7 +80,7 @@ const AdminLogin = () => {
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Sparkles className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-serif font-semibold">El's Beauty Studio</span>
+            <span className="text-2xl font-serif font-semibold">{studioName}</span>
           </div>
           <CardTitle>Admin Login</CardTitle>
           <CardDescription>
