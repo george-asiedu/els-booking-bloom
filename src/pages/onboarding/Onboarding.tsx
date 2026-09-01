@@ -350,8 +350,8 @@ const Onboarding = () => {
             <p className="mt-3 text-xs text-muted-foreground">
               Renews automatically each {cadence === "MONTHLY" ? "month" : "year"}. Cancel anytime.
               By continuing you agree to our{" "}
-              <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{" "}
-              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms</a> and{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.
             </p>
             <div className="mt-8 flex gap-3">
               <Button variant="outline" onClick={() => setStep(2)} disabled={submitting}>
