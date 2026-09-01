@@ -2,7 +2,8 @@ import { jsPDF } from "jspdf";
 import { format } from "date-fns";
 import { AppointmentDTO, PaymentReceiptDTO, OrderDTO } from "./api";
 
-const BRAND = "El's Beauty Studio";
+// Neutral platform fallback; callers pass the current studio's name.
+const DEFAULT_BRAND = "Zuri Studios";
 const PINK: [number, number, number] = [190, 24, 93];
 const GREY: [number, number, number] = [107, 114, 128];
 const DARK: [number, number, number] = [31, 41, 55];
@@ -65,7 +66,7 @@ export const receiptFromVerify = (r: PaymentReceiptDTO): ReceiptData => ({
 });
 
 // Generate and download a branded PDF receipt for a paid booking transaction.
-export const downloadReceipt = (data: ReceiptData) => {
+export const downloadReceipt = (data: ReceiptData, brand: string = DEFAULT_BRAND) => {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const left = 48;
@@ -76,7 +77,7 @@ export const downloadReceipt = (data: ReceiptData) => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(...PINK);
-  doc.text(BRAND, left, y);
+  doc.text(brand, left, y);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
@@ -175,16 +176,16 @@ export const downloadReceipt = (data: ReceiptData) => {
   doc.setFontSize(10);
   doc.setTextColor(...GREY);
   doc.text(
-    "Thank you for choosing El's Beauty Studio.",
+    `Thank you for choosing ${brand}.`,
     left,
     doc.internal.pageSize.getHeight() - 56,
   );
 
-  doc.save(`receipt-${data.reference ?? "els"}.pdf`);
+  doc.save(`receipt-${data.reference ?? "receipt"}.pdf`);
 };
 
 // Generate and download a branded PDF receipt for a product order.
-export const downloadOrderReceipt = (order: OrderDTO) => {
+export const downloadOrderReceipt = (order: OrderDTO, brand: string = DEFAULT_BRAND) => {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const left = 48;
@@ -194,7 +195,7 @@ export const downloadOrderReceipt = (order: OrderDTO) => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(...PINK);
-  doc.text(BRAND, left, y);
+  doc.text(brand, left, y);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.setTextColor(...GREY);
@@ -280,7 +281,7 @@ export const downloadOrderReceipt = (order: OrderDTO) => {
   doc.setTextColor(...GREY);
   doc.text(`Reference: ${order.reference ?? "—"}`, left, y + 18);
   doc.text(
-    "Thank you for shopping with El's Beauty Studio.",
+    `Thank you for shopping with ${brand}.`,
     left,
     doc.internal.pageSize.getHeight() - 56,
   );
