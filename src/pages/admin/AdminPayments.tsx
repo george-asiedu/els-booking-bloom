@@ -68,12 +68,17 @@ const AdminPayments = () => {
     queryKey: ["studio-payout"],
     queryFn: () => studioAdminApi.getPayout(),
   });
+  const [payType, setPayType] = useState<"momo" | "bank">("momo");
   const [payProvider, setPayProvider] = useState("");
   const [payNumber, setPayNumber] = useState("");
   const [payName, setPayName] = useState("");
   const [resolving, setResolving] = useState(false);
 
-  // Auto-verify once a full (10-digit) number is entered.
+  // The option list depends on the settlement type.
+  const payOptions = payType === "bank" ? payout?.banks ?? [] : payout?.providers ?? [];
+
+  // Auto-verify once a full account number is entered (momo = 10 digits; banks
+  // vary, so verify from 10 up).
   useEffect(() => {
     const digits = payNumber.replace(/\D/g, "");
     if (!payProvider || digits.length < 10 || payName || resolving) return;
@@ -84,7 +89,7 @@ const AdminPayments = () => {
 
   // Verify the number with Paystack and auto-fill the registered account name.
   const resolveName = async () => {
-    if (!payProvider || !/^\d{9,15}$/.test(payNumber.trim())) return;
+    if (!payProvider || !/^\d{9,20}$/.test(payNumber.trim())) return;
     setResolving(true);
     try {
       const name = await studioAdminApi.resolvePayoutName(
@@ -108,6 +113,7 @@ const AdminPayments = () => {
   };
   useEffect(() => {
     if (payout) {
+      setPayType(payout.type ?? "momo");
       setPayProvider(payout.provider ?? "");
       setPayNumber(payout.accountNumber ?? "");
       setPayName(payout.accountName ?? "");
@@ -117,6 +123,7 @@ const AdminPayments = () => {
   const payoutMutation = useMutation({
     mutationFn: () =>
       studioAdminApi.updatePayout({
+        type: payType,
         provider: payProvider,
         accountNumber: payNumber,
         accountName: payName,
@@ -125,7 +132,7 @@ const AdminPayments = () => {
       queryClient.invalidateQueries({ queryKey: ["studio-payout"] });
       toast({
         title: "Payout account saved",
-        description: "Payments will settle to this mobile-money account.",
+        description: "Payments will settle to this account.",
       });
     },
     onError: (error) =>
@@ -313,8 +320,8 @@ const AdminPayments = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Connect a mobile-money account so customer payments settle to
-                  you automatically.
+                  Connect a settlement account so customer payments settle to you
+                  automatically — a mobile-money wallet or a bank account.
                   {payout && payout.platformFeePercent > 0 && (
                     <> A platform fee of {payout.platformFeePercent}% applies.</>
                   )}
@@ -327,8 +334,35 @@ const AdminPayments = () => {
                   </p>
                 )}
 
+                {/* Settlement type toggle: switches which option list shows. */}
                 <div className="space-y-2">
-                  <Label>Mobile-money provider</Label>
+                  <Label>Account type</Label>
+                  <div className="inline-flex rounded-md border border-border p-1">
+                    {(["momo", "bank"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          if (t === payType) return;
+                          setPayType(t);
+                          setPayProvider("");
+                          setPayNumber("");
+                          setPayName("");
+                        }}
+                        className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
+                          payType === t
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t === "momo" ? "Mobile Money" : "Bank account"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{payType === "bank" ? "Bank" : "Mobile-money network"}</Label>
                   <Select
                     value={payProvider}
                     onValueChange={(v) => {
@@ -337,20 +371,34 @@ const AdminPayments = () => {
                     }}
                   >
                     <SelectTrigger className="max-w-sm">
-                      <SelectValue placeholder="Select provider" />
+                      <SelectValue
+                        placeholder={
+                          payType === "bank" ? "Select bank" : "Select network"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {(payout?.providers ?? []).map((p) => (
-                        <SelectItem key={p.code} value={p.code}>
-                          {p.name}
+                      {payOptions.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          {payType === "bank"
+                            ? "No banks available"
+                            : "No networks available"}
                         </SelectItem>
-                      ))}
+                      ) : (
+                        payOptions.map((p) => (
+                          <SelectItem key={p.code} value={p.code}>
+                            {p.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="payout-number">Mobile-money number</Label>
+                  <Label htmlFor="payout-number">
+                    {payType === "bank" ? "Bank account number" : "Mobile-money number"}
+                  </Label>
                   <div className="relative max-w-sm">
                     <Input
                       id="payout-number"
@@ -361,14 +409,15 @@ const AdminPayments = () => {
                       }}
                       onBlur={resolveName}
                       inputMode="numeric"
-                      placeholder="0244123456"
+                      placeholder={payType === "bank" ? "1234567890123" : "0244123456"}
                     />
                     {resolving && (
                       <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    We'll verify the number and fetch the account name.
+                    We'll verify the {payType === "bank" ? "account" : "number"} and
+                    fetch the account name.
                   </p>
                 </div>
 
