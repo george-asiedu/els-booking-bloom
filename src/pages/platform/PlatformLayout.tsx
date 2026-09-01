@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, LogOut, Building2, Lightbulb, ScrollText, Quote } from "lucide-react";
+import { LayoutGrid, LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
@@ -9,6 +9,7 @@ const navItems = [
   { name: "Studios", path: "/platform", icon: Building2 },
   { name: "Requests", path: "/platform/requests", icon: Lightbulb },
   { name: "Testimonials", path: "/platform/reviews", icon: Quote },
+  { name: "Billing", path: "/platform/billing", icon: CreditCard },
   { name: "Activity", path: "/platform/audit", icon: ScrollText },
 ];
 
