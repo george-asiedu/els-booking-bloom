@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useStudio } from "@/hooks/useStudio";
 import { Layout } from "@/components/layout/Layout";
 
 const signupSchema = z.object({
@@ -41,7 +42,8 @@ const Signup = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { signUp } = useAuth();
-  
+  const { name: studioName } = useStudio();
+
   const referralCodeFromUrl = searchParams.get("ref") || "";
 
   const form = useForm<SignupFormValues>({
@@ -79,7 +81,7 @@ const Signup = () => {
 
     toast({
       title: "Account created!",
-      description: "Welcome to El's Beauty Studio!",
+      description: `Welcome to ${studioName}!`,
     });
     navigate("/account");
   };

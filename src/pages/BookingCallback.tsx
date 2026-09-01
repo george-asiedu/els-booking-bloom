@@ -12,11 +12,13 @@ import {
 } from "@/lib/receipt";
 import { whatsappLink } from "@/lib/whatsapp";
 import { celebrate } from "@/lib/confetti";
+import { useStudio } from "@/hooks/useStudio";
 
 const BookingCallback = () => {
   const [params] = useSearchParams();
   const reference = params.get("reference") || params.get("trxref") || "";
   const queryClient = useQueryClient();
+  const { name: studioName } = useStudio();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["verify-combined", reference],
@@ -47,7 +49,7 @@ const BookingCallback = () => {
     studioWhatsapp && paid
       ? whatsappLink(
           studioWhatsapp,
-          `Hi El's Beauty Studio, I've just paid for my booking${
+          `Hi ${studioName}, I've just paid for my booking${
             order ? ` and products (order ${order.order_number})` : ""
           }. See you soon!`,
         )
@@ -135,7 +137,7 @@ const BookingCallback = () => {
 
                 <div className="flex flex-col gap-3">
                   {payment && (
-                    <Button onClick={() => downloadReceipt(receiptFromVerify(payment))}>
+                    <Button onClick={() => downloadReceipt(receiptFromVerify(payment), studioName)}>
                       <Download className="mr-2 h-4 w-4" />
                       Service receipt
                     </Button>
@@ -143,7 +145,7 @@ const BookingCallback = () => {
                   {order && (
                     <Button
                       variant={payment ? "outline" : "default"}
-                      onClick={() => downloadOrderReceipt(order)}
+                      onClick={() => downloadOrderReceipt(order, studioName)}
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Products receipt

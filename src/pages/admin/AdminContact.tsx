@@ -29,9 +29,9 @@ const fields: {
 }[] = [
   { key: "phone", showKey: "showPhone", label: "Phone (Call)", placeholder: "+233 20 123 4567", icon: Phone },
   { key: "whatsapp", showKey: "showWhatsapp", label: "WhatsApp", placeholder: "+233 20 123 4567", icon: MessageCircle, hint: "Number customers will message on WhatsApp" },
-  { key: "email", showKey: "showEmail", label: "Email", placeholder: "hello@elsbeauty.com", icon: Mail },
-  { key: "instagram", showKey: "showInstagram", label: "Instagram", placeholder: "@elsbeautystudio or full URL", icon: Instagram },
-  { key: "tiktok", showKey: "showTiktok", label: "TikTok", placeholder: "@elsbeautystudio or full URL", icon: Music2 },
+  { key: "email", showKey: "showEmail", label: "Email", placeholder: "hello@yourstudio.com", icon: Mail },
+  { key: "instagram", showKey: "showInstagram", label: "Instagram", placeholder: "@yourstudio or full URL", icon: Instagram },
+  { key: "tiktok", showKey: "showTiktok", label: "TikTok", placeholder: "@yourstudio or full URL", icon: Music2 },
   { key: "address", showKey: "showAddress", label: "Address / Location", placeholder: "123 Beauty Lane, Accra", icon: MapPin },
 ];
 

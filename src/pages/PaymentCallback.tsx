@@ -14,11 +14,13 @@ import { paymentsApi, contactInfoApi } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
 import { downloadReceipt, receiptFromVerify } from "@/lib/receipt";
 import { celebrate } from "@/lib/confetti";
+import { useStudio } from "@/hooks/useStudio";
 
 const PaymentCallback = () => {
   const [params] = useSearchParams();
   // Paystack appends ?reference= (and ?trxref=) to the callback URL.
   const reference = params.get("reference") || params.get("trxref") || "";
+  const { name: studioName } = useStudio();
 
   const {
     data: receipt,
@@ -52,7 +54,7 @@ const PaymentCallback = () => {
     studioWhatsapp && receipt && paid
       ? whatsappLink(
           studioWhatsapp,
-          `Hi El's Beauty Studio, I've just paid for my appointment:\n\n` +
+          `Hi ${studioName}, I've just paid for my appointment:\n\n` +
             `Service: ${receipt.service_name}\n` +
             `Date: ${receipt.appointment_date}\n` +
             `Time: ${receipt.appointment_time}\n` +
@@ -155,7 +157,7 @@ const PaymentCallback = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <Button onClick={() => downloadReceipt(receiptFromVerify(receipt))}>
+                  <Button onClick={() => downloadReceipt(receiptFromVerify(receipt), studioName)}>
                     <Download className="mr-2 h-4 w-4" />
                     Download receipt
                   </Button>

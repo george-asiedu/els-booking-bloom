@@ -28,23 +28,24 @@ import { Input } from "@/components/ui/input";
 import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
+import { useStudio } from "@/hooks/useStudio";
 
 type AppointmentStatus = AppointmentDTO["status"];
 type Appointment = AppointmentDTO;
 
 // Status-aware WhatsApp message the admin sends to the customer.
-const buildWhatsappMessage = (a: Appointment): string => {
+const buildWhatsappMessage = (a: Appointment, brand: string): string => {
   const svc = a.services?.name ?? "your service";
   const when = `${a.appointment_date} at ${a.appointment_time}`;
   switch (a.status) {
     case "confirmed":
-      return `Hi ${a.full_name}, great news! Your ${svc} appointment on ${when} is confirmed. See you soon at El's Beauty Studio`;
+      return `Hi ${a.full_name}, great news! Your ${svc} appointment on ${when} is confirmed. See you soon at ${brand}`;
     case "completed":
-      return `Hi ${a.full_name}, thank you for visiting El's Beauty Studio We'd love your feedback — leave us a review when you get a moment!`;
+      return `Hi ${a.full_name}, thank you for visiting ${brand}. We'd love your feedback — leave us a review when you get a moment!`;
     case "cancelled":
       return `Hi ${a.full_name}, your ${svc} appointment on ${when} has been cancelled. Reach out anytime to reschedule.`;
     default:
-      return `Hi ${a.full_name}, we've received your ${svc} request for ${when}. We'll confirm shortly — thank you for booking with El's Beauty Studio!`;
+      return `Hi ${a.full_name}, we've received your ${svc} request for ${when}. We'll confirm shortly — thank you for booking with ${brand}!`;
   }
 };
 
@@ -56,13 +57,13 @@ const statusConfig = {
 };
 
 // Receipt message the admin sends to the customer on WhatsApp.
-const buildReceiptMessage = (a: Appointment): string => {
+const buildReceiptMessage = (a: Appointment, brand: string): string => {
   const p = a.payment;
   if (!p) return "";
   const label = p.type === "partial" ? "Deposit paid" : "Amount paid";
   const balanceLine = p.balance > 0 ? `Balance due at studio: GHS ${p.balance}\n` : "";
   return (
-    `Hi ${a.full_name}, here's your payment receipt from El's Beauty Studio:\n\n` +
+    `Hi ${a.full_name}, here's your payment receipt from ${brand}:\n\n` +
     `Service: ${a.services?.name ?? "your service"}\n` +
     `Date: ${a.appointment_date} at ${a.appointment_time}\n` +
     `${label}: GHS ${p.amount}\n` +
@@ -80,6 +81,7 @@ const AdminAppointments = () => {
   const [aTo, setATo] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { name: studioName } = useStudio();
 
   const { data: appointments, isLoading } = useQuery({
     queryKey: ["admin-appointments"],
@@ -388,7 +390,7 @@ const AdminAppointments = () => {
                             <a
                               href={whatsappLink(
                                 appointment.phone,
-                                buildWhatsappMessage(appointment),
+                                buildWhatsappMessage(appointment, studioName),
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -407,7 +409,7 @@ const AdminAppointments = () => {
                               <a
                                 href={whatsappLink(
                                   appointment.phone,
-                                  buildReceiptMessage(appointment),
+                                  buildReceiptMessage(appointment, studioName),
                                 )}
                                 target="_blank"
                                 rel="noopener noreferrer"
