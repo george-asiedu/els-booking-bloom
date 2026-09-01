@@ -77,6 +77,56 @@ export const studioStore = {
   clear() {
     localStorage.removeItem(STUDIO_SLUG_KEY);
   },
+  // True when the active studio is a local preview/impersonation (stored slug),
+  // not a real subdomain. Used to offer an "exit to the platform" affordance.
+  isLocalOverride(): boolean {
+    return !subdomainSlug && Boolean(localStorage.getItem(STUDIO_SLUG_KEY));
+  },
+};
+
+// Whether the current host is a potential custom domain (not localhost, not the
+// platform apex/subdomain). For such hosts the SPA asks the API which studio the
+// domain belongs to and scopes to it.
+const isCustomHost = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host.startsWith("127.") ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local")
+  )
+    return false;
+  if (subdomainSlug) return false; // a ROOT_DOMAIN subdomain
+  if (
+    ROOT_DOMAIN &&
+    (host === ROOT_DOMAIN ||
+      host === `www.${ROOT_DOMAIN}` ||
+      host.endsWith(`.${ROOT_DOMAIN}`))
+  )
+    return false;
+  return true;
+};
+
+/**
+ * When served from a studio's custom domain, resolve that host to a studio slug
+ * and store it so every request is scoped correctly. No-op on localhost, the
+ * platform apex, and ROOT_DOMAIN subdomains. Call once before the app renders.
+ */
+export const maybeResolveCustomDomain = async (): Promise<void> => {
+  if (!isCustomHost() || localStorage.getItem(STUDIO_SLUG_KEY)) return;
+  try {
+    const res = await fetch(
+      `${API_URL}/studio/resolve-domain?host=${encodeURIComponent(
+        window.location.hostname,
+      )}`,
+    );
+    if (!res.ok) return;
+    const json = (await res.json()) as { data?: { slug?: string } };
+    if (json?.data?.slug) localStorage.setItem(STUDIO_SLUG_KEY, json.data.slug);
+  } catch {
+    /* ignore — falls back to the platform landing */
+  }
 };
 
 interface RequestOptions {

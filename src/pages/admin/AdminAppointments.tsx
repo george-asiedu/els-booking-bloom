@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/table";
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
+import { FilterBar } from "@/components/admin/FilterBar";
+import { Input } from "@/components/ui/input";
 import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +74,10 @@ const buildReceiptMessage = (a: Appointment): string => {
 
 const AdminAppointments = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [aSearch, setASearch] = useState("");
+  const [aPayment, setAPayment] = useState("all");
+  const [aFrom, setAFrom] = useState("");
+  const [aTo, setATo] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -100,9 +106,31 @@ const AdminAppointments = () => {
     },
   });
 
-  const filteredAppointments = appointments?.filter((apt) =>
-    statusFilter === "all" ? true : apt.status === statusFilter
-  );
+  const q = aSearch.trim().toLowerCase();
+  const filteredAppointments = (appointments ?? []).filter((apt) => {
+    if (statusFilter !== "all" && apt.status !== statusFilter) return false;
+    if (q) {
+      const hay = `${apt.full_name ?? ""} ${apt.phone ?? ""} ${apt.email ?? ""} ${apt.services?.name ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (aPayment !== "all") {
+      const ps = apt.payment?.status ?? "none";
+      if (aPayment === "unpaid" && apt.payment) return false;
+      if (aPayment !== "unpaid" && ps !== aPayment) return false;
+    }
+    if (aFrom && apt.appointment_date < aFrom) return false;
+    if (aTo && apt.appointment_date > aTo) return false;
+    return true;
+  });
+  const aFiltersActive =
+    statusFilter !== "all" || q !== "" || aPayment !== "all" || aFrom !== "" || aTo !== "";
+  const clearA = () => {
+    setStatusFilter("all");
+    setASearch("");
+    setAPayment("all");
+    setAFrom("");
+    setATo("");
+  };
 
   const stats = {
     total: appointments?.length ?? 0,
@@ -156,21 +184,38 @@ const AdminAppointments = () => {
           </Card>
         </div>
 
-        {/* Filter */}
-        <div className="flex items-center gap-4">
+        {/* Filters */}
+        <FilterBar
+          search={aSearch}
+          onSearch={setASearch}
+          searchPlaceholder="Search name, phone, service…"
+          onClear={clearA}
+          active={aFiltersActive}
+          count={filteredAppointments.length}
+        >
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Appointments</SelectItem>
+              <SelectItem value="all">Any status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+          <Select value={aPayment} onValueChange={setAPayment}>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Payment" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any payment</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="pending">Payment pending</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="unpaid">No payment</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="date" value={aFrom} onChange={(e) => setAFrom(e.target.value)} className="w-[150px]" title="From date" />
+          <Input type="date" value={aTo} onChange={(e) => setATo(e.target.value)} className="w-[150px]" title="To date" />
+        </FilterBar>
 
         {/* Appointments Table */}
         {isLoading ? (

@@ -93,7 +93,8 @@ const PaymentBadge = ({ apt }: { apt: AppointmentDTO }) => {
 
 const Account = () => {
   const { user, signOut } = useAuth();
-  const { features } = useStudio();
+  const { features, config } = useStudio();
+  const loyaltyCap = config?.settings.loyaltyCapPercent ?? 30;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -693,7 +694,7 @@ const Account = () => {
                         {loyaltyData?.points || 0} pts
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">
-                        Earn 1 point per GHS 10 spent • use points for up to 30% off any booking
+                        Earn 1 point per GHS 10 spent • use points for up to {loyaltyCap}% off any booking
                       </p>
                     </div>
                     <Gift className="h-16 w-16 text-primary/20" />
@@ -718,7 +719,7 @@ const Account = () => {
                   <p>
                     <span className="font-medium text-foreground">Redeem</span> at
                     checkout — when you book, flip on “Use my loyalty points” to take
-                    up to <span className="font-medium text-foreground">30% off</span>{" "}
+                    up to <span className="font-medium text-foreground">{loyaltyCap}% off</span>{" "}
                     that service (10 points = GHS 1).
                   </p>
                   <p>

@@ -14,6 +14,8 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { SessionGuard } from "@/components/SessionGuard";
 import { StudioTheme } from "@/components/StudioTheme";
 import { FeatureRoute } from "@/components/FeatureRoute";
+import { UmamiAnalytics } from "@/components/UmamiAnalytics";
+import { studioStore } from "@/lib/apiClient";
 import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
 import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
 import { PlatformLayout } from "./pages/platform/PlatformLayout";
@@ -47,6 +49,9 @@ const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
 const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureRequests"));
 const AdminOnboarding = lazy(() => import("./pages/admin/AdminOnboarding"));
 const AdminPromos = lazy(() => import("./pages/admin/AdminPromos"));
+const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
+const AdminTestimonial = lazy(() => import("./pages/admin/AdminTestimonial"));
+const AdminDomain = lazy(() => import("./pages/admin/AdminDomain"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminContact = lazy(() => import("./pages/admin/AdminContact"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
@@ -62,13 +67,24 @@ const PlatformStudioNew = lazy(() => import("./pages/platform/PlatformStudioNew"
 const PlatformStudioDetail = lazy(() => import("./pages/platform/PlatformStudioDetail"));
 const PlatformRequests = lazy(() => import("./pages/platform/PlatformRequests"));
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit"));
+const PlatformReviews = lazy(() => import("./pages/platform/PlatformReviews"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
+const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
+const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
+const Privacy = lazy(() => import("./pages/legal/Privacy"));
+const Terms = lazy(() => import("./pages/legal/Terms"));
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
+
+// The apex "/" shows the Zuri platform landing page, unless a studio is active
+// (subdomain in prod, or /s/:slug / impersonation locally) — then it's that
+// studio's storefront.
+const RootRoute = () =>
+  studioStore.getSlug() ? <Index /> : <PlatformLanding />;
 
 // Guards all /admin/* pages once and keeps the sidebar mounted while a page's
 // chunk loads (only the content area shows a spinner), so navigating between
@@ -128,13 +144,19 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <UmamiAnalytics />
           <BrowserRouter>
             <ScrollToTop />
             <SessionGuard />
             <StudioTheme />
             <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<RootRoute />} />
+              <Route path="/welcome" element={<PlatformLanding />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/onboarding/callback" element={<Onboarding />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="/s/:slug" element={<StudioEntry />} />
               <Route path="/services" element={<Services />} />
               <Route
@@ -199,6 +221,9 @@ const App = () => (
                 <Route path="reviews" element={<AdminReviews />} />
                 <Route path="appearance" element={<AdminAppearance />} />
                 <Route path="promos" element={<AdminPromos />} />
+                <Route path="billing" element={<AdminBilling />} />
+                <Route path="testimonial" element={<AdminTestimonial />} />
+                <Route path="domain" element={<AdminDomain />} />
                 <Route path="feature-requests" element={<AdminFeatureRequests />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
@@ -225,6 +250,7 @@ const App = () => (
                   <Route path="studios/new" element={<PlatformStudioNew />} />
                   <Route path="studios/:id" element={<PlatformStudioDetail />} />
                   <Route path="requests" element={<PlatformRequests />} />
+                <Route path="reviews" element={<PlatformReviews />} />
                   <Route path="audit" element={<PlatformAudit />} />
                 </Route>
               </Route>

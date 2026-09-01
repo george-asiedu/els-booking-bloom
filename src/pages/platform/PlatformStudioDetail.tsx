@@ -203,10 +203,18 @@ const PlatformStudioDetail = () => {
             <Badge variant={statusVariant[studio.status]}>
               {studio.status.toLowerCase()}
             </Badge>
+            <Badge variant={studio.plan === "PREMIUM" ? "default" : "secondary"}>
+              {studio.plan === "PREMIUM" ? "Premium" : "Standard"}
+            </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
             /{studio.slug}
             {studio.owner ? ` · ${studio.owner.email}` : ""}
+            {` · ${studio.billingCadence?.toLowerCase() ?? "monthly"} billing`}
+            {studio.subscriptionStatus ? ` · ${studio.subscriptionStatus}` : ""}
+            {studio.currentPeriodEnd
+              ? ` · renews ${new Date(studio.currentPeriodEnd).toLocaleDateString()}`
+              : ""}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">

@@ -21,10 +21,12 @@ import { cn } from "@/lib/utils";
 import { cartApi, commerceApi, ordersApi, accountApi, PaymentTarget } from "@/lib/api";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useStudio } from "@/hooks/useStudio";
 import { useToast } from "@/hooks/use-toast";
 
 const Cart = () => {
   const { user } = useAuth();
+  const { config: studioConfig } = useStudio();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -170,9 +172,10 @@ const Cart = () => {
   const deliveryFee =
     fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
 
-  // Loyalty: 10 pts = GHS 1, capped at 30% of the subtotal.
+  // Loyalty: 10 pts = GHS 1, capped at the studio's loyalty cap %.
+  const loyaltyCap = studioConfig?.settings.loyaltyCapPercent ?? 30;
   const availablePoints = loyalty?.points ?? 0;
-  const maxPointsByCap = Math.floor(subtotal * 0.3 * 10);
+  const maxPointsByCap = Math.floor(subtotal * (loyaltyCap / 100) * 10);
   const pointsToUse = Math.min(availablePoints, maxPointsByCap);
   const canUsePoints = availablePoints > 0 && pointsToUse > 0;
   const discount = applyPoints && canUsePoints ? pointsToUse / 10 : 0;
@@ -361,7 +364,7 @@ const Cart = () => {
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Save GHS {pointsToUse / 10} ({pointsToUse} pts) — up
-                            to 30% off.
+                            to {loyaltyCap}% off.
                           </p>
                         </div>
                         <Switch checked={applyPoints} onCheckedChange={setApplyPoints} />

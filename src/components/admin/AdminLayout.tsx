@@ -21,7 +21,9 @@ import {
   Palette,
   Lightbulb,
   Rocket,
-  Megaphone
+  Megaphone,
+  Quote,
+  Globe
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,7 @@ const navItems = [
   { name: "Hours", path: "/admin/hours", icon: Clock },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
   { name: "Appearance", path: "/admin/appearance", icon: Palette },
+  { name: "Custom domain", path: "/admin/domain", icon: Globe },
   { name: "Promotions", path: "/admin/promos", icon: Megaphone },
   { name: "Feature Requests", path: "/admin/feature-requests", icon: Lightbulb },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
@@ -54,6 +57,8 @@ const navItems = [
   { name: "Orders", path: "/admin/orders", icon: Package },
   { name: "Shop Settings", path: "/admin/commerce", icon: Store },
   { name: "Payments", path: "/admin/payments", icon: CreditCard },
+  { name: "Billing & plan", path: "/admin/billing", icon: CreditCard },
+  { name: "Share your story", path: "/admin/testimonial", icon: Quote },
   { name: "Contact", path: "/admin/contact", icon: Phone },
 ];
 
@@ -76,9 +81,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background border-b border-border">
+      <header className="shrink-0 z-50 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <Button
@@ -121,9 +126,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden md:flex w-64 flex-col border-r border-border sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar - Desktop: fixed height, scrolls independently of content */}
+        <aside className="hidden md:flex w-64 flex-col border-r border-border overflow-y-auto">
           <nav className="flex-1 p-4">
             <ul className="space-y-1">
               {navItems.map((item) => (
@@ -190,8 +195,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           </div>
         )}
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        {/* Main Content: the only vertical scroll area */}
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
           {children}
         </main>
       </div>

@@ -256,6 +256,7 @@ export interface StudioFeatureFlags {
   gallery: boolean;
   onlinePayments: boolean;
   productsInBooking: boolean;
+  loyaltyCapPercent?: number;
 }
 
 export interface StudioFeatureCard {
@@ -360,6 +361,28 @@ export const studioAdminApi = {
     return res.data;
   },
 
+  async getDomain(): Promise<StudioDomainDTO> {
+    const res = await apiRequest<Envelope<StudioDomainDTO>>("/studio/domain", {
+      auth: true,
+    });
+    return res.data;
+  },
+  async setDomain(domain: string): Promise<StudioDomainDTO> {
+    const res = await apiRequest<Envelope<StudioDomainDTO>>("/studio/domain", {
+      method: "PUT",
+      auth: true,
+      body: { domain },
+    });
+    return res.data;
+  },
+  async verifyDomain(): Promise<StudioDomainDTO> {
+    const res = await apiRequest<Envelope<StudioDomainDTO>>(
+      "/studio/domain/verify",
+      { method: "POST", auth: true },
+    );
+    return res.data;
+  },
+
   async getPayout(): Promise<StudioPayoutDTO> {
     const res = await apiRequest<Envelope<StudioPayoutDTO>>("/studio/payout", {
       auth: true,
@@ -368,6 +391,24 @@ export const studioAdminApi = {
   },
 
   // Resolve a mobile-money number to its registered account name (Paystack).
+  async getLoyalty(): Promise<{ loyaltyCapPercent: number }> {
+    const res = await apiRequest<Envelope<{ loyaltyCapPercent: number }>>(
+      "/studio/loyalty",
+      { auth: true },
+    );
+    return res.data;
+  },
+
+  async updateLoyalty(
+    loyaltyCapPercent: number,
+  ): Promise<{ loyaltyCapPercent: number }> {
+    const res = await apiRequest<Envelope<{ loyaltyCapPercent: number }>>(
+      "/studio/loyalty",
+      { method: "PUT", auth: true, body: { loyaltyCapPercent } },
+    );
+    return res.data;
+  },
+
   async resolvePayoutName(
     accountNumber: string,
     provider: string,
@@ -391,6 +432,89 @@ export const studioAdminApi = {
       auth: true,
       body: input,
     });
+    return res.data;
+  },
+};
+
+// ---------------- Platform testimonials ----------------
+
+export interface PlatformTestimonial {
+  id: string;
+  authorName: string;
+  authorRole: string | null;
+  content: string;
+  rating: number;
+}
+
+export interface MyTestimonial extends PlatformTestimonial {
+  approved: boolean;
+  createdAt: string;
+}
+
+export const platformReviewsApi = {
+  // Public: approved testimonials for the landing page.
+  async listApproved(): Promise<PlatformTestimonial[]> {
+    const res = await apiRequest<Envelope<PlatformTestimonial[]>>(
+      "/platform-reviews",
+    );
+    return res.data;
+  },
+  async submit(input: {
+    authorName: string;
+    authorRole?: string;
+    content: string;
+    rating: number;
+  }): Promise<MyTestimonial> {
+    const res = await apiRequest<Envelope<MyTestimonial>>("/platform-reviews", {
+      method: "POST",
+      auth: true,
+      body: input,
+    });
+    return res.data;
+  },
+  async listMine(): Promise<MyTestimonial[]> {
+    const res = await apiRequest<Envelope<MyTestimonial[]>>(
+      "/platform-reviews/mine",
+      { auth: true },
+    );
+    return res.data;
+  },
+};
+
+// ---------------- Studio billing (plan/cadence) ----------------
+
+export interface StudioBillingDTO {
+  plan: "STANDARD" | "PREMIUM";
+  cadence: "MONTHLY" | "YEARLY";
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+}
+
+export const studioBillingApi = {
+  async get(): Promise<StudioBillingDTO> {
+    const res = await apiRequest<Envelope<StudioBillingDTO>>("/studio/billing", {
+      auth: true,
+    });
+    return res.data;
+  },
+  async startChange(input: {
+    plan: "STANDARD" | "PREMIUM";
+    cadence: "MONTHLY" | "YEARLY";
+  }): Promise<{ reference: string; accessCode: string; publicKey: string }> {
+    const res = await apiRequest<
+      Envelope<{ reference: string; accessCode: string; publicKey: string }>
+    >("/studio/billing/change", { method: "POST", auth: true, body: input });
+    return res.data;
+  },
+  async applyChange(input: {
+    reference: string;
+    plan: "STANDARD" | "PREMIUM";
+    cadence: "MONTHLY" | "YEARLY";
+  }): Promise<StudioBillingDTO> {
+    const res = await apiRequest<Envelope<StudioBillingDTO>>(
+      "/studio/billing/apply",
+      { method: "POST", auth: true, body: input },
+    );
     return res.data;
   },
 };
@@ -461,6 +585,12 @@ export const promoApi = {
     });
   },
 };
+
+export interface StudioDomainDTO {
+  domain: string | null;
+  verified: boolean;
+  txt: { name: string; value: string } | null;
+}
 
 export interface StudioPayoutDTO {
   connected: boolean;
