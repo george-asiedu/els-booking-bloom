@@ -361,10 +361,14 @@ export const platformApi = {
   async listAuditLogs(params?: {
     studioId?: string;
     action?: string;
+    actionPrefix?: string;
+    limit?: number;
   }): Promise<AuditLogEntry[]> {
     const qs = new URLSearchParams();
     if (params?.studioId) qs.set("studioId", params.studioId);
     if (params?.action) qs.set("action", params.action);
+    if (params?.actionPrefix) qs.set("actionPrefix", params.actionPrefix);
+    if (params?.limit) qs.set("limit", String(params.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await platformRequest<Envelope<AuditLogEntry[]>>(
       `/audit-logs${suffix}`,
