@@ -10,7 +10,7 @@ const fallbackTestimonials: ReviewDTO[] = [
     id: "fallback-1",
     rating: 5,
     content:
-      "Absolutely love my nails! El is so talented and always makes sure I leave feeling beautiful. The attention to detail is incredible.",
+      "Absolutely love my nails! The team is so talented and always makes sure I leave feeling beautiful. The attention to detail is incredible.",
     approved: true,
     created_at: "",
     profiles: { full_name: "Amara O.", email: "" },
@@ -20,7 +20,7 @@ const fallbackTestimonials: ReviewDTO[] = [
     id: "fallback-2",
     rating: 5,
     content:
-      "Best lash extensions I've ever had! They look so natural and last for weeks. Highly recommend El's Beauty Studio!",
+      "Best lash extensions I've ever had! They look so natural and last for weeks. Highly recommend this studio!",
     approved: true,
     created_at: "",
     profiles: { full_name: "Jade M.", email: "" },
@@ -30,7 +30,7 @@ const fallbackTestimonials: ReviewDTO[] = [
     id: "fallback-3",
     rating: 5,
     content:
-      "My hair has never looked better. El really listens to what you want and delivers beyond expectations. Will definitely be back!",
+      "My hair has never looked better. They really listen to what you want and deliver beyond expectations. Will definitely be back!",
     approved: true,
     created_at: "",
     profiles: { full_name: "Tasha B.", email: "" },
