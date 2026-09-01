@@ -423,6 +423,7 @@ export const studioAdminApi = {
   },
 
   async updatePayout(input: {
+    type: "momo" | "bank";
     provider: string;
     accountNumber: string;
     accountName: string;
@@ -486,8 +487,11 @@ export const platformReviewsApi = {
 export interface StudioBillingDTO {
   plan: "STANDARD" | "PREMIUM";
   cadence: "MONTHLY" | "YEARLY";
+  billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  commissionPercent: number;
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
+  lapsed?: boolean;
 }
 
 export const studioBillingApi = {
@@ -513,6 +517,24 @@ export const studioBillingApi = {
   }): Promise<StudioBillingDTO> {
     const res = await apiRequest<Envelope<StudioBillingDTO>>(
       "/studio/billing/apply",
+      { method: "POST", auth: true, body: input },
+    );
+    return res.data;
+  },
+  // Manual renewal of the current plan (Mobile Money one-time charge).
+  async startRenewal(): Promise<{
+    reference: string;
+    accessCode: string;
+    publicKey: string;
+  }> {
+    const res = await apiRequest<
+      Envelope<{ reference: string; accessCode: string; publicKey: string }>
+    >("/studio/billing/renew", { method: "POST", auth: true });
+    return res.data;
+  },
+  async applyRenewal(input: { reference: string }): Promise<StudioBillingDTO> {
+    const res = await apiRequest<Envelope<StudioBillingDTO>>(
+      "/studio/billing/renew/apply",
       { method: "POST", auth: true, body: input },
     );
     return res.data;
@@ -595,10 +617,12 @@ export interface StudioDomainDTO {
 export interface StudioPayoutDTO {
   connected: boolean;
   platformFeePercent: number;
+  type: "momo" | "bank";
   provider: string | null;
   accountNumber: string | null;
   accountName: string | null;
   providers: { name: string; code: string }[];
+  banks: { name: string; code: string }[];
 }
 
 // ---------------- Feature requests (studio -> platform) ----------------
