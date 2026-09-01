@@ -33,6 +33,7 @@ import { useStudio } from "@/hooks/useStudio";
 import { profileApi } from "@/lib/api";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { BillingBadge, BillingMarquee } from "@/components/admin/BillingReminder";
 import { useState } from "react";
 
 interface AdminLayoutProps {
@@ -105,6 +106,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            <BillingBadge />
             {user && (
               <ProfileEditDialog
                 userId={user.id}
@@ -125,6 +127,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           </div>
         </div>
       </header>
+
+      <BillingMarquee />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Desktop: fixed height, scrolls independently of content */}
