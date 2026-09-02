@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, LogIn, Save, ScrollText, Receipt } from "lucide-react";
+import { ArrowLeft, Loader2, LogIn, Save, ScrollText, Receipt, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -55,6 +66,7 @@ const Stat = ({ label, value }: { label: string; value: number }) => (
 
 const PlatformStudioDetail = () => {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [entering, setEntering] = useState(false);
@@ -123,6 +135,19 @@ const PlatformStudioDetail = () => {
         title: "Status updated",
         description: `Studio is now ${status.toLowerCase()}.`,
       });
+    },
+    onError,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => platformApi.deleteStudio(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform", "studios"] });
+      toast({
+        title: "Studio deleted",
+        description: "The studio and all its data have been removed.",
+      });
+      navigate("/platform");
     },
     onError,
   });
@@ -327,20 +352,63 @@ const PlatformStudioDetail = () => {
             <CardHeader>
               <CardTitle className="text-base">Status</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {(["ACTIVE", "TRIAL", "SUSPENDED"] as StudioStatus[]).map((st) => (
-                <Button
-                  key={st}
-                  variant={studio.status === st ? "default" : "outline"}
-                  size="sm"
-                  disabled={
-                    studio.status === st || statusMutation.isPending
-                  }
-                  onClick={() => statusMutation.mutate(st)}
-                >
-                  {st.charAt(0) + st.slice(1).toLowerCase()}
-                </Button>
-              ))}
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {(["ACTIVE", "TRIAL", "SUSPENDED"] as StudioStatus[]).map((st) => (
+                  <Button
+                    key={st}
+                    variant={studio.status === st ? "default" : "outline"}
+                    size="sm"
+                    disabled={studio.status === st || statusMutation.isPending}
+                    onClick={() => statusMutation.mutate(st)}
+                  >
+                    {st.charAt(0) + st.slice(1).toLowerCase()}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Danger zone: permanently delete the studio and all its data. */}
+              <div className="border-t border-border pt-4">
+                <p className="mb-2 text-xs font-medium text-destructive">
+                  Danger zone
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                      )}
+                      Delete studio
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete {studio.name}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently removes the studio and everything in it —
+                        appointments, orders, payments, products, customers and
+                        settings. This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => deleteMutation.mutate()}
+                      >
+                        Delete permanently
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardContent>
           </Card>
         </div>
