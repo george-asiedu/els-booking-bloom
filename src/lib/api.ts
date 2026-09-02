@@ -1099,6 +1099,7 @@ export interface PaymentReceiptDTO {
   service_name: string;
   appointment_date: string;
   appointment_time: string;
+  appointment_id: string | null;
 }
 
 interface RawVerify {
@@ -1109,6 +1110,7 @@ interface RawVerify {
   reference: string | null;
   channel: string | null;
   paidAt: string | null;
+  appointmentId?: string | null;
   appointment?: {
     fullName: string;
     appointmentDate: string;
@@ -1232,6 +1234,7 @@ const mapVerify = (p: RawVerify): PaymentReceiptDTO => ({
   service_name: p.appointment?.service?.name ?? "your service",
   appointment_date: p.appointment?.appointmentDate?.slice(0, 10) ?? "",
   appointment_time: p.appointment?.appointmentTime ?? "",
+  appointment_id: p.appointmentId ?? null,
 });
 
 // ---------------- Commerce: products ----------------
@@ -1669,6 +1672,16 @@ export const ordersApi = {
       { method: "POST", body: input },
     );
     return mapCheckout(res.data);
+  },
+
+  // Retry payment for an existing unpaid order (fresh Paystack access code).
+  async repay(
+    orderId: string,
+  ): Promise<{ accessCode: string; reference: string; publicKey: string }> {
+    const res = await apiRequest<
+      Envelope<{ accessCode: string; reference: string; publicKey: string }>
+    >(`/orders/${orderId}/repay`, { method: "POST", auth: true });
+    return res.data;
   },
 
   async bookingCheckout(input: {
