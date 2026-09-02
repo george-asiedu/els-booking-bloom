@@ -1,0 +1,12 @@
+# Always revalidate the app shell (index.html) so a new deploy is picked up on
+# the next load instead of serving a cached HTML that points at old, now-removed
+# asset hashes (the "have to reload a lot" problem).
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Vite fingerprints these (index-[hash].js/.css); their contents never change
+# for a given name, so cache them permanently.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

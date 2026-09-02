@@ -296,6 +296,14 @@ export const platformApi = {
     });
   },
 
+  async deleteStudio(id: string): Promise<{ id: string; slug: string }> {
+    const res = await platformRequest<Envelope<{ id: string; slug: string }>>(
+      `/studios/${id}`,
+      { method: "DELETE" },
+    );
+    return res.data;
+  },
+
   async setStatus(id: string, status: StudioStatus): Promise<StudioDetail> {
     return platformRequest<StudioDetail>(`/studios/${id}/status`, {
       method: "PATCH",
