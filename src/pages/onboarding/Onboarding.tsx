@@ -409,7 +409,11 @@ const Onboarding = () => {
                 <p className="text-xs text-muted-foreground">
                   {slugState === "taken"
                     ? (slugReason ?? "That address is taken")
-                    : `Your site: ${slug || "your-studio"}.${PLATFORM.name.toLowerCase()}.app`}
+                    : `Your site: ${
+                        PLATFORM.rootDomain
+                          ? `${slug || "your-studio"}.${PLATFORM.rootDomain}`
+                          : `/s/${slug || "your-studio"}`
+                      }`}
                 </p>
               </div>
               <div className="space-y-2">
