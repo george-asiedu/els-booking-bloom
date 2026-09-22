@@ -23,6 +23,7 @@ import {
   OnboardingConfig,
 } from "@/lib/onboardingApi";
 import { useToast } from "@/hooks/use-toast";
+import { studioStore } from "@/lib/apiClient";
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
@@ -140,11 +141,21 @@ const Onboarding = () => {
     }, 3000);
   };
 
+  // Password rules — kept in step with the backend so an owner can sign in
+  // right after onboarding.
+  const pwChecks = {
+    length: password.length >= 8,
+    lower: /[a-z]/.test(password),
+    upper: /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    special: /[!@#$%^&*()_+\-=[\]{};'"\\|,.<>/?]/.test(password),
+  };
+  const passwordValid = Object.values(pwChecks).every(Boolean);
   const detailsValid =
     name.trim().length >= 2 &&
     slugState === "available" &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
-    password.length >= 8;
+    passwordValid;
 
   const pay = async () => {
     setSubmitting(true);
@@ -240,10 +251,17 @@ const Onboarding = () => {
             </p>
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
               <Button asChild>
-                <Link to="/admin/login">Go to your dashboard</Link>
+                {/* Scope the session to the new studio before the login page loads,
+                    so the sign-in request carries this studio's slug and finds the
+                    owner account (email is unique per studio, not globally). */}
+                <Link to="/admin/login" onClick={() => studioStore.setSlug(studioSlug)}>
+                  Go to your dashboard
+                </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link to={`/s/${studioSlug}`}>View your site</Link>
+                <Link to={`/s/${studioSlug}`} onClick={() => studioStore.setSlug(studioSlug)}>
+                  View your site
+                </Link>
               </Button>
             </div>
           </div>
@@ -391,7 +409,11 @@ const Onboarding = () => {
                 <p className="text-xs text-muted-foreground">
                   {slugState === "taken"
                     ? (slugReason ?? "That address is taken")
-                    : `Your site: ${slug || "your-studio"}.${PLATFORM.name.toLowerCase()}.app`}
+                    : `Your site: ${
+                        PLATFORM.rootDomain
+                          ? `${slug || "your-studio"}.${PLATFORM.rootDomain}`
+                          : `/s/${slug || "your-studio"}`
+                      }`}
                 </p>
               </div>
               <div className="space-y-2">
@@ -404,8 +426,25 @@ const Onboarding = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ob-password">Create a password</Label>
-                <PasswordInput id="ob-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" />
+                <PasswordInput id="ob-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a strong password" />
                 <p className="text-xs text-muted-foreground">You'll use this to sign in to your dashboard.</p>
+                <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  {[
+                    { ok: pwChecks.length, label: "At least 8 characters" },
+                    { ok: pwChecks.upper, label: "An uppercase letter" },
+                    { ok: pwChecks.lower, label: "A lowercase letter" },
+                    { ok: pwChecks.number, label: "A number" },
+                    { ok: pwChecks.special, label: "A special character" },
+                  ].map((c) => (
+                    <li
+                      key={c.label}
+                      className={`flex items-center gap-1.5 ${c.ok ? "text-green-600" : "text-muted-foreground"}`}
+                    >
+                      <Check className={`h-3.5 w-3.5 shrink-0 ${c.ok ? "opacity-100" : "opacity-30"}`} />
+                      {c.label}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
             <div className="mt-8 flex gap-3">
