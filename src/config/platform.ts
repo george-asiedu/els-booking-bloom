@@ -8,20 +8,32 @@ const num = (v: string | undefined, def: number) => {
 };
 
 export const PLATFORM = {
-  name: env.VITE_PLATFORM_NAME || "Zuri",
+  name: env.VITE_PLATFORM_NAME || "Zuri Studios",
   tagline: env.VITE_PLATFORM_TAGLINE || "Beauty businesses, booked.",
   // Small badge shown above the hero headline.
   heroBadge:
     env.VITE_PLATFORM_HERO_BADGE || "Bookings · Shop · Payments — in one place",
   description:
     "Zuri is the all-in-one platform that lets beauty studios take bookings, sell products, accept Mobile-Money payments and reward loyal clients — from one branded site.",
-  whatsapp: env.VITE_PLATFORM_WHATSAPP || "", // e.g. "233200000000"
-  email: env.VITE_PLATFORM_EMAIL || "hello@zuri.app",
+  whatsapp: env.VITE_PLATFORM_WHATSAPP || "0203631199", // e.g. "233200000000"
+  email: env.VITE_PLATFORM_EMAIL || "customersupport@zuristudios.com",
   // A live studio to showcase from the landing page.
   demoSlug: env.VITE_DEMO_STUDIO_SLUG || "els",
   // Platform root domain (studios live at <slug>.<rootDomain> in production).
-  rootDomain: (env.VITE_ROOT_DOMAIN || "").trim().toLowerCase(),
+  // Normalised to a bare host: strips any scheme, path, port and stray dots so a
+  // misconfigured value (e.g. an API URL) can't produce a broken storefront URL.
+  rootDomain: normalizeDomain(env.VITE_ROOT_DOMAIN),
 };
+
+function normalizeDomain(v: string | undefined): string {
+  return (v || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "") // drop scheme
+    .replace(/[/?#].*$/, "") // drop path/query/hash
+    .replace(/:\d+$/, "") // drop port
+    .replace(/^\.+|\.+$/g, ""); // drop leading/trailing dots
+}
 
 // URL to a studio's storefront: its real subdomain in production, or the local
 // /s/<slug> preview in dev. Opened in a new tab so the landing page is kept.
