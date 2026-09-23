@@ -23,9 +23,9 @@ interface StudioPageHeroProps {
 }
 
 const HEIGHTS: Record<Exclude<Variant, "split" | "minimal">, string> = {
-  editorial: "min-h-[360px] md:min-h-[440px]",
-  commerce: "min-h-[300px] md:min-h-[380px]",
-  compact: "min-h-[180px] md:min-h-[220px]",
+  editorial: "min-h-[240px] md:min-h-[320px]",
+  commerce: "min-h-[220px] md:min-h-[280px]",
+  compact: "min-h-[140px] md:min-h-[170px]",
 };
 
 const CtaButtons = ({
