@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
-import { PromoMarquee } from "@/components/PromoMarquee";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { Reveal } from "@/components/Reveal";
 import { ToastAction } from "@/components/ui/toast";
@@ -161,7 +160,6 @@ const Shop = () => {
 
   return (
     <Layout>
-      <PromoMarquee placement="shop" />
       <StudioPageHero
         eyebrow="The studio shop"
         title={
