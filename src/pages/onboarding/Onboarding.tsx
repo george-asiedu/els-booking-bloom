@@ -370,9 +370,16 @@ const Onboarding = () => {
                 </div>
               </div>
             )}
-            <Button className="mt-8 w-full" onClick={() => setStep(2)}>
-              Continue <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <div className="mt-8 flex gap-3">
+              <Button variant="outline" asChild>
+                <Link to="/">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Link>
+              </Button>
+              <Button className="flex-1" onClick={() => setStep(2)}>
+                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ) : step === 2 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
