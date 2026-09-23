@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { MobileBookingBar } from "./MobileBookingBar";
+import { PromoMarquee } from "@/components/PromoMarquee";
 import { StudioPreviewExit } from "@/components/StudioPreviewExit";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,12 @@ export const Layout = ({ children, heroOverlay = false }: LayoutProps) => {
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar overlay={heroOverlay} />
-      <main className={cn("flex-1", !heroOverlay && "pt-20")}>{children}</main>
+      <main className={cn("flex-1", !heroOverlay && "pt-20")}>
+        {/* Studio promo strip — site-wide, below the navbar. Skipped on the
+            home page's transparent-overlay hero. */}
+        {!heroOverlay && <PromoMarquee />}
+        {children}
+      </main>
       <Footer />
       <MobileBookingBar />
       <StudioPreviewExit />
