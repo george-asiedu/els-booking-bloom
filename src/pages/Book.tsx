@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle, Plus, Minus, ShoppingBag } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
-import { PromoMarquee } from "@/components/PromoMarquee";
+import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -47,6 +47,7 @@ import {
   AppointmentDTO,
 } from "@/lib/api";
 import { whatsappLink } from "@/lib/whatsapp";
+import { setPendingBooking, takePendingBooking } from "@/lib/pendingBooking";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
@@ -93,6 +94,7 @@ const Book = () => {
   const [designImage, setDesignImage] = useState<File | null>(null);
   const [designPreview, setDesignPreview] = useState<string | null>(null);
   const [applyPoints, setApplyPoints] = useState(false);
+  const [referral, setReferral] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"full" | "partial">("full");
   const [redirecting, setRedirecting] = useState(false);
   // In-app payment dialog state.
@@ -203,8 +205,32 @@ const Book = () => {
     },
   });
 
-  // Pre-fill from the account: profile first, then fall back to the login email.
+  // A booking a guest started before logging in — restored once on mount.
+  const [restored] = useState(() => takePendingBooking());
   useEffect(() => {
+    if (!restored) return;
+    const r = restored;
+    if (r.fullName) form.setValue("fullName", r.fullName);
+    if (r.phone) form.setValue("phone", r.phone);
+    if (r.email) form.setValue("email", r.email);
+    if (r.service) form.setValue("service", r.service);
+    if (r.time) form.setValue("time", r.time);
+    if (r.notes) form.setValue("notes", r.notes);
+    if (r.date) {
+      const d = new Date(r.date);
+      if (!Number.isNaN(d.getTime())) form.setValue("date", d);
+    }
+    if (r.addOns) setAddOns(r.addOns);
+    if (typeof r.applyPoints === "boolean") setApplyPoints(r.applyPoints);
+    if (r.paymentMethod) setPaymentMethod(r.paymentMethod);
+    if (r.referral) setReferral(r.referral);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Pre-fill from the account: profile first, then fall back to the login email.
+  // Skipped when we've just restored a guest's own typed details (those win).
+  useEffect(() => {
+    if (restored) return;
     if (profile) {
       form.setValue("fullName", profile.full_name || "");
       form.setValue("phone", profile.phone || "");
@@ -212,7 +238,7 @@ const Book = () => {
     if (profile?.email || user?.email) {
       form.setValue("email", profile?.email || user?.email || "");
     }
-  }, [profile, user, form]);
+  }, [profile, user, form, restored]);
 
   // Times already booked for the chosen date are removed from the picker.
   const selectedDate = form.watch("date");
@@ -301,6 +327,7 @@ const Book = () => {
               quantity: i.qty,
             })),
             serviceType: type,
+            referralCode: referral.trim() || undefined,
           });
           setBookedAppointment(appointment);
           setPaymentKind("combined");
@@ -364,6 +391,30 @@ const Book = () => {
   });
 
   const onSubmit = (data: BookingFormValues) => {
+    // Anyone can fill the form, but booking/paying requires an account. Save the
+    // filled-in details and send guests to log in / sign up — they come back to
+    // /book with everything restored (the design image can't be saved).
+    if (!user) {
+      setPendingBooking({
+        fullName: data.fullName,
+        phone: data.phone,
+        email: data.email,
+        service: data.service,
+        date: data.date ? data.date.toISOString() : undefined,
+        time: data.time,
+        notes: data.notes,
+        addOns,
+        applyPoints,
+        paymentMethod,
+        referral,
+      });
+      toast({
+        title: "Almost there",
+        description: "Log in or sign up to confirm your appointment.",
+      });
+      navigate("/login?redirect=/book");
+      return;
+    }
     bookingMutation.mutate(data);
   };
 
@@ -428,39 +479,8 @@ const Book = () => {
     );
   }
 
-  // Booking is customer-only — guests must log in, admins can't book.
-  if (!user) {
-    return (
-      <Layout>
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="max-w-md mx-auto text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <CalendarIcon className="h-8 w-8 text-primary" />
-              </div>
-              <h1 className="text-3xl font-serif font-bold text-foreground mb-3">
-                Log in to book
-              </h1>
-              <p className="text-muted-foreground mb-6">
-                Appointments are for registered customers. Log in or create an
-                account to book, earn loyalty points and track your visits.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button asChild>
-                  <Link to="/login?redirect=/book">Log in</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/signup">Create an account</Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </Layout>
-    );
-  }
-
-  if (user.role === "ADMIN") {
+  // Anyone can browse & fill the booking form; admins can't book.
+  if (user?.role === "ADMIN") {
     return (
       <Layout>
         <section className="py-20">
@@ -485,18 +505,12 @@ const Book = () => {
 
   return (
     <Layout>
-      <PromoMarquee placement="booking" />
-      {/* Header */}
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            Book an Appointment
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Fill out the form below to request your appointment. I'll get back to you to confirm!
-          </p>
-        </div>
-      </section>
+      <StudioPageHero
+        eyebrow="Book an appointment"
+        title="Let's get you booked in."
+        description="Choose your service, pick a time that works, and we'll confirm your appointment."
+        variant="compact"
+      />
 
       {/* Booking Form */}
       <section className="py-16">
@@ -892,6 +906,20 @@ const Book = () => {
                             GHS {productSubtotal}
                           </span>
                         </div>
+                        <div className="space-y-1 pt-1">
+                          <FormLabel
+                            htmlFor="referral"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Referral code (optional)
+                          </FormLabel>
+                          <Input
+                            id="referral"
+                            placeholder="Friend's code"
+                            value={referral}
+                            onChange={(e) => setReferral(e.target.value)}
+                          />
+                        </div>
                         {!paymentEnabled && (
                           <p className="text-xs text-muted-foreground">
                             The service is settled at the studio; products are
@@ -999,11 +1027,13 @@ const Book = () => {
                   )}
                   {redirecting
                     ? "Redirecting to payment…"
-                    : hasAddOns
-                      ? `Pay GHS ${bookingPayNow} & Book`
-                      : paymentEnabled
-                        ? `Pay GHS ${payNowAmount} & Book`
-                        : "Request Appointment"}
+                    : !user
+                      ? "Log in to book"
+                      : hasAddOns
+                        ? `Pay GHS ${bookingPayNow} & Book`
+                        : paymentEnabled
+                          ? `Pay GHS ${payNowAmount} & Book`
+                          : "Request Appointment"}
                 </Button>
               </form>
             </Form>

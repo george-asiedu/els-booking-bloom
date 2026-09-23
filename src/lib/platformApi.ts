@@ -237,6 +237,22 @@ export const platformApi = {
     return res.data.user;
   },
 
+  async forgotPassword(email: string): Promise<string> {
+    const res = await platformRequest<Envelope<null> & { message: string }>(
+      "/auth/forgot-password",
+      { method: "POST", auth: false, body: { email } },
+    );
+    return res.message;
+  },
+
+  async resetPassword(token: string, password: string): Promise<string> {
+    const res = await platformRequest<Envelope<null> & { message: string }>(
+      "/auth/reset-password",
+      { method: "POST", auth: false, body: { token, password } },
+    );
+    return res.message;
+  },
+
   logout() {
     platformStore.clear();
   },

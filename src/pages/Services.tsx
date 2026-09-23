@@ -1,13 +1,17 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Reveal } from "@/components/Reveal";
+import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { services as staticServices } from "@/data/services";
-import { servicesApi, categoriesApi } from "@/lib/api";
+import { servicesApi, categoriesApi, galleryApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
+const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
 const titleize = (slug: string) =>
   slug
     .split("-")
@@ -26,17 +30,23 @@ interface DisplayService {
   category: string;
 }
 
+const price = (s: DisplayService) =>
+  s.on_promo && s.promo_price != null ? s.promo_price : s.price;
+
 const Services = () => {
-  // Prefer live services from the API; fall back to the static menu so the page
-  // is never empty (e.g. before any services are added, or if the API is down).
+  const [activeCat, setActiveCat] = useState<string>("all");
+
   const { data: apiServices, isLoading } = useQuery({
     queryKey: ["public-services-catalog"],
     queryFn: () => servicesApi.listActive(),
   });
-
   const { data: categoriesData } = useQuery({
     queryKey: ["public-categories"],
     queryFn: () => categoriesApi.listActive(),
+  });
+  const { data: gallery = [] } = useQuery({
+    queryKey: ["public-gallery"],
+    queryFn: () => galleryApi.listActive(),
   });
 
   const source: DisplayService[] =
@@ -45,8 +55,6 @@ const Services = () => {
   const nameBySlug = new Map((categoriesData ?? []).map((c) => [c.slug, c.name]));
   const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
 
-  // Category tabs, ordered by the admin's category order, limited to those
-  // that actually have services.
   const present = Array.from(new Set(source.map((s) => s.category)));
   const orderedSlugs = (categoriesData ?? []).map((c) => c.slug);
   const tabSlugs = [
@@ -54,157 +62,215 @@ const Services = () => {
     ...present.filter((s) => !orderedSlugs.includes(s)),
   ];
 
+  const featured = useMemo(
+    () => source.filter((s) => s.popular).slice(0, 2),
+    [source],
+  );
+  const filtered =
+    activeCat === "all" ? source : source.filter((s) => s.category === activeCat);
+
+  const heroImg = gallery[0]?.image_url ?? null;
+  const ctaImg = gallery[2]?.image_url ?? gallery[0]?.image_url ?? null;
+
   return (
     <Layout>
-      {/* Header */}
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            Our Services
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            From classic manicures to dramatic volume lashes and statement hairstyling, explore our full menu of beauty services
-          </p>
-        </div>
-      </section>
+      <StudioPageHero
+        eyebrow="Our services"
+        title={
+          <>
+            Your next look
+            <br />
+            <span className="text-primary">starts here.</span>
+          </>
+        }
+        description="Beauty experiences designed around you — from everyday essentials to your next signature look."
+        image={heroImg}
+        variant="editorial"
+        cta={{ label: "Book an appointment", to: "/book" }}
+      />
 
-      {/* Services */}
-      <section className="py-16">
+      <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => (
                 <Skeleton key={i} className="h-40 w-full" />
               ))}
             </div>
+          ) : source.length === 0 ? (
+            <div className="mx-auto max-w-md py-16 text-center">
+              <Sparkles className="mx-auto mb-4 h-10 w-10 text-primary/40" />
+              <h2 className="font-serif text-2xl font-bold">
+                We're preparing something special.
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                Services will be available soon.
+              </p>
+              <Button className="mt-6" asChild>
+                <Link to="/contact">Contact studio</Link>
+              </Button>
+            </div>
           ) : (
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="flex flex-wrap justify-center gap-2 mb-12 h-auto">
-              <TabsTrigger value="all">All</TabsTrigger>
-              {tabSlugs.map((slug) => (
-                <TabsTrigger key={slug} value={slug}>
-                  {catName(slug)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <>
+              {/* Featured */}
+              {featured.length >= 2 && activeCat === "all" && (
+                <div className="mb-14">
+                  <Reveal className="mb-6">
+                    <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
+                      Most loved
+                    </span>
+                  </Reveal>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {featured.map((s, i) => (
+                      <Reveal
+                        key={s.id}
+                        delay={i * 100}
+                        className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-br from-accent/40 to-card p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <div>
+                          <h3 className="font-serif text-xl font-semibold">{s.name}</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {s.duration} · from {GHS(price(s))}
+                          </p>
+                        </div>
+                        <Button size="sm" className="group/btn shrink-0" asChild>
+                          <Link to="/book">
+                            Book
+                            <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
+                          </Link>
+                        </Button>
+                      </Reveal>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            <TabsContent value="all">
-              <div className="space-y-12">
-                {tabSlugs.map((slug) => (
-                  <ServiceCategory
+              {/* Category filter — horizontally scrollable on mobile */}
+              <div className="mb-10 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {["all", ...tabSlugs].map((slug) => (
+                  <button
                     key={slug}
-                    title={`${catName(slug)} Services`}
-                    services={source.filter((s) => s.category === slug)}
-                  />
+                    onClick={() => setActiveCat(slug)}
+                    className={cn(
+                      "shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                      activeCat === slug
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {slug === "all" ? "All" : catName(slug)}
+                  </button>
                 ))}
               </div>
-            </TabsContent>
 
-            {tabSlugs.map((slug) => (
-              <TabsContent key={slug} value={slug}>
-                <ServiceCategory
-                  title={`${catName(slug)} Services`}
-                  services={source.filter((s) => s.category === slug)}
-                />
-              </TabsContent>
-            ))}
-          </Tabs>
+              {/* Editorial rows */}
+              <div className="mx-auto max-w-4xl divide-y divide-border border-y border-border">
+                {filtered.map((s, i) => (
+                  <Reveal
+                    key={s.id}
+                    delay={(i % 4) * 60}
+                    className="group grid grid-cols-[auto,1fr,auto] items-center gap-4 py-6 sm:gap-6"
+                  >
+                    <span className="font-serif text-sm text-muted-foreground">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-serif text-lg font-semibold transition-colors group-hover:text-primary">
+                          {s.name}
+                        </h3>
+                        {s.popular && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                            Popular
+                          </span>
+                        )}
+                        {s.on_promo && (
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
+                            style={{ backgroundColor: "hsl(var(--toast-success))" }}
+                          >
+                            Promo
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {s.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      <div className="hidden text-right sm:block">
+                        {s.on_promo && s.promo_price != null ? (
+                          <p className="text-sm font-semibold">
+                            <span className="mr-1 text-xs font-normal text-muted-foreground line-through">
+                              {GHS(s.price)}
+                            </span>
+                            {GHS(s.promo_price)}
+                          </p>
+                        ) : (
+                          <p className="text-sm font-semibold">{GHS(s.price)}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">{s.duration}</p>
+                      </div>
+                      <Link
+                        to="/book"
+                        className="flex items-center gap-1 text-sm font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
+                      >
+                        Book <ArrowUpRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </>
           )}
-
-          {/* Book CTA */}
-          <div className="mt-16 text-center">
-            <p className="text-muted-foreground mb-4">Ready to book your appointment?</p>
-            <Button size="lg" asChild>
-              <Link to="/book">
-                Book Now
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
         </div>
       </section>
 
-      {/* Policies */}
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-serif font-bold text-foreground mb-8 text-center">
-            Good to Know
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              {
-                title: "Cancellation Policy",
-                description: "Please provide at least 24 hours notice for cancellations to avoid a fee.",
-              },
-              {
-                title: "Lash Refills",
-                description: "Refills are recommended every 2-3 weeks for best results.",
-              },
-              {
-                title: "Aftercare",
-                description: "Detailed aftercare instructions provided with every service.",
-              },
-            ].map((policy) => (
-              <div key={policy.title} className="bg-card border border-border rounded-lg p-6">
-                <h3 className="font-semibold text-foreground mb-2">{policy.title}</h3>
-                <p className="text-sm text-muted-foreground">{policy.description}</p>
-              </div>
-            ))}
-          </div>
+      {/* Booking CTA */}
+      <section className="relative overflow-hidden py-24">
+        <img
+          src={ctaImg ?? undefined}
+          alt=""
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover",
+            !ctaImg && "hidden",
+          )}
+        />
+        <div className={cn("absolute inset-0", ctaImg ? "bg-foreground/60" : "bg-secondary")} />
+        <div className="container relative z-10 mx-auto px-4 text-center">
+          <Reveal>
+            <span
+              className={cn(
+                "text-sm font-medium uppercase tracking-[0.2em]",
+                ctaImg ? "text-background/80" : "text-primary",
+              )}
+            >
+              Ready for your next appointment?
+            </span>
+            <h2
+              className={cn(
+                "mx-auto mt-3 max-w-2xl font-serif text-3xl font-bold md:text-4xl",
+                ctaImg ? "text-background" : "text-foreground",
+              )}
+            >
+              Find a service that fits your style.
+            </h2>
+            <Button
+              size="lg"
+              variant={ctaImg ? "secondary" : "default"}
+              className="group mt-8"
+              asChild
+            >
+              <Link to="/book">
+                Book an appointment
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          </Reveal>
         </div>
       </section>
     </Layout>
   );
 };
-
-interface ServiceCategoryProps {
-  title: string;
-  services: DisplayService[];
-}
-
-const ServiceCategory = ({ title, services }: ServiceCategoryProps) => (
-  <div>
-    <h2 className="text-2xl font-serif font-bold text-foreground mb-6">{title}</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {services.map((service, index) => (
-        <div
-          key={service.id}
-          className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow animate-fade-in"
-          style={{ animationDelay: `${index * 50}ms` }}
-        >
-          <div className="flex gap-2 mb-3">
-            {service.popular && (
-              <span className="inline-block px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded-full">
-                Popular
-              </span>
-            )}
-            {service.on_promo && (
-              <span className="inline-block px-2 py-1 text-xs font-medium bg-green-600 text-white rounded-full">
-                Promo
-              </span>
-            )}
-          </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">{service.name}</h3>
-          <p className="text-sm text-muted-foreground mb-4">{service.description}</p>
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            {service.on_promo && service.promo_price != null ? (
-              <span className="flex items-baseline gap-2">
-                <span className="text-sm text-muted-foreground line-through">
-                  GHS {service.price}
-                </span>
-                <span className="text-xl font-bold text-primary">
-                  GHS {service.promo_price}
-                </span>
-              </span>
-            ) : (
-              <span className="text-xl font-bold text-primary">GHS {service.price}</span>
-            )}
-            <span className="text-sm text-muted-foreground">{service.duration}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 export default Services;

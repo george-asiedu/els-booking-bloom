@@ -11,6 +11,8 @@ import {
   MapPin,
   Clock,
   Instagram,
+  Music2,
+  Facebook,
   ChevronLeft,
   ChevronRight,
   Quote,
@@ -36,6 +38,15 @@ import heroFallback from "@/assets/hero-beauty.jpg";
 
 const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Turn a stored handle (or full URL) into a working social profile link.
+const socialHref = (kind: "instagram" | "tiktok" | "facebook", v: string) => {
+  if (v.startsWith("http")) return v;
+  const handle = v.replace(/^@/, "").trim();
+  if (kind === "instagram") return `https://instagram.com/${handle}`;
+  if (kind === "tiktok") return `https://www.tiktok.com/@${handle}`;
+  return `https://facebook.com/${handle}`;
+};
 const to12h = (t: string | null) => {
   if (!t) return "";
   const [h, m] = t.split(":").map(Number);
@@ -579,7 +590,38 @@ const Index = () => {
               )}
               {contact?.showInstagram && contact.instagram && (
                 <ContactRow icon={<Instagram className="h-5 w-5" />} label="Instagram">
-                  <span>{contact.instagram}</span>
+                  <a
+                    href={socialHref("instagram", contact.instagram)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-primary"
+                  >
+                    @{contact.instagram.replace(/^@/, "")}
+                  </a>
+                </ContactRow>
+              )}
+              {contact?.showTiktok && contact.tiktok && (
+                <ContactRow icon={<Music2 className="h-5 w-5" />} label="TikTok">
+                  <a
+                    href={socialHref("tiktok", contact.tiktok)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-primary"
+                  >
+                    @{contact.tiktok.replace(/^@/, "")}
+                  </a>
+                </ContactRow>
+              )}
+              {contact?.showFacebook && contact.facebook && (
+                <ContactRow icon={<Facebook className="h-5 w-5" />} label="Facebook">
+                  <a
+                    href={socialHref("facebook", contact.facebook)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-primary"
+                  >
+                    {contact.facebook.replace(/^https?:\/\/(www\.)?facebook\.com\//, "").replace(/^@/, "")}
+                  </a>
                 </ContactRow>
               )}
               {contact?.showAddress && contact.address && (

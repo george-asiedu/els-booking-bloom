@@ -47,19 +47,48 @@ const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)
   ?.trim()
   .toLowerCase();
 
+// Labels that are never a studio slug (platform surfaces / conventions).
+const RESERVED_SUBDOMAINS = new Set([
+  "www",
+  "app",
+  "api",
+  "admin",
+  "platform",
+  "dashboard",
+]);
+
 // Derive the studio slug from the current subdomain, if this host is a studio
-// subdomain of ROOT_DOMAIN. Computed once at load — the host doesn't change
-// without a full navigation.
+// subdomain (e.g. "els" from "els.zuristudios.com"). Computed once at load — the
+// host doesn't change without a full navigation.
 const subdomainSlug = (() => {
-  if (!ROOT_DOMAIN || typeof window === "undefined") return null;
+  if (typeof window === "undefined") return null;
   const host = window.location.hostname.toLowerCase();
-  if (host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) return null;
-  if (host.endsWith(`.${ROOT_DOMAIN}`)) {
-    const sub = host.slice(0, -(ROOT_DOMAIN.length + 1));
-    // Only the left-most label; ignore "www" and nested subdomains.
-    const label = sub.split(".")[0];
-    if (label && label !== "www") return label;
+  // Local dev / IPs never carry a studio subdomain.
+  if (
+    host === "localhost" ||
+    host.startsWith("127.") ||
+    host.endsWith(".local") ||
+    /^\d{1,3}(\.\d{1,3}){3}$/.test(host)
+  ) {
+    return null;
   }
+
+  // Primary: <slug>.<ROOT_DOMAIN> when the root domain is configured.
+  if (ROOT_DOMAIN) {
+    if (host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) return null;
+    if (host.endsWith(`.${ROOT_DOMAIN}`)) {
+      const label = host.slice(0, -(ROOT_DOMAIN.length + 1)).split(".")[0];
+      return label && !RESERVED_SUBDOMAINS.has(label) ? label : null;
+    }
+    // A different host (e.g. a studio's custom domain) — resolved separately.
+    return null;
+  }
+
+  // Fallback when VITE_ROOT_DOMAIN isn't set: treat a 3+ label host as
+  // <slug>.<apex> so studio subdomains still resolve (and the home tab returns
+  // to the studio, not the platform landing) even if the env var is missing.
+  const parts = host.split(".");
+  if (parts.length >= 3 && !RESERVED_SUBDOMAINS.has(parts[0])) return parts[0];
   return null;
 })();
 

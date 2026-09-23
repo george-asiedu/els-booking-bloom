@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Navigate, useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { LayoutGrid, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import {
   Form,
@@ -22,87 +21,74 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { usePlatformAuth } from "@/hooks/usePlatformAuth";
+import { platformApi } from "@/lib/platformApi";
 import { useToast } from "@/hooks/use-toast";
 
-const schema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+const schema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "At least 8 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
+        "Include an uppercase letter, a lowercase letter, a number, and a special character",
+      ),
+    confirm: z.string(),
+  })
+  .refine((d) => d.password === d.confirm, {
+    message: "Passwords don't match",
+    path: ["confirm"],
+  });
 
 type FormValues = z.infer<typeof schema>;
 
-const PlatformLogin = () => {
-  const [isLoading, setIsLoading] = useState(false);
+const PlatformResetPassword = () => {
+  const { token = "" } = useParams();
   const navigate = useNavigate();
-  const { user, signIn } = usePlatformAuth();
   const { toast } = useToast();
-
+  const [isLoading, setIsLoading] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { password: "", confirm: "" },
   });
-
-  // Already signed in — skip the form.
-  if (user) return <Navigate to="/platform" replace />;
 
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
-    const { error } = await signIn(data.email, data.password);
-    if (error) {
+    try {
+      await platformApi.resetPassword(token, data.password);
+      toast({ title: "Password reset", description: "You can now sign in." });
+      navigate("/platform/login", { replace: true });
+    } catch (e) {
       toast({
         variant: "destructive",
-        title: "Login failed",
-        description: error.message,
+        title: "Couldn't reset password",
+        description: e instanceof Error ? e.message : "The link may have expired.",
       });
+    } finally {
       setIsLoading(false);
-      return;
     }
-    toast({ title: "Welcome back", description: "Signed in to the console." });
-    navigate("/platform", { replace: true });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mb-4 flex items-center justify-center gap-2">
             <LayoutGrid className="h-8 w-8 text-primary" />
-            <span className="font-serif text-2xl font-semibold">
-              Platform Console
-            </span>
+            <span className="font-serif text-2xl font-semibold">Platform Console</span>
           </div>
-          <CardTitle>Super Admin Login</CardTitle>
-          <CardDescription>
-            Manage the studios on your platform
-          </CardDescription>
+          <CardTitle>Choose a new password</CardTitle>
+          <CardDescription>Set a new super-admin password.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>New password</FormLabel>
                     <FormControl>
                       <PasswordInput placeholder="••••••••" {...field} />
                     </FormControl>
@@ -110,18 +96,28 @@ const PlatformLogin = () => {
                   </FormItem>
                 )}
               />
-              <div className="text-right">
-                <Link
-                  to="/platform/forgot-password"
-                  className="text-sm text-primary hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <FormField
+                control={form.control}
+                name="confirm"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm password</FormLabel>
+                    <FormControl>
+                      <PasswordInput placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                Reset password
               </Button>
+              <p className="text-center text-sm">
+                <Link to="/platform/login" className="text-primary hover:underline">
+                  Back to login
+                </Link>
+              </p>
             </form>
           </Form>
         </CardContent>
@@ -130,4 +126,4 @@ const PlatformLogin = () => {
   );
 };
 
-export default PlatformLogin;
+export default PlatformResetPassword;

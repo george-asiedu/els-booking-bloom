@@ -940,12 +940,14 @@ export interface ContactInfoDTO {
   email: string | null;
   instagram: string | null;
   tiktok: string | null;
+  facebook: string | null;
   address: string | null;
   showPhone: boolean;
   showWhatsapp: boolean;
   showEmail: boolean;
   showInstagram: boolean;
   showTiktok: boolean;
+  showFacebook: boolean;
   showAddress: boolean;
 }
 

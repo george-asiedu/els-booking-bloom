@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
+import { studioUrl } from "@/config/platform";
 import { profileApi } from "@/lib/api";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -67,7 +68,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-  const { name: studioName } = useStudio();
+  const { name: studioName, config } = useStudio();
+  // Link to THIS studio's own storefront (subdomain in prod, /s/<slug> in dev) —
+  // not "/", which shows the platform landing when no studio slug is active.
+  const publicSiteUrl = config?.slug ? studioUrl(config.slug) : "/";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { data: profile } = useQuery({
@@ -154,9 +158,14 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             </ul>
           </nav>
           <div className="p-4 border-t border-border">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+            <a
+              href={publicSiteUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
               ← View Public Site
-            </Link>
+            </a>
           </div>
         </aside>
 
@@ -187,13 +196,15 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 </ul>
               </nav>
               <div className="mt-4 pt-4 border-t border-border">
-                <Link 
-                  to="/" 
+                <a
+                  href={publicSiteUrl}
+                  target="_blank"
+                  rel="noreferrer"
                   className="text-sm text-muted-foreground hover:text-foreground"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   ← View Public Site
-                </Link>
+                </a>
               </div>
             </aside>
           </div>

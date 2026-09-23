@@ -62,6 +62,8 @@ const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminCommerce = lazy(() => import("./pages/admin/AdminCommerce"));
 const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 const PlatformLogin = lazy(() => import("./pages/platform/PlatformLogin"));
+const PlatformForgotPassword = lazy(() => import("./pages/platform/PlatformForgotPassword"));
+const PlatformResetPassword = lazy(() => import("./pages/platform/PlatformResetPassword"));
 const PlatformDashboard = lazy(() => import("./pages/platform/PlatformDashboard"));
 const PlatformStudioNew = lazy(() => import("./pages/platform/PlatformStudioNew"));
 const PlatformStudioDetail = lazy(() => import("./pages/platform/PlatformStudioDetail"));
@@ -246,6 +248,8 @@ const App = () => (
                 }
               >
                 <Route path="login" element={<PlatformLogin />} />
+                <Route path="forgot-password" element={<PlatformForgotPassword />} />
+                <Route path="reset-password/:token" element={<PlatformResetPassword />} />
                 <Route element={<PlatformOutlet />}>
                   <Route index element={<PlatformDashboard />} />
                   <Route path="studios/new" element={<PlatformStudioNew />} />
