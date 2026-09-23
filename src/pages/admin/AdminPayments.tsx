@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, CreditCard, Info, Wallet, CheckCircle2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -88,24 +88,40 @@ const AdminPayments = () => {
   }, [payNumber, payProvider]);
 
   // Verify the number with Paystack and auto-fill the registered account name.
+  // The resolve API is called at most once per provider+number combination
+  // (blur and the auto-verify effect both trigger it, so this dedupes them),
+  // and at most MAX_RESOLVES times per page session. If it fails or the cap is
+  // hit, the account name becomes manually editable so the user can still save.
+  const resolvedKeys = useRef(new Set<string>());
+  const resolveCount = useRef(0);
+  const MAX_RESOLVES = 3;
+  const [manualName, setManualName] = useState(false);
+
   const resolveName = async () => {
-    if (!payProvider || !/^\d{9,20}$/.test(payNumber.trim())) return;
+    const number = payNumber.trim();
+    if (!payProvider || !/^\d{9,20}$/.test(number)) return;
+    const key = `${payProvider}:${number}`;
+    if (resolvedKeys.current.has(key)) return;
+    if (resolveCount.current >= MAX_RESOLVES) {
+      setManualName(true);
+      return;
+    }
+    resolvedKeys.current.add(key);
+    resolveCount.current += 1;
     setResolving(true);
     try {
-      const name = await studioAdminApi.resolvePayoutName(
-        payNumber.trim(),
-        payProvider,
-      );
+      const name = await studioAdminApi.resolvePayoutName(number, payProvider);
       setPayName(name);
+      setManualName(false);
     } catch (error) {
       setPayName("");
+      setManualName(true);
       toast({
         variant: "destructive",
         title: "Couldn't verify that number",
         description:
-          error instanceof Error
-            ? error.message
-            : "Check the number and provider and try again.",
+          (error instanceof Error ? error.message : "Verification failed.") +
+          " You can enter the account name manually instead.",
       });
     } finally {
       setResolving(false);
@@ -427,16 +443,27 @@ const AdminPayments = () => {
                     <Input
                       id="payout-name"
                       value={payName}
-                      readOnly
+                      onChange={(e) => setPayName(e.target.value)}
+                      readOnly={!manualName}
                       placeholder={
-                        resolving ? "Verifying…" : "Auto-filled after verifying"
+                        resolving
+                          ? "Verifying…"
+                          : manualName
+                            ? "Enter the account holder's name"
+                            : "Auto-filled after verifying"
                       }
-                      className="bg-muted/50"
+                      className={manualName ? "" : "bg-muted/50"}
                     />
                     {resolving && (
                       <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
                     )}
                   </div>
+                  {manualName && (
+                    <p className="text-xs text-muted-foreground">
+                      We couldn't verify this automatically — enter the name
+                      registered on the account.
+                    </p>
+                  )}
                 </div>
 
                 <Button

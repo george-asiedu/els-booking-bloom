@@ -23,8 +23,10 @@ const AdminBilling = () => {
     queryFn: () => studioBillingApi.get(),
   });
 
+  const revShare = billing?.billingMode === "REVENUE_SHARE";
+
   const changeTo = async (plan: "STANDARD" | "PREMIUM") => {
-    if (billing && billing.plan === plan && billing.cadence === cadence) {
+    if (billing && !revShare && billing.plan === plan && billing.cadence === cadence) {
       toast({ title: "You're already on this plan." });
       return;
     }
@@ -130,7 +132,9 @@ const AdminBilling = () => {
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : billing.billingMode === "REVENUE_SHARE" ? (
+        ) : (
+          <>
+            {revShare ? (
           <Card>
             <CardContent className="space-y-3 py-6">
               <div className="flex items-center gap-2">
@@ -146,12 +150,12 @@ const AdminBilling = () => {
                   {billing.commissionPercent}%
                 </span>{" "}
                 of each customer payment. There's no recurring plan fee and nothing
-                to renew. To change your plan or billing, contact the Zuri team.
+                to renew. Prefer a fixed monthly or yearly fee instead? Pick a plan
+                below to switch — the commission stops as soon as you do.
               </p>
             </CardContent>
           </Card>
-        ) : (
-          <>
+            ) : (
             <Card className={billing.lapsed ? "border-destructive" : ""}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5">
                 <div>
@@ -185,6 +189,7 @@ const AdminBilling = () => {
                 </Button>
               </CardContent>
             </Card>
+            )}
 
             <div className="flex justify-center">
               <div className="inline-flex rounded-full border border-border p-1">
@@ -204,7 +209,7 @@ const AdminBilling = () => {
 
             <div className="grid gap-4 sm:grid-cols-2">
               {PLANS.map((p) => {
-                const current = billing.plan === p.id && billing.cadence === cadence;
+                const current = !revShare && billing.plan === p.id && billing.cadence === cadence;
                 return (
                   <Card key={p.id} className={p.featured ? "border-primary" : ""}>
                     <CardHeader>
@@ -237,9 +242,11 @@ const AdminBilling = () => {
                         {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {current
                           ? "Current plan"
-                          : billing.plan === "PREMIUM" && p.id === "STANDARD"
-                            ? "Switch to Standard"
-                            : `Switch to ${p.name}`}
+                          : revShare
+                            ? `Switch to ${p.name} (${cadence === "MONTHLY" ? "monthly" : "yearly"})`
+                            : billing.plan === "PREMIUM" && p.id === "STANDARD"
+                              ? "Switch to Standard"
+                              : `Switch to ${p.name}`}
                       </Button>
                     </CardContent>
                   </Card>
@@ -247,9 +254,11 @@ const AdminBilling = () => {
               })}
             </div>
             <p className="text-center text-xs text-muted-foreground">
-              Switching charges the selected plan once and starts a fresh billing
-              period. Plans don't auto-renew — you'll renew each period with
-              Mobile Money before it lapses.
+              {revShare
+                ? "Switching charges the selected plan once, ends the per-transaction commission, and starts a recurring billing period. This can't be undone from your dashboard. "
+                : "Switching charges the selected plan once and starts a fresh billing period. "}
+              Plans don't auto-renew — you'll renew each period with Mobile Money
+              before it lapses.
             </p>
           </>
         )}

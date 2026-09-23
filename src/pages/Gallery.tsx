@@ -9,10 +9,6 @@ import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { Lightbox, LightboxImage } from "@/components/storefront/Lightbox";
 import { galleryApi, categoriesApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import nails1 from "@/assets/gallery/nails-1.jpg";
-import nails2 from "@/assets/gallery/nails-2.jpg";
-import lashes1 from "@/assets/gallery/lashes-1.jpg";
-import lashes2 from "@/assets/gallery/lashes-2.jpg";
 
 const titleize = (slug: string) =>
   slug
@@ -27,13 +23,6 @@ interface GalleryItem {
   category: string;
   type: "image" | "video";
 }
-
-const fallback: GalleryItem[] = [
-  { id: "1", src: nails1, alt: "French tip acrylics", category: "nails", type: "image" },
-  { id: "2", src: nails2, alt: "Ombre gel nails", category: "nails", type: "image" },
-  { id: "3", src: lashes1, alt: "Volume lash extensions", category: "lashes", type: "image" },
-  { id: "4", src: lashes2, alt: "Classic natural lashes", category: "lashes", type: "image" },
-];
 
 const Gallery = () => {
   const [activeCat, setActiveCat] = useState("all");
@@ -57,7 +46,7 @@ const Gallery = () => {
         category: img.category,
         type: img.media_type,
       }))
-    : fallback;
+    : [];
 
   const nameBySlug = new Map((categoriesData ?? []).map((c) => [c.slug, c.name]));
   const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
