@@ -14,7 +14,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { SessionGuard } from "@/components/SessionGuard";
 import { StudioTheme } from "@/components/StudioTheme";
 import { FeatureRoute } from "@/components/FeatureRoute";
-import { UmamiAnalytics } from "@/components/UmamiAnalytics";
+import { Analytics } from "@vercel/analytics/react";
 import { studioStore } from "@/lib/apiClient";
 import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
 import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
@@ -145,7 +145,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <UmamiAnalytics />
+          <Analytics />
           <BrowserRouter>
             <ScrollToTop />
             <SessionGuard />
