@@ -5,21 +5,25 @@ import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
 import { PromoMarquee } from "@/components/PromoMarquee";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StudioPageHero } from "@/components/storefront/StudioPageHero";
+import { Reveal } from "@/components/Reveal";
+import { ToastAction } from "@/components/ui/toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import {
   productsApi,
   productCategoriesApi,
   commerceApi,
   cartApi,
+  galleryApi,
   ProductDTO,
 } from "@/lib/api";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
+import { cn } from "@/lib/utils";
 
+const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
 const titleize = (slug: string) =>
   slug
     .split("-")
@@ -32,21 +36,30 @@ const Shop = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [activeCat, setActiveCat] = useState("all");
 
   const { data: commerce } = useQuery({
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products"],
     queryFn: () => productsApi.listActive(),
   });
-
   const { data: categories = [] } = useQuery({
     queryKey: ["public-product-categories"],
     queryFn: () => productCategoriesApi.listActive(),
   });
+  const { data: gallery = [] } = useQuery({
+    queryKey: ["public-gallery"],
+    queryFn: () => galleryApi.listActive(),
+  });
+
+  const viewCartAction = (
+    <ToastAction altText="View cart" onClick={() => navigate("/cart")}>
+      View cart
+    </ToastAction>
+  );
 
   // Resume an add-to-cart a guest attempted before being sent to log in.
   useEffect(() => {
@@ -57,7 +70,11 @@ const Shop = () => {
           .addItem(pid, 1)
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ["cart"] });
-            toast({ title: "Added to cart", description: "Picked up where you left off." });
+            toast({
+              title: "Added to cart",
+              description: "Picked up where you left off.",
+              action: viewCartAction,
+            });
           })
           .catch(() => {});
       }
@@ -68,13 +85,16 @@ const Shop = () => {
   const addMutation = useMutation({
     mutationFn: (productId: string) => cartApi.addItem(productId, 1),
     onMutate: (productId) => setAddingId(productId),
-    onSuccess: () => {
+    onSuccess: (_d, productId) => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast({ title: "Added to cart", description: "Item added to your cart." });
+      const p = products.find((x) => x.id === productId);
+      toast({
+        title: "Added to cart",
+        description: p ? `${p.name} added to your bag.` : "Item added to your cart.",
+        action: viewCartAction,
+      });
     },
     onError: (error, productId) => {
-      // Session expired: remember the item so it's added right after re-login;
-      // SessionGuard shows the "session expired" message and redirects.
       if (error instanceof ApiError && error.status === 401) {
         setPendingCartAdd(productId);
         return;
@@ -107,27 +127,26 @@ const Shop = () => {
 
   const nameBySlug = new Map(categories.map((c) => [c.slug, c.name]));
   const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
-
   const present = Array.from(new Set(products.map((p) => p.category)));
   const orderedSlugs = categories.map((c) => c.slug);
   const tabSlugs = [
     ...orderedSlugs.filter((s) => present.includes(s)),
     ...present.filter((s) => !orderedSlugs.includes(s)),
   ];
+  const filtered =
+    activeCat === "all" ? products : products.filter((p) => p.category === activeCat);
 
   // Shop turned off by the admin.
   if (commerce && !commerce.enabled) {
     return (
       <Layout>
         <section className="py-24">
-          <div className="container mx-auto px-4 text-center max-w-md">
-            <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-serif font-bold text-foreground mb-2">
+          <div className="container mx-auto max-w-md px-4 text-center">
+            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <h1 className="mb-2 font-serif text-2xl font-bold text-foreground">
               The shop is currently closed
             </h1>
-            <p className="text-muted-foreground mb-6">
-              Please check back soon.
-            </p>
+            <p className="mb-6 text-muted-foreground">Please check back soon.</p>
             <Button asChild>
               <Link to="/">Back to home</Link>
             </Button>
@@ -137,162 +156,173 @@ const Shop = () => {
     );
   }
 
+  const heroImg =
+    products.find((p) => p.image_url)?.image_url ?? gallery[0]?.image_url ?? null;
+
   return (
     <Layout>
       <PromoMarquee placement="shop" />
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            Shop Products
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Take the salon home — curated products to prep, style and maintain
-            your look between appointments.
-          </p>
-        </div>
-      </section>
+      <StudioPageHero
+        eyebrow="The studio shop"
+        title={
+          <>
+            Beauty essentials,
+            <br />
+            <span className="text-primary">chosen for you.</span>
+          </>
+        }
+        description="Curated products to prep, style and maintain your look between appointments."
+        image={heroImg}
+        variant="commerce"
+      />
 
-      <section className="py-16">
+      <section className="py-14 md:py-20">
         <div className="container mx-auto px-4">
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-80 w-full" />
+            <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <Skeleton key={i} className="h-72 w-full rounded-2xl" />
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="text-center py-16">
-              <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                No products available yet. Check back soon!
+            <div className="mx-auto max-w-md py-16 text-center">
+              <ShoppingBag className="mx-auto mb-4 h-10 w-10 text-primary/40" />
+              <h2 className="font-serif text-2xl font-bold">
+                Something beautiful is coming.
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                This studio hasn't added products yet. Check back soon.
               </p>
+              <Button className="mt-6" asChild>
+                <Link to="/services">Explore services</Link>
+              </Button>
             </div>
           ) : (
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="flex flex-wrap justify-center gap-2 mb-10 h-auto">
-                <TabsTrigger value="all">All</TabsTrigger>
-                {tabSlugs.map((slug) => (
-                  <TabsTrigger key={slug} value={slug}>
-                    {catName(slug)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            <>
+              {tabSlugs.length > 1 && (
+                <div className="mb-10 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {["all", ...tabSlugs].map((slug) => (
+                    <button
+                      key={slug}
+                      onClick={() => setActiveCat(slug)}
+                      className={cn(
+                        "shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                        activeCat === slug
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {slug === "all" ? "All products" : catName(slug)}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              <TabsContent value="all">
-                <ProductGrid
-                  products={products}
-                  onAdd={handleAdd}
-                  addingId={addingId}
-                />
-              </TabsContent>
-              {tabSlugs.map((slug) => (
-                <TabsContent key={slug} value={slug}>
-                  <ProductGrid
-                    products={products.filter((p) => p.category === slug)}
-                    onAdd={handleAdd}
-                    addingId={addingId}
-                  />
-                </TabsContent>
-              ))}
-            </Tabs>
+              <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+                {filtered.map((product, i) => (
+                  <Reveal key={product.id} delay={(i % 4) * 60}>
+                    <div className="group flex h-full flex-col">
+                      <Link
+                        to={`/shop/${product.id}`}
+                        className="relative block aspect-square overflow-hidden rounded-2xl bg-secondary"
+                      >
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center">
+                            <ImageOff className="h-10 w-10 text-muted-foreground" />
+                          </span>
+                        )}
+                        <span className="absolute left-2 top-2 flex gap-1">
+                          {product.popular && (
+                            <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
+                              Popular
+                            </span>
+                          )}
+                          {product.on_promo && (
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
+                              style={{ backgroundColor: "hsl(var(--toast-success))" }}
+                            >
+                              Sale
+                            </span>
+                          )}
+                        </span>
+                        {!product.in_stock && (
+                          <span className="absolute inset-0 flex items-center justify-center bg-background/60">
+                            <span className="rounded-full bg-card px-3 py-1 text-xs font-medium">
+                              Out of stock
+                            </span>
+                          </span>
+                        )}
+                      </Link>
+
+                      <div className="flex flex-1 flex-col pt-3">
+                        <Link to={`/shop/${product.id}`} className="min-w-0">
+                          <h3 className="line-clamp-1 font-medium transition-colors group-hover:text-primary">
+                            {product.name}
+                          </h3>
+                        </Link>
+                        <div className="mt-1 flex items-baseline gap-2">
+                          {product.on_promo ? (
+                            <>
+                              <span className="text-xs text-muted-foreground line-through">
+                                {GHS(product.price)}
+                              </span>
+                              <span className="font-semibold text-primary">
+                                {GHS(product.effective_price)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="font-semibold text-primary">
+                              {GHS(product.price)}
+                            </span>
+                          )}
+                          {product.in_stock && (
+                            <span
+                              className={cn(
+                                "ml-auto text-xs",
+                                product.track_stock && product.stock <= 5
+                                  ? "text-amber-600"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              {product.track_stock
+                                ? `${product.stock} left`
+                                : "In stock"}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="mt-3 w-full"
+                          disabled={!product.in_stock || addingId === product.id}
+                          onClick={() => handleAdd(product)}
+                        >
+                          {addingId === product.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <ShoppingCart className="mr-2 h-4 w-4" />
+                          )}
+                          {product.in_stock ? "Add to cart" : "Out of stock"}
+                        </Button>
+                      </div>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </section>
     </Layout>
   );
 };
-
-interface GridProps {
-  products: ProductDTO[];
-  onAdd: (p: ProductDTO) => void;
-  addingId: string | null;
-}
-
-const ProductGrid = ({ products, onAdd, addingId }: GridProps) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    {products.map((product, index) => (
-      <div
-        key={product.id}
-        className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow animate-fade-in flex flex-col"
-        style={{ animationDelay: `${index * 40}ms` }}
-      >
-        <Link
-          to={`/shop/${product.id}`}
-          className="relative aspect-square bg-secondary flex items-center justify-center overflow-hidden"
-        >
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <ImageOff className="h-10 w-10 text-muted-foreground" />
-          )}
-          <div className="absolute top-2 left-2 flex gap-1">
-            {product.popular && <Badge>Popular</Badge>}
-            {product.on_promo && (
-              <Badge className="bg-green-600 hover:bg-green-600">Promo</Badge>
-            )}
-          </div>
-          {!product.in_stock && (
-            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-              <Badge variant="secondary">Out of stock</Badge>
-            </div>
-          )}
-        </Link>
-
-        <div className="p-4 flex flex-col flex-1">
-          <Link to={`/shop/${product.id}`}>
-            <h3 className="font-semibold text-foreground hover:text-primary transition-colors">
-              {product.name}
-            </h3>
-          </Link>
-          {product.description && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {product.description}
-            </p>
-          )}
-          <div className="mt-3 flex items-center justify-between">
-            {product.on_promo ? (
-              <span className="flex items-baseline gap-2">
-                <span className="text-sm text-muted-foreground line-through">
-                  GHS {product.price}
-                </span>
-                <span className="text-lg font-bold text-primary">
-                  GHS {product.effective_price}
-                </span>
-              </span>
-            ) : (
-              <span className="text-lg font-bold text-primary">
-                GHS {product.price}
-              </span>
-            )}
-            {product.track_stock && product.in_stock && product.stock <= 5 && (
-              <span className="text-xs text-amber-600">
-                {product.stock} left
-              </span>
-            )}
-          </div>
-
-          <Button
-            className="mt-4 w-full"
-            disabled={!product.in_stock || addingId === product.id}
-            onClick={() => onAdd(product)}
-          >
-            {addingId === product.id ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <ShoppingCart className="mr-2 h-4 w-4" />
-            )}
-            {product.in_stock ? "Add to cart" : "Out of stock"}
-          </Button>
-        </div>
-      </div>
-    ))}
-  </div>
-);
 
 export default Shop;
