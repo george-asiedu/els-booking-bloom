@@ -40,7 +40,7 @@ const AdminGallery = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("nails");
+  const [category, setCategory] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -58,12 +58,17 @@ const AdminGallery = () => {
     queryFn: () => categoriesApi.listAll(),
   });
 
+  // Default to the studio's first category; ignore a stale selection.
+  const selectedCategory = categories.some((c) => c.slug === category)
+    ? category
+    : categories[0]?.slug ?? "";
+
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!selectedFile) throw new Error("No file selected");
       setIsUploading(true);
       // The server uploads the file to S3 and records the gallery entry.
-      await galleryApi.upload(selectedFile, title, category);
+      await galleryApi.upload(selectedFile, title, selectedCategory);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-gallery"] });
@@ -109,7 +114,7 @@ const AdminGallery = () => {
 
   const resetForm = () => {
     setTitle("");
-    setCategory("nails");
+    setCategory("");
     setSelectedFile(null);
     setPreviewUrl(null);
     if (fileInputRef.current) {
@@ -238,9 +243,9 @@ const AdminGallery = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={selectedCategory} onValueChange={setCategory}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Add a category first" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
@@ -292,7 +297,7 @@ const AdminGallery = () => {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={!selectedFile || isUploading}>
+              <Button type="submit" disabled={!selectedFile || !selectedCategory || isUploading}>
                 {isUploading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Upload
               </Button>
