@@ -15,30 +15,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Layout } from "@/components/layout/Layout";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { cn } from "@/lib/utils";
-import { cartApi, commerceApi, ordersApi, accountApi, PaymentTarget } from "@/lib/api";
+import { cartApi, commerceApi, ordersApi, PaymentTarget } from "@/lib/api";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
-import { useStudio } from "@/hooks/useStudio";
 import { useToast } from "@/hooks/use-toast";
 
 const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
 
 const Cart = () => {
   const { user } = useAuth();
-  const { config: studioConfig } = useStudio();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [fulfillment, setFulfillment] = useState<"PICKUP" | "DELIVERY">("PICKUP");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
-  const [applyPoints, setApplyPoints] = useState(false);
-  const [referral, setReferral] = useState("");
   const [redirecting, setRedirecting] = useState(false);
   const navigate = useNavigate();
   const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
@@ -46,11 +40,6 @@ const Cart = () => {
 
   const isCustomer = !!user && user.role !== "ADMIN";
 
-  const { data: loyalty } = useQuery({
-    queryKey: ["loyalty-points", user?.id],
-    queryFn: () => accountApi.getLoyalty(),
-    enabled: isCustomer,
-  });
   const { data: commerce } = useQuery({
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
@@ -103,8 +92,6 @@ const Cart = () => {
         fulfillment,
         deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
         deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
-        applyPoints: applyPoints && canUsePoints,
-        referralCode: referral.trim() || undefined,
       });
       setRedirecting(false);
       setPaymentTarget({
@@ -172,14 +159,7 @@ const Cart = () => {
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const deliveryFee = fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
-
-  const loyaltyCap = studioConfig?.settings.loyaltyCapPercent ?? 30;
-  const availablePoints = loyalty?.points ?? 0;
-  const maxPointsByCap = Math.floor(subtotal * (loyaltyCap / 100) * 10);
-  const pointsToUse = Math.min(availablePoints, maxPointsByCap);
-  const canUsePoints = availablePoints > 0 && pointsToUse > 0;
-  const discount = applyPoints && canUsePoints ? pointsToUse / 10 : 0;
-  const total = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
+  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
   const hasBlockedItem = items.some((i) => !i.in_stock);
   const empty = !isLoading && items.length === 0;
 
@@ -368,44 +348,11 @@ const Cart = () => {
                     </div>
                   )}
 
-                  {canUsePoints && (
-                    <div className="mt-4 flex items-start justify-between gap-3 border-t border-border pt-4">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          Use my loyalty points
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Save {GHS(pointsToUse / 10)} ({pointsToUse} pts) — up to{" "}
-                          {loyaltyCap}% off.
-                        </p>
-                      </div>
-                      <Switch checked={applyPoints} onCheckedChange={setApplyPoints} />
-                    </div>
-                  )}
-
-                  <div className="mt-4 space-y-1">
-                    <Label htmlFor="ref" className="text-xs text-muted-foreground">
-                      Referral code (optional)
-                    </Label>
-                    <Input
-                      id="ref"
-                      placeholder="Friend's code"
-                      value={referral}
-                      onChange={(e) => setReferral(e.target.value)}
-                    />
-                  </div>
-
                   <div className="mt-4 space-y-1.5 border-t border-border pt-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal</span>
                       <span className="text-foreground">{GHS(subtotal)}</span>
                     </div>
-                    {discount > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Points discount</span>
-                        <span className="text-green-600">− {GHS(discount)}</span>
-                      </div>
-                    )}
                     {deliveryFee > 0 && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Delivery</span>
