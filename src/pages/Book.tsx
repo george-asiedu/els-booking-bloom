@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle, Plus, Minus, ShoppingBag } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { PromoMarquee } from "@/components/PromoMarquee";
+import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -486,17 +487,12 @@ const Book = () => {
   return (
     <Layout>
       <PromoMarquee placement="booking" />
-      {/* Header */}
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            Book an Appointment
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Fill out the form below to request your appointment. I'll get back to you to confirm!
-          </p>
-        </div>
-      </section>
+      <StudioPageHero
+        eyebrow="Book an appointment"
+        title="Let's get you booked in."
+        description="Choose your service, pick a time that works, and we'll confirm your appointment."
+        variant="compact"
+      />
 
       {/* Booking Form */}
       <section className="py-16">
