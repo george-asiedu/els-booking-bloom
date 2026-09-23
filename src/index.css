@@ -43,6 +43,13 @@ All colors MUST be HSL.
     --rose-light: 340 45% 95%;
     --gold: 38 70% 50%;
 
+    /* Toast type accents (left border + icon tint). Backgrounds stay on the
+       theme surface; only the accent is coloured. */
+    --toast-success: 157 54% 39%;
+    --toast-info: 228 94% 67%;
+    --toast-error: 0 63% 61%;
+    --toast-warning: 37 66% 52%;
+
     --radius: 0.375rem;
 
     --sidebar-background: 0 0% 98%;
@@ -132,6 +139,11 @@ All colors MUST be HSL.
     --rose: 340 50% 60%;
     --rose-light: 340 30% 20%;
     --gold: 38 60% 55%;
+    /* Slightly brighter accents for dark surfaces. */
+    --toast-success: 157 48% 52%;
+    --toast-info: 228 94% 72%;
+    --toast-error: 0 70% 66%;
+    --toast-warning: 37 80% 60%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 248 0.3% 98.4%;
     --sidebar-primary: 264 24.3% 48.8%;
@@ -190,6 +202,17 @@ All colors MUST be HSL.
 }
 .animate-float-slow {
   animation: float-slow 9s ease-in-out infinite;
+}
+
+/* Toast auto-dismiss progress bar: shrinks left-to-right over the toast's
+   lifetime, paused while hovered (matches Radix's own hover-pause). */
+@keyframes toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 /* Gentler, smaller float for the hero's floating UI cards. */
