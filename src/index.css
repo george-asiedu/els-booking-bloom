@@ -192,6 +192,29 @@ All colors MUST be HSL.
   animation: float-slow 9s ease-in-out infinite;
 }
 
+/* Gentler, smaller float for the hero's floating UI cards. */
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float-card {
+  animation: float-card 5.5s ease-in-out infinite;
+}
+
+/* Disable all decorative looping motion for reduced-motion users. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-card,
+  .marquee-track {
+    animation: none !important;
+  }
+}
+
 /* Scrolling promo banner (marquee). The track holds two copies of the content,
    so translating by -50% loops seamlessly. */
 @keyframes marquee {

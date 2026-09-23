@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sparkles, User, ShoppingBag } from "lucide-react";
+import { Menu, X, Sparkles, User, ShoppingBag, ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,12 +18,24 @@ const navLinks = [
   { name: "Contact", path: "/contact" },
 ];
 
-export const Navbar = () => {
+export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
   const { name: studioName, config, features } = useStudio();
   const logoUrl = config?.branding.logoUrl ?? null;
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Transparent over the hero only when overlay mode is on AND we're at the top;
+  // solid + blur + border once scrolled (and on every non-overlay page).
+  const transparent = overlay && !scrolled && !isOpen;
 
   // Hide the shop entirely when the admin has disabled it.
   const { data: commerce } = useQuery({
@@ -62,8 +74,20 @@ export const Navbar = () => {
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <nav className="container mx-auto px-4 py-4">
+    <header
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        transparent
+          ? "border-b border-transparent bg-transparent"
+          : "border-b border-border bg-background/80 shadow-sm backdrop-blur-md",
+      )}
+    >
+      <nav
+        className={cn(
+          "container mx-auto px-4 transition-all duration-300",
+          scrolled ? "py-2.5" : "py-4",
+        )}
+      >
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group min-w-0">
             {logoUrl ? (
@@ -102,9 +126,13 @@ export const Navbar = () => {
                 <User className="h-5 w-5" />
               </Link>
             </Button>
-            <div className="ml-2">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
+            <Button size="sm" className="group ml-2" asChild>
+              <Link to="/book">
+                Book
+                <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </Button>
           </div>
 
           {/* Mobile Menu Button */}

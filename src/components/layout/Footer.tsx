@@ -110,6 +110,15 @@ export const Footer = () => {
           >
             Admin Login
           </Link>
+          <span className="hidden sm:inline text-muted-foreground">•</span>
+          <a
+            href="https://zuristudios.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground/80 transition-colors hover:text-primary"
+          >
+            Powered by Zuri Studios
+          </a>
         </div>
       </div>
     </footer>
