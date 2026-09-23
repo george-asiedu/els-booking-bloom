@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Phone, MessageCircle, Mail, Instagram, Music2, MapPin } from "lucide-react";
+import { Loader2, Phone, MessageCircle, Mail, Instagram, Music2, Facebook, MapPin } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,13 +10,21 @@ import { Switch } from "@/components/ui/switch";
 import { contactInfoApi, ContactInfoDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-type FieldKey = "phone" | "whatsapp" | "email" | "instagram" | "tiktok" | "address";
+type FieldKey =
+  | "phone"
+  | "whatsapp"
+  | "email"
+  | "instagram"
+  | "tiktok"
+  | "facebook"
+  | "address";
 type ShowKey =
   | "showPhone"
   | "showWhatsapp"
   | "showEmail"
   | "showInstagram"
   | "showTiktok"
+  | "showFacebook"
   | "showAddress";
 
 const fields: {
@@ -32,7 +40,8 @@ const fields: {
   { key: "email", showKey: "showEmail", label: "Email", placeholder: "hello@yourstudio.com", icon: Mail },
   { key: "instagram", showKey: "showInstagram", label: "Instagram", placeholder: "@yourstudio or full URL", icon: Instagram },
   { key: "tiktok", showKey: "showTiktok", label: "TikTok", placeholder: "@yourstudio or full URL", icon: Music2 },
-  { key: "address", showKey: "showAddress", label: "Address / Location", placeholder: "123 Beauty Lane, Accra", icon: MapPin },
+  { key: "facebook", showKey: "showFacebook", label: "Facebook", placeholder: "yourstudio or full URL", icon: Facebook },
+  { key: "address", showKey: "showAddress", label: "Address / Location", placeholder: "123 Beauty Lane, Accra", icon: MapPin, hint: "Shown as a live map on your contact page" },
 ];
 
 const AdminContact = () => {
