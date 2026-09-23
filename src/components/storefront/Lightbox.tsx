@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 export interface LightboxImage {
   src: string;
   alt: string;
+  type?: "image" | "video";
 }
 
 /**
@@ -45,11 +46,20 @@ export const Lightbox = ({
         <DialogTitle className="sr-only">Gallery image</DialogTitle>
         {current && (
           <div className="relative">
-            <img
-              src={current.src}
-              alt={current.alt}
-              className="max-h-[80vh] w-full rounded-lg object-contain"
-            />
+            {current.type === "video" ? (
+              <video
+                src={current.src}
+                controls
+                autoPlay
+                className="max-h-[80vh] w-full rounded-lg object-contain"
+              />
+            ) : (
+              <img
+                src={current.src}
+                alt={current.alt}
+                className="max-h-[80vh] w-full rounded-lg object-contain"
+              />
+            )}
             {images.length > 1 && (
               <>
                 <button
