@@ -1,9 +1,11 @@
-import { Phone, Mail, Instagram, MapPin, Clock, MessageCircle, Music2 } from "lucide-react";
+import { Phone, Mail, Instagram, MapPin, Clock, Music2, Facebook } from "lucide-react";
+import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { contactInfoApi, businessHoursApi, ContactInfoDTO } from "@/lib/api";
+import { contactInfoApi, businessHoursApi, galleryApi, ContactInfoDTO } from "@/lib/api";
+import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 
 const dayNames = [
   "Sunday",
@@ -26,9 +28,13 @@ const instagramHref = (v: string) =>
   v.startsWith("http") ? v : `https://instagram.com/${stripAt(v)}`;
 const tiktokHref = (v: string) =>
   v.startsWith("http") ? v : `https://www.tiktok.com/@${stripAt(v)}`;
+const facebookHref = (v: string) =>
+  v.startsWith("http") ? v : `https://facebook.com/${stripAt(v)}`;
+const mapEmbedSrc = (address: string) =>
+  `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
 
 interface ContactCard {
-  icon: typeof Phone;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   href: string;
@@ -39,13 +45,15 @@ const buildCards = (info: ContactInfoDTO): ContactCard[] => {
   if (info.showPhone && info.phone)
     cards.push({ icon: Phone, label: "Phone", value: info.phone, href: telHref(info.phone) });
   if (info.showWhatsapp && info.whatsapp)
-    cards.push({ icon: MessageCircle, label: "WhatsApp", value: "Chat with us", href: whatsappHref(info.whatsapp) });
+    cards.push({ icon: WhatsappIcon, label: "WhatsApp", value: "Chat with us", href: whatsappHref(info.whatsapp) });
   if (info.showEmail && info.email)
     cards.push({ icon: Mail, label: "Email", value: info.email, href: emailHref(info.email) });
   if (info.showInstagram && info.instagram)
     cards.push({ icon: Instagram, label: "Instagram", value: `@${stripAt(info.instagram)}`, href: instagramHref(info.instagram) });
   if (info.showTiktok && info.tiktok)
     cards.push({ icon: Music2, label: "TikTok", value: `@${stripAt(info.tiktok)}`, href: tiktokHref(info.tiktok) });
+  if (info.showFacebook && info.facebook)
+    cards.push({ icon: Facebook, label: "Facebook", value: stripAt(info.facebook).replace(/^https?:\/\/(www\.)?facebook\.com\//, ""), href: facebookHref(info.facebook) });
   return cards;
 };
 
@@ -68,21 +76,28 @@ const Contact = () => {
     queryFn: () => businessHoursApi.list(),
   });
 
+  const { data: gallery = [] } = useQuery({
+    queryKey: ["public-gallery"],
+    queryFn: () => galleryApi.listActive(),
+  });
+
   const cards = info ? buildCards(info) : [];
 
   return (
     <Layout>
-      {/* Header */}
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            Get in Touch
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Have questions or want to book an appointment? Reach out through any of these channels!
-          </p>
-        </div>
-      </section>
+      <StudioPageHero
+        eyebrow="Get in touch"
+        title={
+          <>
+            Come say
+            <br />
+            <span className="text-primary">hello.</span>
+          </>
+        }
+        description="Have questions or want to book an appointment? Reach out through any of these channels."
+        image={gallery[0]?.image_url ?? null}
+        variant="editorial"
+      />
 
       {/* Contact Info */}
       <section className="py-16">
@@ -131,20 +146,36 @@ const Contact = () => {
                 </div>
               )}
 
-              {/* Location */}
+              {/* Location + live map */}
               {info?.showAddress && info.address && (
-                <div className="mt-8 bg-card border border-border rounded-lg p-6 animate-fade-in [animation-delay:400ms]">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
+                <div className="mt-8 overflow-hidden rounded-lg border border-border bg-card animate-fade-in [animation-delay:400ms]">
+                  <div className="flex items-start gap-4 p-6">
+                    <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center shrink-0">
                       <MapPin className="h-5 w-5 text-primary" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm text-muted-foreground">Location</p>
                       <p className="font-medium text-foreground whitespace-pre-line">
                         {info.address}
                       </p>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-block text-sm font-medium text-primary hover:underline"
+                      >
+                        Get directions →
+                      </a>
                     </div>
                   </div>
+                  <iframe
+                    title="Studio location map"
+                    src={mapEmbedSrc(info.address)}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="h-64 w-full border-0"
+                    allowFullScreen
+                  />
                 </div>
               )}
             </div>
@@ -186,7 +217,7 @@ const Contact = () => {
                   {info.showWhatsapp && info.whatsapp && (
                     <Button asChild className="flex-1">
                       <a href={whatsappHref(info.whatsapp)} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="mr-2 h-4 w-4" />
+                        <WhatsappIcon className="mr-2 h-4 w-4" />
                         WhatsApp Us
                       </a>
                     </Button>
