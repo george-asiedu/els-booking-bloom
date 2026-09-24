@@ -1,6 +1,8 @@
 // Low-level API client for the ELS-Server Express API.
 // Handles base URL, bearer-token auth, JSON (de)serialization and error shaping.
 
+import { getDeviceId } from "./deviceIdentity";
+
 const API_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
   "http://localhost:5000/api";
@@ -192,6 +194,9 @@ export async function apiRequest<T>(
   const { method = "GET", body, formData, auth = false } = options;
 
   const headers: Record<string, string> = {};
+  if (path === "/auth/login" || path === "/auth/signup") {
+    headers["X-Device-Id"] = getDeviceId();
+  }
   const token = tokenStore.getToken();
   if (auth && token) {
     headers["Authorization"] = `Bearer ${token}`;

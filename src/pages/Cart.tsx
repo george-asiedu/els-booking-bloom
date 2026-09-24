@@ -22,8 +22,9 @@ import { cartApi, commerceApi, ordersApi, PaymentTarget } from "@/lib/api";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
+const GHS = formatGHS;
 
 const Cart = () => {
   const { user } = useAuth();

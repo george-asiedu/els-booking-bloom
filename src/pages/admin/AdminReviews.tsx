@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Check, X, Star, Trash2 } from "lucide-react";
+import { Check, X, Star, Trash2, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,10 +33,14 @@ const AdminReviews = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: reviews = [], isLoading } = useQuery({
-    queryKey: ["admin-reviews"],
-    queryFn: () => reviewsApi.listAll(),
+  const reviewsQuery = useInfiniteQuery({
+    queryKey: ["admin-reviews", "cursor-pages"],
+    queryFn: ({ pageParam }) => reviewsApi.listAllPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const reviews = reviewsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const isLoading = reviewsQuery.isLoading;
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
@@ -199,6 +203,13 @@ const AdminReviews = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+        {reviewsQuery.hasNextPage && (
+          <div className="py-4 text-center">
+            <Button variant="outline" onClick={() => reviewsQuery.fetchNextPage()} disabled={reviewsQuery.isFetchingNextPage}>
+              {reviewsQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading…</> : "Load more reviews"}
+            </Button>
           </div>
         )}
       </div>

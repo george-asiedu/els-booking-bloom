@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, ShoppingBag, ImageOff } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -91,10 +91,14 @@ const AdminProducts = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["admin-products"],
-    queryFn: () => productsApi.listAll(),
+  const productsQuery = useInfiniteQuery({
+    queryKey: ["admin-products", "cursor-pages"],
+    queryFn: ({ pageParam }) => productsApi.listAllPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const products = productsQuery.data?.pages.flatMap((page) => page.items);
+  const isLoading = productsQuery.isLoading;
 
   const { data: categories = [] } = useQuery({
     queryKey: ["admin-product-categories"],
@@ -385,6 +389,14 @@ const AdminProducts = () => {
               </TableBody>
             </Table>
           </Card>
+        )}
+        {productsQuery.hasNextPage && (
+          <div className="text-center">
+            <Button variant="outline" onClick={() => productsQuery.fetchNextPage()} disabled={productsQuery.isFetchingNextPage}>
+              {productsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Load more products
+            </Button>
+          </div>
         )}
       </div>
 

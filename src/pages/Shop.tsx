@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
@@ -21,8 +21,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { cn } from "@/lib/utils";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
+const GHS = formatGHS;
 const titleize = (slug: string) =>
   slug
     .split("-")
@@ -41,10 +42,14 @@ const Shop = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["public-products"],
-    queryFn: () => productsApi.listActive(),
+  const productsQuery = useInfiniteQuery({
+    queryKey: ["public-products", "cursor-pages"],
+    queryFn: ({ pageParam }) => productsApi.listActivePage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const products = productsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const isLoading = productsQuery.isLoading;
   const { data: categories = [] } = useQuery({
     queryKey: ["public-product-categories"],
     queryFn: () => productCategoriesApi.listActive(),
@@ -156,7 +161,7 @@ const Shop = () => {
   }
 
   const heroImg =
-    products.find((p) => p.image_url)?.image_url ?? gallery[0]?.image_url ?? null;
+    products.find((p) => p.image_url)?.image_url ?? gallery.find((g) => g.media_type === "image")?.image_url ?? null;
 
   return (
     <Layout>
@@ -315,6 +320,14 @@ const Shop = () => {
                   </Reveal>
                 ))}
               </div>
+              {productsQuery.hasNextPage && (
+                <div className="mt-10 text-center">
+                  <Button variant="outline" onClick={() => productsQuery.fetchNextPage()} disabled={productsQuery.isFetchingNextPage}>
+                    {productsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Load more products
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>

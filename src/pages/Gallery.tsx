@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Play, ImageIcon } from "lucide-react";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { Play, ImageIcon, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
@@ -22,16 +22,21 @@ interface GalleryItem {
   alt: string;
   category: string;
   type: "image" | "video";
+  external: boolean;
 }
 
 const Gallery = () => {
   const [activeCat, setActiveCat] = useState("all");
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  const { data: apiImages, isLoading } = useQuery({
-    queryKey: ["public-gallery"],
-    queryFn: () => galleryApi.listActive(),
+  const galleryQuery = useInfiniteQuery({
+    queryKey: ["public-gallery", "cursor-pages"],
+    queryFn: ({ pageParam }) => galleryApi.listActivePage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const apiImages = galleryQuery.data?.pages.flatMap((page) => page.items);
+  const isLoading = galleryQuery.isLoading;
   const { data: categoriesData } = useQuery({
     queryKey: ["public-categories"],
     queryFn: () => categoriesApi.listActive(),
@@ -45,6 +50,7 @@ const Gallery = () => {
         alt: img.title || titleize(img.category),
         category: img.category,
         type: img.media_type,
+        external: img.external_video,
       }))
     : [];
 
@@ -66,6 +72,7 @@ const Gallery = () => {
     src: i.src,
     alt: i.alt,
     type: i.type,
+    external: i.external,
   }));
 
   const heroImg = items[0]?.src ?? null;
@@ -141,13 +148,18 @@ const Gallery = () => {
                       className="group relative block w-full overflow-hidden rounded-xl bg-muted"
                       aria-label={`View ${item.alt}`}
                     >
-                      {item.type === "video" ? (
+                      {item.type === "video" && item.external ? (
+                        <span className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-foreground/5 text-primary">
+                          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/85 text-foreground"><Play className="h-5 w-5 translate-x-0.5" /></span>
+                          <span className="text-xs font-medium">Watch video</span>
+                        </span>
+                      ) : item.type === "video" ? (
                         <>
                           <video
                             src={item.src}
                             muted
                             playsInline
-                            preload="metadata"
+                            preload="none"
                             className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                           <span className="absolute inset-0 flex items-center justify-center">
@@ -167,13 +179,20 @@ const Gallery = () => {
                       )}
                       <span className="absolute inset-0 flex items-end bg-gradient-to-t from-foreground/70 via-transparent to-transparent p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                         <span className="text-sm font-medium text-background">
-                          View →
+                          View â†’
                         </span>
                       </span>
                     </button>
                   </Reveal>
                 ))}
               </div>
+              {galleryQuery.hasNextPage && (
+                <div className="mt-10 text-center">
+                  <Button variant="outline" onClick={() => galleryQuery.fetchNextPage()} disabled={galleryQuery.isFetchingNextPage}>
+                    {galleryQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loadingâ€¦</> : "Load more work"}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>

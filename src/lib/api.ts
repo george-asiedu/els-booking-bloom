@@ -8,7 +8,69 @@ import { apiRequest, tokenStore, AuthUser, ApiError } from "./apiClient";
 interface Envelope<T> {
   message: string;
   data: T;
+  pagination?: { limit: number; nextCursor: string | null; hasMore: boolean };
 }
+
+export interface CursorPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  limit: number;
+}
+
+const cursorQuery = (cursor?: string | null, limit = 25) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
+  return params.toString();
+};
+
+const cursorPage = <T>(res: Envelope<T[]>): CursorPage<T> => ({
+  items: res.data,
+  nextCursor: res.pagination?.nextCursor ?? null,
+  hasMore: res.pagination?.hasMore ?? false,
+  limit: res.pagination?.limit ?? res.data.length,
+});
+
+export type MediaUploadCategory = "gallery" | "services" | "products" | "appointments" | "studio" | "profiles" | "reviews" | "misc";
+
+/** Uploads media in 10 MiB chunks straight from the browser to private S3. */
+export const uploadStudioMedia = async (file: File, category: MediaUploadCategory): Promise<string> => {
+  const started = await apiRequest<Envelope<{
+    key: string; uploadId: string; partSize: number;
+    parts: { partNumber: number; url: string }[];
+  }>>("/uploads/multipart/initiate", {
+    method: "POST", auth: true,
+    body: { category, fileName: file.name, contentType: file.type || "application/octet-stream", size: file.size },
+  });
+  const upload = started.data;
+  try {
+    const parts: { ETag: string; PartNumber: number }[] = [];
+    for (let i = 0; i < upload.parts.length; i += 3) {
+      const uploaded = await Promise.all(upload.parts.slice(i, i + 3).map(async (part) => {
+        const start = (part.partNumber - 1) * upload.partSize;
+        const response = await fetch(part.url, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file.slice(start, Math.min(start + upload.partSize, file.size)),
+        });
+        if (!response.ok) throw new Error("A media chunk failed to upload");
+        const etag = response.headers.get("ETag");
+        if (!etag) throw new Error("S3 CORS must expose the ETag response header");
+        return { ETag: etag, PartNumber: part.partNumber };
+      }));
+      parts.push(...uploaded);
+    }
+    const finished = await apiRequest<Envelope<{ url: string }>>("/uploads/multipart/complete", {
+      method: "POST", auth: true, body: { key: upload.key, uploadId: upload.uploadId, parts },
+    });
+    return finished.data.url;
+  } catch (error) {
+    await apiRequest("/uploads/multipart/abort", {
+      method: "POST", auth: true, body: { key: upload.key, uploadId: upload.uploadId },
+    }).catch(() => undefined);
+    throw error;
+  }
+};
 
 interface TokenPair {
   accessToken: string;
@@ -225,8 +287,14 @@ export const authApi = {
     return persistAuth(res.data);
   },
 
-  logout() {
-    tokenStore.clear();
+  async logout() {
+    try {
+      await apiRequest<{ message: string }>("/auth/logout", { method: "POST" });
+    } catch {
+      // Clear local credentials even when the network is unavailable.
+    } finally {
+      tokenStore.clear();
+    }
   },
 
   async forgotPassword(email: string): Promise<string> {
@@ -325,20 +393,12 @@ export const studioAdminApi = {
   },
 
   async updateBranding(input: BrandingUpdateInput): Promise<StudioBrandingDTO> {
-    const form = new FormData();
-    if (input.primaryColor !== undefined)
-      form.append("primaryColor", input.primaryColor ?? "");
-    if (input.accentColor !== undefined)
-      form.append("accentColor", input.accentColor ?? "");
-    if (input.fontFamily !== undefined)
-      form.append("fontFamily", input.fontFamily ?? "");
-    if (input.removeLogo) form.append("removeLogo", "true");
-    if (input.logo) form.append("logo", input.logo);
+    const logoUrl = input.logo ? await uploadStudioMedia(input.logo, "studio") : undefined;
 
     const res = await apiRequest<Envelope<StudioBrandingDTO>>("/studio/branding", {
       method: "PUT",
       auth: true,
-      formData: form,
+      body: { primaryColor: input.primaryColor, accentColor: input.accentColor, fontFamily: input.fontFamily, removeLogo: input.removeLogo, logoUrl },
     });
     return res.data;
   },
@@ -674,35 +734,62 @@ export interface ServiceInput {
   promoPrice?: number | null;
   popular?: boolean;
   active?: boolean;
+  image?: File;
+  imageUrl?: string | null;
 }
+
+const serviceFormData = (input: ServiceInput): FormData => {
+  const form = new FormData();
+  Object.entries(input).forEach(([key, value]) => {
+    if (value === undefined || key === "image") return;
+    if (value === null) form.append(key, "");
+    else form.append(key, String(value));
+  });
+  if (input.image) form.append("image", input.image);
+  return form;
+};
 
 export const servicesApi = {
   async listActive(): Promise<ServiceDTO[]> {
-    const res = await apiRequest<Envelope<RawService[]>>("/services");
+    const res = await apiRequest<Envelope<RawService[]>>(`/services?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeService);
   },
 
+  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<ServiceDTO>> {
+    const res = await apiRequest<Envelope<RawService[]>>(`/services?${cursorQuery(cursor, limit)}`);
+    return { ...cursorPage(res), items: res.data.map(normalizeService) };
+  },
+
   async listAll(): Promise<ServiceDTO[]> {
-    const res = await apiRequest<Envelope<RawService[]>>("/services/all", {
+    const res = await apiRequest<Envelope<RawService[]>>(`/services/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeService);
   },
 
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ServiceDTO>> {
+    const res = await apiRequest<Envelope<RawService[]>>(`/services/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeService) };
+  },
+
   async create(input: ServiceInput): Promise<ServiceDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "services") : input.imageUrl;
+    const payload = { ...input, image: undefined, imageUrl };
     const res = await apiRequest<Envelope<RawService>>("/services", {
       method: "POST",
       auth: true,
-      body: input,
+      body: payload,
     });
     return normalizeService(res.data);
   },
 
   async update(id: string, input: Partial<ServiceInput>): Promise<ServiceDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "services") : input.imageUrl;
+    const payload = { ...input, image: undefined, imageUrl };
     const res = await apiRequest<Envelope<RawService>>(`/services/${id}`, {
       method: "PUT",
       auth: true,
-      body: input,
+      body: payload,
     });
     return normalizeService(res.data);
   },
@@ -830,17 +917,12 @@ export const profileApi = {
   },
 
   async update(input: ProfileUpdateInput): Promise<ProfileDTO> {
-    const form = new FormData();
-    if (input.fullName) form.append("fullName", input.fullName);
-    if (input.email) form.append("email", input.email);
-    if (input.phone) form.append("phone", input.phone);
-    if (input.location) form.append("location", input.location);
-    if (input.avatar) form.append("image", input.avatar);
+    const avatar = input.avatar ? await uploadStudioMedia(input.avatar, "profiles") : undefined;
 
     const res = await apiRequest<Envelope<RawProfile>>("/profile/me", {
       method: "POST",
       auth: true,
-      formData: form,
+      body: { fullName: input.fullName, email: input.email, phone: input.phone, location: input.location, avatar },
     });
     return mapProfile(res.data);
   },
@@ -969,22 +1051,12 @@ export const contactInfoApi = {
 
 export const appointmentsApi = {
   async create(input: CreateAppointmentInput): Promise<AppointmentDTO> {
-    // Sent as multipart so an optional design reference image can be attached.
-    const form = new FormData();
-    form.append("fullName", input.full_name);
-    form.append("phone", input.phone);
-    if (input.email) form.append("email", input.email);
-    form.append("serviceId", input.service_id);
-    form.append("appointmentDate", input.appointment_date);
-    form.append("appointmentTime", input.appointment_time);
-    if (input.notes) form.append("notes", input.notes);
-    if (input.design_image) form.append("designImage", input.design_image);
-    if (input.apply_points) form.append("applyPoints", "true");
+    const designImageUrl = input.design_image ? await uploadStudioMedia(input.design_image, "appointments") : undefined;
 
     const res = await apiRequest<Envelope<RawAppointment>>("/appointments", {
       method: "POST",
       auth: true, // optionalAuth server-side; token attached if present
-      formData: form,
+      body: { fullName: input.full_name, phone: input.phone, email: input.email, serviceId: input.service_id, appointmentDate: input.appointment_date, appointmentTime: input.appointment_time, notes: input.notes, applyPoints: input.apply_points ? "true" : undefined, designImageUrl },
     });
     return normalizeAppointment(res.data);
   },
@@ -998,18 +1070,38 @@ export const appointmentsApi = {
   },
 
   async listMine(): Promise<AppointmentDTO[]> {
-    const res = await apiRequest<Envelope<RawAppointment[]>>(
-      "/appointments/me",
-      { auth: true },
-    );
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments/me?${cursorQuery(undefined, 100)}`, { auth: true });
     return res.data.map(normalizeAppointment);
   },
 
+  async listMinePage(cursor?: string | null, limit = 25): Promise<CursorPage<AppointmentDTO>> {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments/me?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeAppointment) };
+  },
+
   async listAll(): Promise<AppointmentDTO[]> {
-    const res = await apiRequest<Envelope<RawAppointment[]>>("/appointments", {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeAppointment);
+  },
+
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<AppointmentDTO>> {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeAppointment) };
+  },
+
+  // Analytics needs the full date range for correct totals; fetch bounded pages
+  // sequentially instead of making one unbounded API response.
+  async listAllForAnalytics(): Promise<AppointmentDTO[]> {
+    const all: AppointmentDTO[] = [];
+    let cursor: string | null = null;
+    do {
+      const page = await appointmentsApi.listAllPage(cursor, 100);
+      all.push(...page.items);
+      cursor = page.hasMore ? page.nextCursor : null;
+    } while (cursor);
+    return all;
   },
 
   async updateStatus(
@@ -1307,6 +1399,7 @@ export interface ProductInput {
   active?: boolean;
   popular?: boolean;
   image?: File | null;
+  imageUrl?: string | null;
 }
 
 const productForm = (input: Partial<ProductInput>): FormData => {
@@ -1330,32 +1423,42 @@ const productForm = (input: Partial<ProductInput>): FormData => {
 
 export const productsApi = {
   async listActive(): Promise<ProductDTO[]> {
-    const res = await apiRequest<Envelope<RawProduct[]>>("/products");
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeProduct);
   },
+  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<ProductDTO>> {
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products?${cursorQuery(cursor, limit)}`);
+    return { ...cursorPage(res), items: res.data.map(normalizeProduct) };
+  },
   async listAll(): Promise<ProductDTO[]> {
-    const res = await apiRequest<Envelope<RawProduct[]>>("/products/all", {
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeProduct);
+  },
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ProductDTO>> {
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeProduct) };
   },
   async getOne(id: string): Promise<ProductDTO> {
     const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`);
     return normalizeProduct(res.data);
   },
   async create(input: ProductInput): Promise<ProductDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "products") : input.imageUrl;
     const res = await apiRequest<Envelope<RawProduct>>("/products", {
       method: "POST",
       auth: true,
-      formData: productForm(input),
+      body: { ...input, image: undefined, imageUrl },
     });
     return normalizeProduct(res.data);
   },
   async update(id: string, input: Partial<ProductInput>): Promise<ProductDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "products") : input.imageUrl;
     const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`, {
       method: "PUT",
       auth: true,
-      formData: productForm(input),
+      body: { ...input, image: undefined, imageUrl },
     });
     return normalizeProduct(res.data);
   },
@@ -1702,16 +1805,24 @@ export const ordersApi = {
     };
   },
   async listMine(): Promise<OrderDTO[]> {
-    const res = await apiRequest<Envelope<RawOrder[]>>("/orders/me", {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders/me?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeOrder);
   },
+  async listMinePage(cursor?: string | null, limit = 25): Promise<CursorPage<OrderDTO>> {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders/me?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeOrder) };
+  },
   async listAll(): Promise<OrderDTO[]> {
-    const res = await apiRequest<Envelope<RawOrder[]>>("/orders", {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeOrder);
+  },
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<OrderDTO>> {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeOrder) };
   },
   async verify(reference: string): Promise<OrderDTO> {
     const res = await apiRequest<Envelope<RawOrder>>(
@@ -1827,10 +1938,14 @@ export const reviewsApi = {
   },
 
   async listAll(): Promise<ReviewDTO[]> {
-    const res = await apiRequest<Envelope<RawReview[]>>("/reviews/all", {
+    const res = await apiRequest<Envelope<RawReview[]>>(`/reviews/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeReview);
+  },
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ReviewDTO>> {
+    const res = await apiRequest<Envelope<RawReview[]>>(`/reviews/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeReview) };
   },
 
   async create(input: CreateReviewInput): Promise<ReviewDTO> {
@@ -1871,6 +1986,7 @@ export interface GalleryImageDTO {
   title: string;
   category: ServiceCategory;
   image_url: string;
+  external_video: boolean;
   media_type: "image" | "video";
   active: boolean;
   created_at: string;
@@ -1892,21 +2008,30 @@ const normalizeGalleryImage = (g: RawGalleryImage): GalleryImageDTO => ({
   category: g.category,
   image_url: g.imageUrl,
   media_type: g.mediaType === "VIDEO" ? "video" : "image",
+  external_video: g.mediaType === "VIDEO" && /(?:youtube\.com|youtu\.be|tiktok\.com)/i.test(g.imageUrl),
   active: g.active,
   created_at: g.createdAt,
 });
 
 export const galleryApi = {
   async listActive(): Promise<GalleryImageDTO[]> {
-    const res = await apiRequest<Envelope<RawGalleryImage[]>>("/gallery");
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeGalleryImage);
+  },
+  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<GalleryImageDTO>> {
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery?${cursorQuery(cursor, limit)}`);
+    return { ...cursorPage(res), items: res.data.map(normalizeGalleryImage) };
   },
 
   async listAll(): Promise<GalleryImageDTO[]> {
-    const res = await apiRequest<Envelope<RawGalleryImage[]>>("/gallery/all", {
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeGalleryImage);
+  },
+  async listAllPage(cursor?: string | null, limit = 24): Promise<CursorPage<GalleryImageDTO>> {
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeGalleryImage) };
   },
 
   async upload(
@@ -1914,14 +2039,18 @@ export const galleryApi = {
     title: string,
     category: string,
   ): Promise<GalleryImageDTO> {
-    const form = new FormData();
-    form.append("image", file);
-    form.append("title", title);
-    form.append("category", category);
+    const imageUrl = await uploadStudioMedia(file, "gallery");
     const res = await apiRequest<Envelope<RawGalleryImage>>("/gallery", {
       method: "POST",
       auth: true,
-      formData: form,
+      body: { imageUrl, title, category },
+    });
+    return normalizeGalleryImage(res.data);
+  },
+
+  async addVideoLink(url: string, title: string, category: string): Promise<GalleryImageDTO> {
+    const res = await apiRequest<Envelope<RawGalleryImage>>("/gallery", {
+      method: "POST", auth: true, body: { externalUrl: url, title, category },
     });
     return normalizeGalleryImage(res.data);
   },

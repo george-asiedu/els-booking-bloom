@@ -111,7 +111,7 @@ const PlatformBilling = () => {
                 label="One-time setup fee (GHS)"
                 value={form.setupFeeStandard}
                 onChange={(v) => setForm({ ...form, setupFeeStandard: num(v) })}
-                suffix="₵"
+                suffix="GHS"
               />
             </div>
             <div className="space-y-4">
@@ -129,7 +129,7 @@ const PlatformBilling = () => {
                 label="One-time setup fee (GHS)"
                 value={form.setupFeePremium}
                 onChange={(v) => setForm({ ...form, setupFeePremium: num(v) })}
-                suffix="₵"
+                suffix="GHS"
               />
             </div>
           </div>

@@ -6,6 +6,7 @@
 
 import { ApiError } from "./apiClient";
 import { FeatureRequestDTO, FeatureRequestStatus } from "./api";
+import { getDeviceId } from "./deviceIdentity";
 
 const API_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -58,6 +59,9 @@ async function platformRequest<T>(
   const { method = "GET", body, auth = true } = options;
 
   const headers: Record<string, string> = {};
+  if (path === "/auth/login") {
+    headers["X-Device-Id"] = getDeviceId();
+  }
   const token = platformStore.getToken();
   if (auth && token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -214,6 +218,26 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+export interface PlatformActivityLogEntry {
+  id: string;
+  requestId: string;
+  studioId: string | null;
+  actorId: string | null;
+  actorRole: string | null;
+  method: string;
+  route: string;
+  statusCode: number;
+  durationMs: number;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface PlatformActivityLogPage {
+  message: string;
+  data: PlatformActivityLogEntry[];
+  pagination: { limit: number; nextCursor: string | null; hasMore: boolean };
+}
+
 export interface ImpersonateResult {
   token: { accessToken: string; refreshToken: string };
   studio: { id: string; slug: string; name: string };
@@ -253,8 +277,16 @@ export const platformApi = {
     return res.message;
   },
 
-  logout() {
-    platformStore.clear();
+  async logout() {
+    try {
+      await platformRequest<Envelope<null> & { message: string }>("/auth/logout", {
+        method: "POST",
+      });
+    } catch {
+      // Clear local credentials even when the network is unavailable.
+    } finally {
+      platformStore.clear();
+    }
   },
 
   async me(): Promise<PlatformUser> {
@@ -398,5 +430,21 @@ export const platformApi = {
       `/audit-logs${suffix}`,
     );
     return res.data;
+  },
+  async listActivityLogs(params: {
+    cursor?: string;
+    limit?: number;
+    studioId?: string;
+    method?: string;
+    statusCode?: number;
+  } = {}): Promise<PlatformActivityLogPage> {
+    const qs = new URLSearchParams();
+    if (params.cursor) qs.set("cursor", params.cursor);
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.studioId) qs.set("studioId", params.studioId);
+    if (params.method) qs.set("method", params.method);
+    if (params.statusCode) qs.set("statusCode", String(params.statusCode));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return platformRequest<PlatformActivityLogPage>(`/activity-logs${suffix}`);
   },
 };

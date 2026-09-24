@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Package, Loader2, Truck, Store } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -47,10 +48,14 @@ const AdminOrders = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["admin-orders"],
-    queryFn: () => ordersApi.listAll(),
+  const ordersQuery = useInfiniteQuery({
+    queryKey: ["admin-orders", "cursor-pages"],
+    queryFn: ({ pageParam }) => ordersApi.listAllPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const orders = ordersQuery.data?.pages.flatMap((page) => page.items);
+  const isLoading = ordersQuery.isLoading;
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
@@ -284,6 +289,14 @@ const AdminOrders = () => {
               </TableBody>
             </Table>
           </Card>
+        )}
+        {ordersQuery.hasNextPage && (
+          <div className="text-center">
+            <Button variant="outline" onClick={() => ordersQuery.fetchNextPage()} disabled={ordersQuery.isFetchingNextPage}>
+              {ordersQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Load more orders
+            </Button>
+          </div>
         )}
       </div>
     </AdminLayout>

@@ -35,8 +35,9 @@ import {
 import { services as staticServices } from "@/data/services";
 import { useStudio } from "@/hooks/useStudio";
 import heroFallback from "@/assets/hero-beauty.jpg";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
+const GHS = formatGHS;
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // Turn a stored handle (or full URL) into a working social profile link.
@@ -111,7 +112,7 @@ const Index = () => {
   ].slice(0, 4);
 
   // Real imagery drives the composition; fall back to the bundled photo.
-  const galleryImgs = gallery.map((g) => ({ src: g.image_url, alt: g.title || studioName }));
+  const galleryImgs = gallery.filter((g) => g.media_type === "image").map((g) => ({ src: g.image_url, alt: g.title || studioName }));
   const heroBg = galleryImgs[0]?.src ?? heroFallback;
   const introImg = galleryImgs[1]?.src ?? galleryImgs[0]?.src ?? heroFallback;
   const ctaBg = galleryImgs[2]?.src ?? galleryImgs[0]?.src ?? heroFallback;
@@ -192,7 +193,7 @@ const Index = () => {
             </h2>
             <p className="mt-5 max-w-md text-muted-foreground">
               {aboutText ||
-                `At ${studioName}, every appointment is personal. From the first consultation to the final reveal, your look is tailored to you — using premium products and a careful, artist's eye.`}
+                `At ${studioName}, every appointment is personal. From the first consultation to the final reveal, your look is tailored to you â€” using premium products and a careful, artist's eye.`}
             </p>
             {stats.length > 0 && (
               <div className="mt-8 flex flex-wrap gap-8">
@@ -243,25 +244,21 @@ const Index = () => {
                     delay={i * 100}
                     className="group relative overflow-hidden rounded-2xl border border-border bg-card"
                   >
-                    <div className="aspect-[16/10] overflow-hidden bg-muted">
-                      {img ? (
+                    {img && (
+                      <div className="aspect-[16/10] overflow-hidden bg-muted">
                         <img
                           src={img}
                           alt={s.name}
                           loading="lazy"
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-accent to-secondary">
-                          <Sparkles className="h-10 w-10 text-primary/40" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-end justify-between gap-4 p-6">
+                      </div>
+                    )}
+                    <div className={`flex items-end justify-between gap-4 p-6 ${!img ? "min-h-32" : ""}`}>
                       <div>
                         <h3 className="font-serif text-xl font-semibold">{s.name}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {s.duration} ·{" "}
+                          {s.duration} Â·{" "}
                           {s.on_promo && s.promo_price != null
                             ? GHS(s.promo_price)
                             : GHS(s.price)}
@@ -425,14 +422,14 @@ const Index = () => {
                 >
                   <Quote className="h-8 w-8 text-primary/30" />
                   <blockquote className="mt-4 font-serif text-lg leading-snug">
-                    “{r.content}”
+                    â€œ{r.content}â€
                   </blockquote>
                   <figcaption className="mt-5 text-sm">
                     <span className="font-medium">
                       {r.profiles?.full_name ?? "Client"}
                     </span>
                     {r.services?.name && (
-                      <span className="text-muted-foreground"> · {r.services.name}</span>
+                      <span className="text-muted-foreground"> Â· {r.services.name}</span>
                     )}
                   </figcaption>
                 </figure>
@@ -459,7 +456,7 @@ const Index = () => {
                 </h2>
                 <p className="mx-auto mt-4 max-w-md text-muted-foreground">
                   Collect points on every appointment and redeem them for money
-                  off future visits — our way of saying thank you.
+                  off future visits â€” our way of saying thank you.
                 </p>
               </div>
               <Button className="group" asChild>
@@ -655,7 +652,7 @@ const Index = () => {
                       <span className="font-medium">
                         {h.is_closed || !h.open_time
                           ? "Closed"
-                          : `${to12h(h.open_time)} – ${to12h(h.close_time)}`}
+                          : `${to12h(h.open_time)} â€“ ${to12h(h.close_time)}`}
                       </span>
                     </li>
                   ))}
