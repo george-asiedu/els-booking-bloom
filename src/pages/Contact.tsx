@@ -95,7 +95,7 @@ const Contact = () => {
           </>
         }
         description="Have questions or want to book an appointment? Reach out through any of these channels."
-        image={gallery[0]?.image_url ?? null}
+        image={gallery.find((g) => g.media_type === "image")?.image_url ?? null}
         variant="editorial"
       />
 
@@ -164,7 +164,7 @@ const Contact = () => {
                         rel="noopener noreferrer"
                         className="mt-1 inline-block text-sm font-medium text-primary hover:underline"
                       >
-                        Get directions →
+                        Get directions â†’
                       </a>
                     </div>
                   </div>
