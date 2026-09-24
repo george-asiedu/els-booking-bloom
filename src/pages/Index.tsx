@@ -243,21 +243,17 @@ const Index = () => {
                     delay={i * 100}
                     className="group relative overflow-hidden rounded-2xl border border-border bg-card"
                   >
-                    <div className="aspect-[16/10] overflow-hidden bg-muted">
-                      {img ? (
+                    {img && (
+                      <div className="aspect-[16/10] overflow-hidden bg-muted">
                         <img
                           src={img}
                           alt={s.name}
                           loading="lazy"
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-accent to-secondary">
-                          <Sparkles className="h-10 w-10 text-primary/40" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-end justify-between gap-4 p-6">
+                      </div>
+                    )}
+                    <div className={`flex items-end justify-between gap-4 p-6 ${!img ? "min-h-32" : ""}`}>
                       <div>
                         <h3 className="font-serif text-xl font-semibold">{s.name}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
