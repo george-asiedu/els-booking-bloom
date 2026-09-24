@@ -674,7 +674,20 @@ export interface ServiceInput {
   promoPrice?: number | null;
   popular?: boolean;
   active?: boolean;
+  image?: File;
+  imageUrl?: string | null;
 }
+
+const serviceFormData = (input: ServiceInput): FormData => {
+  const form = new FormData();
+  Object.entries(input).forEach(([key, value]) => {
+    if (value === undefined || key === "image") return;
+    if (value === null) form.append(key, "");
+    else form.append(key, String(value));
+  });
+  if (input.image) form.append("image", input.image);
+  return form;
+};
 
 export const servicesApi = {
   async listActive(): Promise<ServiceDTO[]> {
@@ -693,7 +706,7 @@ export const servicesApi = {
     const res = await apiRequest<Envelope<RawService>>("/services", {
       method: "POST",
       auth: true,
-      body: input,
+      ...(input.image ? { formData: serviceFormData(input) } : { body: input }),
     });
     return normalizeService(res.data);
   },
@@ -702,7 +715,7 @@ export const servicesApi = {
     const res = await apiRequest<Envelope<RawService>>(`/services/${id}`, {
       method: "PUT",
       auth: true,
-      body: input,
+      ...(input.image ? { formData: serviceFormData(input as ServiceInput) } : { body: input }),
     });
     return normalizeService(res.data);
   },
