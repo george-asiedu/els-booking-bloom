@@ -10,8 +10,9 @@ import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { services as staticServices } from "@/data/services";
 import { servicesApi, categoriesApi, galleryApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
+const GHS = formatGHS;
 const titleize = (slug: string) =>
   slug
     .split("-")
@@ -69,8 +70,9 @@ const Services = () => {
   const filtered =
     activeCat === "all" ? source : source.filter((s) => s.category === activeCat);
 
-  const heroImg = gallery[0]?.image_url ?? null;
-  const ctaImg = gallery[2]?.image_url ?? gallery[0]?.image_url ?? null;
+  const galleryPhotos = gallery.filter((g) => g.media_type === "image");
+  const heroImg = galleryPhotos[0]?.image_url ?? null;
+  const ctaImg = galleryPhotos[2]?.image_url ?? galleryPhotos[0]?.image_url ?? null;
 
   return (
     <Layout>
@@ -83,7 +85,7 @@ const Services = () => {
             <span className="text-primary">starts here.</span>
           </>
         }
-        description="Beauty experiences designed around you — from everyday essentials to your next signature look."
+        description="Beauty experiences designed around you â€” from everyday essentials to your next signature look."
         image={heroImg}
         variant="editorial"
         cta={{ label: "Book an appointment", to: "/book" }}
@@ -130,7 +132,7 @@ const Services = () => {
                         <div>
                           <h3 className="font-serif text-xl font-semibold">{s.name}</h3>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            {s.duration} · from {GHS(price(s))}
+                            {s.duration} Â· from {GHS(price(s))}
                           </p>
                         </div>
                         <Button size="sm" className="group/btn shrink-0" asChild>
@@ -145,7 +147,7 @@ const Services = () => {
                 </div>
               )}
 
-              {/* Category filter — horizontally scrollable on mobile */}
+              {/* Category filter â€” horizontally scrollable on mobile */}
               <div className="mb-10 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {["all", ...tabSlugs].map((slug) => (
                   <button
