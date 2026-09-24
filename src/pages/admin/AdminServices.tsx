@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Scissors } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -54,6 +54,7 @@ interface ServiceFormData {
   price: string;
   promoPrice: string;
   popular: boolean;
+  image?: File;
 }
 
 const emptyFormData: ServiceFormData = {
@@ -71,6 +72,8 @@ const AdminServices = () => {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState<ServiceFormData>(emptyFormData);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -113,6 +116,7 @@ const AdminServices = () => {
         price: parseFloat(data.price),
         promoPrice: data.promoPrice.trim() ? parseFloat(data.promoPrice) : null,
         popular: data.popular,
+        image: data.image,
       };
 
       if (data.id) {
@@ -126,6 +130,8 @@ const AdminServices = () => {
       setIsDialogOpen(false);
       setEditingService(null);
       setFormData(emptyFormData);
+      setSelectedImage(null);
+      setImagePreview(null);
       toast({
         title: editingService ? "Service updated" : "Service created",
         description: "The service has been saved successfully.",
@@ -173,6 +179,8 @@ const AdminServices = () => {
   const openCreateDialog = () => {
     setEditingService(null);
     setFormData(emptyFormData);
+    setSelectedImage(null);
+    setImagePreview(null);
     setIsDialogOpen(true);
   };
 
@@ -187,13 +195,20 @@ const AdminServices = () => {
       promoPrice: service.promo_price != null ? service.promo_price.toString() : "",
       popular: service.popular ?? false,
     });
+    setSelectedImage(null);
+    setImagePreview(service.image_url);
     setIsDialogOpen(true);
   };
+
+  useEffect(() => () => {
+    if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveMutation.mutate({
       ...formData,
+      image: selectedImage ?? undefined,
       id: editingService?.id,
     });
   };
@@ -389,6 +404,23 @@ const AdminServices = () => {
                 }
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service-image">Service image (optional)</Label>
+              <Input
+                id="service-image"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setSelectedImage(file);
+                  setImagePreview(file ? URL.createObjectURL(file) : editingService?.image_url ?? null);
+                }}
+              />
+              {imagePreview && (
+                <img src={imagePreview} alt="Service preview" className="h-32 w-full rounded-md object-cover" />
+              )}
+              <p className="text-xs text-muted-foreground">Upload an image to show on your public studio page. Leave empty to keep the current image.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
