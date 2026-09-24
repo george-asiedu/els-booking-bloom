@@ -16,7 +16,7 @@ const PaymentCallback = () => {
   const [params] = useSearchParams();
   // Paystack appends ?reference= (and ?trxref=) to the callback URL.
   const reference = params.get("reference") || params.get("trxref") || "";
-  const { name: studioName } = useStudio();
+  const { name: studioName, config } = useStudio();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -116,7 +116,7 @@ const PaymentCallback = () => {
         isError ? (error instanceof Error ? error.message : undefined) : undefined
       }
       onDownloadReceipt={
-        receipt ? () => downloadReceipt(receiptFromVerify(receipt), studioName) : undefined
+        receipt ? () => downloadReceipt(receiptFromVerify(receipt), { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor }) : undefined
       }
       whatsappUrl={whatsappUrl}
       onRetry={canRetry ? retryPayment : undefined}

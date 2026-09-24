@@ -19,7 +19,7 @@ const BookingCallback = () => {
   const [params] = useSearchParams();
   const reference = params.get("reference") || params.get("trxref") || "";
   const queryClient = useQueryClient();
-  const { name: studioName } = useStudio();
+  const { name: studioName, config } = useStudio();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["verify-combined", reference],
@@ -84,7 +84,7 @@ const BookingCallback = () => {
       ? [
           {
             label: "Service receipt",
-            onDownload: () => downloadReceipt(receiptFromVerify(payment), studioName),
+            onDownload: () => downloadReceipt(receiptFromVerify(payment), { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor }),
           },
         ]
       : []),
@@ -92,7 +92,7 @@ const BookingCallback = () => {
       ? [
           {
             label: "Products receipt",
-            onDownload: () => downloadOrderReceipt(order, studioName),
+            onDownload: () => downloadOrderReceipt(order, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor }),
           },
         ]
       : []),
