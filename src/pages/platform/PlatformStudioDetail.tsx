@@ -486,7 +486,7 @@ const PlatformStudioDetail = () => {
                           </Badge>
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap font-medium">
-                          {typeof amount === "number" ? `₵${amount.toLocaleString()}` : "—"}
+                          {typeof amount === "number" ? `GHS ${amount.toLocaleString()}` : "—"}
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap">
                           {(m.channel as string) ?? "—"}
