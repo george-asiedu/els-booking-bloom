@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { studioBillingApi } from "@/lib/api";
 import { PLANS, planPrice } from "@/config/platform";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `₵${n.toLocaleString()}`;
+const GHS = formatGHS;
 
 const AdminBilling = () => {
   const queryClient = useQueryClient();
