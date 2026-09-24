@@ -218,6 +218,26 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+export interface PlatformActivityLogEntry {
+  id: string;
+  requestId: string;
+  studioId: string | null;
+  actorId: string | null;
+  actorRole: string | null;
+  method: string;
+  route: string;
+  statusCode: number;
+  durationMs: number;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface PlatformActivityLogPage {
+  message: string;
+  data: PlatformActivityLogEntry[];
+  pagination: { limit: number; nextCursor: string | null; hasMore: boolean };
+}
+
 export interface ImpersonateResult {
   token: { accessToken: string; refreshToken: string };
   studio: { id: string; slug: string; name: string };
@@ -410,5 +430,21 @@ export const platformApi = {
       `/audit-logs${suffix}`,
     );
     return res.data;
+  },
+  async listActivityLogs(params: {
+    cursor?: string;
+    limit?: number;
+    studioId?: string;
+    method?: string;
+    statusCode?: number;
+  } = {}): Promise<PlatformActivityLogPage> {
+    const qs = new URLSearchParams();
+    if (params.cursor) qs.set("cursor", params.cursor);
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.studioId) qs.set("studioId", params.studioId);
+    if (params.method) qs.set("method", params.method);
+    if (params.statusCode) qs.set("statusCode", String(params.statusCode));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return platformRequest<PlatformActivityLogPage>(`/activity-logs${suffix}`);
   },
 };
