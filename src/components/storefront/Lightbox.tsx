@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { videoEmbedUrl } from "@/lib/video";
 
 export interface LightboxImage {
   src: string;
   alt: string;
   type?: "image" | "video";
+  external?: boolean;
 }
 
 /**
@@ -46,7 +48,9 @@ export const Lightbox = ({
         <DialogTitle className="sr-only">Gallery image</DialogTitle>
         {current && (
           <div className="relative">
-            {current.type === "video" ? (
+            {current.type === "video" && current.external ? (
+              <iframe src={videoEmbedUrl(current.src) ?? undefined} title={current.alt} className="h-[80vh] w-full rounded-lg" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+            ) : current.type === "video" ? (
               <video
                 src={current.src}
                 controls
