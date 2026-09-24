@@ -8,7 +8,28 @@ import { apiRequest, tokenStore, AuthUser, ApiError } from "./apiClient";
 interface Envelope<T> {
   message: string;
   data: T;
+  pagination?: { limit: number; nextCursor: string | null; hasMore: boolean };
 }
+
+export interface CursorPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  limit: number;
+}
+
+const cursorQuery = (cursor?: string | null, limit = 25) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
+  return params.toString();
+};
+
+const cursorPage = <T>(res: Envelope<T[]>): CursorPage<T> => ({
+  items: res.data,
+  nextCursor: res.pagination?.nextCursor ?? null,
+  hasMore: res.pagination?.hasMore ?? false,
+  limit: res.pagination?.limit ?? res.data.length,
+});
 
 interface TokenPair {
   accessToken: string;
@@ -691,15 +712,25 @@ const serviceFormData = (input: ServiceInput): FormData => {
 
 export const servicesApi = {
   async listActive(): Promise<ServiceDTO[]> {
-    const res = await apiRequest<Envelope<RawService[]>>("/services");
+    const res = await apiRequest<Envelope<RawService[]>>(`/services?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeService);
   },
 
+  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<ServiceDTO>> {
+    const res = await apiRequest<Envelope<RawService[]>>(`/services?${cursorQuery(cursor, limit)}`);
+    return { ...cursorPage(res), items: res.data.map(normalizeService) };
+  },
+
   async listAll(): Promise<ServiceDTO[]> {
-    const res = await apiRequest<Envelope<RawService[]>>("/services/all", {
+    const res = await apiRequest<Envelope<RawService[]>>(`/services/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeService);
+  },
+
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ServiceDTO>> {
+    const res = await apiRequest<Envelope<RawService[]>>(`/services/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeService) };
   },
 
   async create(input: ServiceInput): Promise<ServiceDTO> {
@@ -1011,18 +1042,38 @@ export const appointmentsApi = {
   },
 
   async listMine(): Promise<AppointmentDTO[]> {
-    const res = await apiRequest<Envelope<RawAppointment[]>>(
-      "/appointments/me",
-      { auth: true },
-    );
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments/me?${cursorQuery(undefined, 100)}`, { auth: true });
     return res.data.map(normalizeAppointment);
   },
 
+  async listMinePage(cursor?: string | null, limit = 25): Promise<CursorPage<AppointmentDTO>> {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments/me?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeAppointment) };
+  },
+
   async listAll(): Promise<AppointmentDTO[]> {
-    const res = await apiRequest<Envelope<RawAppointment[]>>("/appointments", {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeAppointment);
+  },
+
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<AppointmentDTO>> {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeAppointment) };
+  },
+
+  // Analytics needs the full date range for correct totals; fetch bounded pages
+  // sequentially instead of making one unbounded API response.
+  async listAllForAnalytics(): Promise<AppointmentDTO[]> {
+    const all: AppointmentDTO[] = [];
+    let cursor: string | null = null;
+    do {
+      const page = await appointmentsApi.listAllPage(cursor, 100);
+      all.push(...page.items);
+      cursor = page.hasMore ? page.nextCursor : null;
+    } while (cursor);
+    return all;
   },
 
   async updateStatus(
@@ -1343,14 +1394,22 @@ const productForm = (input: Partial<ProductInput>): FormData => {
 
 export const productsApi = {
   async listActive(): Promise<ProductDTO[]> {
-    const res = await apiRequest<Envelope<RawProduct[]>>("/products");
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeProduct);
   },
+  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<ProductDTO>> {
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products?${cursorQuery(cursor, limit)}`);
+    return { ...cursorPage(res), items: res.data.map(normalizeProduct) };
+  },
   async listAll(): Promise<ProductDTO[]> {
-    const res = await apiRequest<Envelope<RawProduct[]>>("/products/all", {
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeProduct);
+  },
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ProductDTO>> {
+    const res = await apiRequest<Envelope<RawProduct[]>>(`/products/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeProduct) };
   },
   async getOne(id: string): Promise<ProductDTO> {
     const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`);
@@ -1715,16 +1774,24 @@ export const ordersApi = {
     };
   },
   async listMine(): Promise<OrderDTO[]> {
-    const res = await apiRequest<Envelope<RawOrder[]>>("/orders/me", {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders/me?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeOrder);
   },
+  async listMinePage(cursor?: string | null, limit = 25): Promise<CursorPage<OrderDTO>> {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders/me?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeOrder) };
+  },
   async listAll(): Promise<OrderDTO[]> {
-    const res = await apiRequest<Envelope<RawOrder[]>>("/orders", {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeOrder);
+  },
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<OrderDTO>> {
+    const res = await apiRequest<Envelope<RawOrder[]>>(`/orders?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeOrder) };
   },
   async verify(reference: string): Promise<OrderDTO> {
     const res = await apiRequest<Envelope<RawOrder>>(
@@ -1840,10 +1907,14 @@ export const reviewsApi = {
   },
 
   async listAll(): Promise<ReviewDTO[]> {
-    const res = await apiRequest<Envelope<RawReview[]>>("/reviews/all", {
+    const res = await apiRequest<Envelope<RawReview[]>>(`/reviews/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeReview);
+  },
+  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ReviewDTO>> {
+    const res = await apiRequest<Envelope<RawReview[]>>(`/reviews/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeReview) };
   },
 
   async create(input: CreateReviewInput): Promise<ReviewDTO> {
@@ -1911,15 +1982,23 @@ const normalizeGalleryImage = (g: RawGalleryImage): GalleryImageDTO => ({
 
 export const galleryApi = {
   async listActive(): Promise<GalleryImageDTO[]> {
-    const res = await apiRequest<Envelope<RawGalleryImage[]>>("/gallery");
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeGalleryImage);
+  },
+  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<GalleryImageDTO>> {
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery?${cursorQuery(cursor, limit)}`);
+    return { ...cursorPage(res), items: res.data.map(normalizeGalleryImage) };
   },
 
   async listAll(): Promise<GalleryImageDTO[]> {
-    const res = await apiRequest<Envelope<RawGalleryImage[]>>("/gallery/all", {
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery/all?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
     return res.data.map(normalizeGalleryImage);
+  },
+  async listAllPage(cursor?: string | null, limit = 24): Promise<CursorPage<GalleryImageDTO>> {
+    const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery/all?${cursorQuery(cursor, limit)}`, { auth: true });
+    return { ...cursorPage(res), items: res.data.map(normalizeGalleryImage) };
   },
 
   async upload(
