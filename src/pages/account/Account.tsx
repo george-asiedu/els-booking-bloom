@@ -47,6 +47,7 @@ import {
   downloadReceipt,
   receiptFromAppointment,
   downloadOrderReceipt,
+  downloadBookingDocument,
 } from "@/lib/receipt";
 
 const statusColors: Record<string, string> = {
@@ -395,6 +396,10 @@ const Account = () => {
                                 {apt.status}
                               </Badge>
                               <PaymentBadge apt={apt} />
+                              <Button size="sm" variant="outline" onClick={() => downloadBookingDocument(apt, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor })}>
+                                <Download className="h-4 w-4 mr-1" />
+                                Booking document
+                              </Button>
                               {apt.payment &&
                                 apt.payment.status !== "paid" &&
                                 apt.status !== "cancelled" && (
@@ -448,6 +453,10 @@ const Account = () => {
                               <Badge className={statusColors[apt.status]}>
                                 {apt.status}
                               </Badge>
+                              <Button size="sm" variant="outline" onClick={() => downloadBookingDocument(apt, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor })}>
+                                <Download className="h-4 w-4 mr-1" />
+                                Document
+                              </Button>
                               {features.reviews && apt.status === "completed" && (
                                 <Button variant="outline" size="sm" asChild>
                                   <Link
@@ -563,7 +572,7 @@ const Account = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => downloadOrderReceipt(order, studioName)}
+                                  onClick={() => downloadOrderReceipt(order, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor })}
                                 >
                                   <Download className="h-4 w-4 mr-1" />
                                   Receipt
@@ -663,7 +672,7 @@ const Account = () => {
                                   }
                                   onClick={() => {
                                     const data = receiptFromAppointment(apt);
-                                    if (data) downloadReceipt(data, studioName);
+                                    if (data) downloadReceipt(data, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor });
                                   }}
                                 >
                                   <Download className="h-4 w-4 mr-1" />
