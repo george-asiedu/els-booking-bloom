@@ -246,8 +246,14 @@ export const authApi = {
     return persistAuth(res.data);
   },
 
-  logout() {
-    tokenStore.clear();
+  async logout() {
+    try {
+      await apiRequest<{ message: string }>("/auth/logout", { method: "POST" });
+    } catch {
+      // Clear local credentials even when the network is unavailable.
+    } finally {
+      tokenStore.clear();
+    }
   },
 
   async forgotPassword(email: string): Promise<string> {
