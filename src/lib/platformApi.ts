@@ -6,6 +6,7 @@
 
 import { ApiError } from "./apiClient";
 import { FeatureRequestDTO, FeatureRequestStatus } from "./api";
+import { getDeviceId } from "./deviceIdentity";
 
 const API_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -58,6 +59,9 @@ async function platformRequest<T>(
   const { method = "GET", body, auth = true } = options;
 
   const headers: Record<string, string> = {};
+  if (path === "/auth/login") {
+    headers["X-Device-Id"] = getDeviceId();
+  }
   const token = platformStore.getToken();
   if (auth && token) {
     headers["Authorization"] = `Bearer ${token}`;
