@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { cn } from "@/lib/utils";
 
-const GHS = (n: number) => `GH₵ ${n.toLocaleString()}`;
+const GHS = (n: number) => `GHâ‚µ ${n.toLocaleString()}`;
 const titleize = (slug: string) =>
   slug
     .split("-")
@@ -160,7 +160,7 @@ const Shop = () => {
   }
 
   const heroImg =
-    products.find((p) => p.image_url)?.image_url ?? gallery[0]?.image_url ?? null;
+    products.find((p) => p.image_url)?.image_url ?? gallery.find((g) => g.media_type === "image")?.image_url ?? null;
 
   return (
     <Layout>
