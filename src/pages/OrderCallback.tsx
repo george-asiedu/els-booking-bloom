@@ -19,7 +19,7 @@ const OrderCallback = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { name: studioName } = useStudio();
+  const { name: studioName, config } = useStudio();
 
   const { data: order, isLoading, isError, error } = useQuery({
     queryKey: ["verify-order", reference],
@@ -118,7 +118,7 @@ const OrderCallback = () => {
         isError ? (error instanceof Error ? error.message : undefined) : undefined
       }
       onDownloadReceipt={
-        order ? () => downloadOrderReceipt(order, studioName) : undefined
+        order ? () => downloadOrderReceipt(order, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor }) : undefined
       }
       whatsappUrl={whatsappUrl}
       whatsappLabel="Message the studio"
