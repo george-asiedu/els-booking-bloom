@@ -31,6 +31,47 @@ const cursorPage = <T>(res: Envelope<T[]>): CursorPage<T> => ({
   limit: res.pagination?.limit ?? res.data.length,
 });
 
+export type MediaUploadCategory = "gallery" | "services" | "products" | "appointments" | "studio" | "profiles" | "reviews" | "misc";
+
+/** Uploads media in 10 MiB chunks straight from the browser to private S3. */
+export const uploadStudioMedia = async (file: File, category: MediaUploadCategory): Promise<string> => {
+  const started = await apiRequest<Envelope<{
+    key: string; uploadId: string; partSize: number;
+    parts: { partNumber: number; url: string }[];
+  }>>("/uploads/multipart/initiate", {
+    method: "POST", auth: true,
+    body: { category, fileName: file.name, contentType: file.type || "application/octet-stream", size: file.size },
+  });
+  const upload = started.data;
+  try {
+    const parts: { ETag: string; PartNumber: number }[] = [];
+    for (let i = 0; i < upload.parts.length; i += 3) {
+      const uploaded = await Promise.all(upload.parts.slice(i, i + 3).map(async (part) => {
+        const start = (part.partNumber - 1) * upload.partSize;
+        const response = await fetch(part.url, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file.slice(start, Math.min(start + upload.partSize, file.size)),
+        });
+        if (!response.ok) throw new Error("A media chunk failed to upload");
+        const etag = response.headers.get("ETag");
+        if (!etag) throw new Error("S3 CORS must expose the ETag response header");
+        return { ETag: etag, PartNumber: part.partNumber };
+      }));
+      parts.push(...uploaded);
+    }
+    const finished = await apiRequest<Envelope<{ url: string }>>("/uploads/multipart/complete", {
+      method: "POST", auth: true, body: { key: upload.key, uploadId: upload.uploadId, parts },
+    });
+    return finished.data.url;
+  } catch (error) {
+    await apiRequest("/uploads/multipart/abort", {
+      method: "POST", auth: true, body: { key: upload.key, uploadId: upload.uploadId },
+    }).catch(() => undefined);
+    throw error;
+  }
+};
+
 interface TokenPair {
   accessToken: string;
   refreshToken: string;
@@ -352,20 +393,12 @@ export const studioAdminApi = {
   },
 
   async updateBranding(input: BrandingUpdateInput): Promise<StudioBrandingDTO> {
-    const form = new FormData();
-    if (input.primaryColor !== undefined)
-      form.append("primaryColor", input.primaryColor ?? "");
-    if (input.accentColor !== undefined)
-      form.append("accentColor", input.accentColor ?? "");
-    if (input.fontFamily !== undefined)
-      form.append("fontFamily", input.fontFamily ?? "");
-    if (input.removeLogo) form.append("removeLogo", "true");
-    if (input.logo) form.append("logo", input.logo);
+    const logoUrl = input.logo ? await uploadStudioMedia(input.logo, "studio") : undefined;
 
     const res = await apiRequest<Envelope<StudioBrandingDTO>>("/studio/branding", {
       method: "PUT",
       auth: true,
-      formData: form,
+      body: { primaryColor: input.primaryColor, accentColor: input.accentColor, fontFamily: input.fontFamily, removeLogo: input.removeLogo, logoUrl },
     });
     return res.data;
   },
@@ -740,19 +773,23 @@ export const servicesApi = {
   },
 
   async create(input: ServiceInput): Promise<ServiceDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "services") : input.imageUrl;
+    const payload = { ...input, image: undefined, imageUrl };
     const res = await apiRequest<Envelope<RawService>>("/services", {
       method: "POST",
       auth: true,
-      ...(input.image ? { formData: serviceFormData(input) } : { body: input }),
+      body: payload,
     });
     return normalizeService(res.data);
   },
 
   async update(id: string, input: Partial<ServiceInput>): Promise<ServiceDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "services") : input.imageUrl;
+    const payload = { ...input, image: undefined, imageUrl };
     const res = await apiRequest<Envelope<RawService>>(`/services/${id}`, {
       method: "PUT",
       auth: true,
-      ...(input.image ? { formData: serviceFormData(input as ServiceInput) } : { body: input }),
+      body: payload,
     });
     return normalizeService(res.data);
   },
@@ -880,17 +917,12 @@ export const profileApi = {
   },
 
   async update(input: ProfileUpdateInput): Promise<ProfileDTO> {
-    const form = new FormData();
-    if (input.fullName) form.append("fullName", input.fullName);
-    if (input.email) form.append("email", input.email);
-    if (input.phone) form.append("phone", input.phone);
-    if (input.location) form.append("location", input.location);
-    if (input.avatar) form.append("image", input.avatar);
+    const avatar = input.avatar ? await uploadStudioMedia(input.avatar, "profiles") : undefined;
 
     const res = await apiRequest<Envelope<RawProfile>>("/profile/me", {
       method: "POST",
       auth: true,
-      formData: form,
+      body: { fullName: input.fullName, email: input.email, phone: input.phone, location: input.location, avatar },
     });
     return mapProfile(res.data);
   },
@@ -1019,22 +1051,12 @@ export const contactInfoApi = {
 
 export const appointmentsApi = {
   async create(input: CreateAppointmentInput): Promise<AppointmentDTO> {
-    // Sent as multipart so an optional design reference image can be attached.
-    const form = new FormData();
-    form.append("fullName", input.full_name);
-    form.append("phone", input.phone);
-    if (input.email) form.append("email", input.email);
-    form.append("serviceId", input.service_id);
-    form.append("appointmentDate", input.appointment_date);
-    form.append("appointmentTime", input.appointment_time);
-    if (input.notes) form.append("notes", input.notes);
-    if (input.design_image) form.append("designImage", input.design_image);
-    if (input.apply_points) form.append("applyPoints", "true");
+    const designImageUrl = input.design_image ? await uploadStudioMedia(input.design_image, "appointments") : undefined;
 
     const res = await apiRequest<Envelope<RawAppointment>>("/appointments", {
       method: "POST",
       auth: true, // optionalAuth server-side; token attached if present
-      formData: form,
+      body: { fullName: input.full_name, phone: input.phone, email: input.email, serviceId: input.service_id, appointmentDate: input.appointment_date, appointmentTime: input.appointment_time, notes: input.notes, applyPoints: input.apply_points ? "true" : undefined, designImageUrl },
     });
     return normalizeAppointment(res.data);
   },
@@ -1377,6 +1399,7 @@ export interface ProductInput {
   active?: boolean;
   popular?: boolean;
   image?: File | null;
+  imageUrl?: string | null;
 }
 
 const productForm = (input: Partial<ProductInput>): FormData => {
@@ -1422,18 +1445,20 @@ export const productsApi = {
     return normalizeProduct(res.data);
   },
   async create(input: ProductInput): Promise<ProductDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "products") : input.imageUrl;
     const res = await apiRequest<Envelope<RawProduct>>("/products", {
       method: "POST",
       auth: true,
-      formData: productForm(input),
+      body: { ...input, image: undefined, imageUrl },
     });
     return normalizeProduct(res.data);
   },
   async update(id: string, input: Partial<ProductInput>): Promise<ProductDTO> {
+    const imageUrl = input.image ? await uploadStudioMedia(input.image, "products") : input.imageUrl;
     const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`, {
       method: "PUT",
       auth: true,
-      formData: productForm(input),
+      body: { ...input, image: undefined, imageUrl },
     });
     return normalizeProduct(res.data);
   },
@@ -1961,6 +1986,7 @@ export interface GalleryImageDTO {
   title: string;
   category: ServiceCategory;
   image_url: string;
+  external_video: boolean;
   media_type: "image" | "video";
   active: boolean;
   created_at: string;
@@ -1982,6 +2008,7 @@ const normalizeGalleryImage = (g: RawGalleryImage): GalleryImageDTO => ({
   category: g.category,
   image_url: g.imageUrl,
   media_type: g.mediaType === "VIDEO" ? "video" : "image",
+  external_video: g.mediaType === "VIDEO" && /(?:youtube\.com|youtu\.be|tiktok\.com)/i.test(g.imageUrl),
   active: g.active,
   created_at: g.createdAt,
 });
@@ -2012,14 +2039,18 @@ export const galleryApi = {
     title: string,
     category: string,
   ): Promise<GalleryImageDTO> {
-    const form = new FormData();
-    form.append("image", file);
-    form.append("title", title);
-    form.append("category", category);
+    const imageUrl = await uploadStudioMedia(file, "gallery");
     const res = await apiRequest<Envelope<RawGalleryImage>>("/gallery", {
       method: "POST",
       auth: true,
-      formData: form,
+      body: { imageUrl, title, category },
+    });
+    return normalizeGalleryImage(res.data);
+  },
+
+  async addVideoLink(url: string, title: string, category: string): Promise<GalleryImageDTO> {
+    const res = await apiRequest<Envelope<RawGalleryImage>>("/gallery", {
+      method: "POST", auth: true, body: { externalUrl: url, title, category },
     });
     return normalizeGalleryImage(res.data);
   },
