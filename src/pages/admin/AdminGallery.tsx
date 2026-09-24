@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { galleryApi, categoriesApi, GalleryImageDTO } from "@/lib/api";
+import { videoEmbedUrl } from "@/lib/video";
 import { useToast } from "@/hooks/use-toast";
 
 type GalleryImage = GalleryImageDTO;
@@ -42,6 +43,7 @@ const AdminGallery = () => {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,10 +71,10 @@ const AdminGallery = () => {
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedFile) throw new Error("No file selected");
       setIsUploading(true);
-      // The server uploads the file to S3 and records the gallery entry.
-      await galleryApi.upload(selectedFile, title, selectedCategory);
+      if (selectedFile) await galleryApi.upload(selectedFile, title, selectedCategory);
+      else if (videoUrl.trim()) await galleryApi.addVideoLink(videoUrl.trim(), title, selectedCategory);
+      else throw new Error("Choose a media file or enter a video link");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-gallery"] });
@@ -120,6 +122,7 @@ const AdminGallery = () => {
     setTitle("");
     setCategory("");
     setSelectedFile(null);
+    setVideoUrl("");
     setPreviewUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -182,7 +185,9 @@ const AdminGallery = () => {
             {images?.map((image) => (
               <Card key={image.id} className="overflow-hidden group">
                 <div className="relative aspect-square">
-                  {image.media_type === "video" ? (
+                  {image.media_type === "video" && image.external_video ? (
+                    <iframe src={videoEmbedUrl(image.image_url) ?? undefined} title={image.title || "Gallery video"} className="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen loading="lazy" />
+                  ) : image.media_type === "video" ? (
                     <video
                       src={image.image_url}
                       className="w-full h-full object-cover"
@@ -254,6 +259,10 @@ const AdminGallery = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="video-url">Or add a YouTube/TikTok link</Label>
+              <Input id="video-url" type="url" value={videoUrl} onChange={(e) => { setVideoUrl(e.target.value); if (e.target.value) { setSelectedFile(null); setPreviewUrl(null); } }} placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select value={selectedCategory} onValueChange={setCategory}>
                 <SelectTrigger>
@@ -293,7 +302,7 @@ const AdminGallery = () => {
                   <div className="flex flex-col items-center text-muted-foreground">
                     <Upload className="h-8 w-8 mb-2" />
                     <p>Click to upload an image or video</p>
-                    <p className="text-xs">Images or any video format, up to 100 MB</p>
+                    <p className="text-xs">JPG, PNG, WebP, AVIF, GIF, MP4, MOV or WebM up to 2 GB</p>
                   </div>
                 )}
               </div>
@@ -309,7 +318,7 @@ const AdminGallery = () => {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={!selectedFile || !selectedCategory || isUploading}>
+              <Button type="submit" disabled={(!selectedFile && !videoUrl.trim()) || !selectedCategory || isUploading}>
                 {isUploading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Upload
               </Button>

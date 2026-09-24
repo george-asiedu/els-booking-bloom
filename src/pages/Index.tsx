@@ -35,8 +35,9 @@ import {
 import { services as staticServices } from "@/data/services";
 import { useStudio } from "@/hooks/useStudio";
 import heroFallback from "@/assets/hero-beauty.jpg";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `GHâ‚µ ${n.toLocaleString()}`;
+const GHS = formatGHS;
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // Turn a stored handle (or full URL) into a working social profile link.

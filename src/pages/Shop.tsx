@@ -21,8 +21,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { cn } from "@/lib/utils";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `GHâ‚µ ${n.toLocaleString()}`;
+const GHS = formatGHS;
 const titleize = (slug: string) =>
   slug
     .split("-")

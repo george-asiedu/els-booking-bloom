@@ -30,8 +30,9 @@ import nails1 from "@/assets/gallery/nails-1.jpg";
 import nails2 from "@/assets/gallery/nails-2.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
 import lashes2 from "@/assets/gallery/lashes-2.jpg";
+import { formatGHS } from "@/lib/currency";
 
-const GHS = (n: number) => `₵${n.toLocaleString()}`;
+const GHS = formatGHS;
 
 // ---- Sample studios for the multi-tenant showcase (presentational only) ----
 interface DemoStudio {
@@ -820,7 +821,7 @@ const PlatformLanding = () => {
                 ))}
                 <div className="rounded-xl border border-border bg-primary/5 p-4">
                   <p className="font-serif text-2xl font-bold text-primary">
-                    <CountUp value={2480} prefix="₵" />
+                    <CountUp value={2480} prefix="GHS " />
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">Revenue</p>
                 </div>

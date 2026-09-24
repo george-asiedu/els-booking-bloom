@@ -25,11 +25,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { studioStore } from "@/lib/apiClient";
 import { celebrate } from "@/lib/confetti";
+import { formatGHS } from "@/lib/currency";
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
-const GHS = (n: number) => `₵${n.toLocaleString()}`;
+const GHS = formatGHS;
 
 const Onboarding = () => {
   const [params] = useSearchParams();
@@ -488,7 +489,7 @@ const Onboarding = () => {
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-semibold">Due today</span>
                 <span className="font-serif text-xl font-bold text-primary">
-                  {dueToday > 0 ? GHS(dueToday) : "₵0"}
+                  {GHS(dueToday)}
                   {!revShare && (
                     <span className="text-sm font-normal text-muted-foreground">
                       /{cadence === "MONTHLY" ? "mo" : "yr"}
