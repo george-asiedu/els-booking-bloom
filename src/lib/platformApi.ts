@@ -253,8 +253,16 @@ export const platformApi = {
     return res.message;
   },
 
-  logout() {
-    platformStore.clear();
+  async logout() {
+    try {
+      await platformRequest<Envelope<null> & { message: string }>("/auth/logout", {
+        method: "POST",
+      });
+    } catch {
+      // Clear local credentials even when the network is unavailable.
+    } finally {
+      platformStore.clear();
+    }
   },
 
   async me(): Promise<PlatformUser> {
