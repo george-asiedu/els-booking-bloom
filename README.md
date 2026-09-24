@@ -23,6 +23,14 @@ VITE_API_URL="http://localhost:5000/api"
 
 The backend (ELS-Server) must be running for data to load.
 
+For the production Vercel deployment, set the build environment variable to the Render custom domain:
+
+```sh
+VITE_API_URL="https://api.zuristudios.com/api"
+```
+
+The Vercel security headers allow this API host for browser connections.
+
 ## Scripts
 
 - `npm run dev` — start the dev server
