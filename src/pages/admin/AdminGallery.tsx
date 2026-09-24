@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Loader2, ImageIcon, Upload } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -48,10 +48,14 @@ const AdminGallery = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: images, isLoading } = useQuery({
-    queryKey: ["admin-gallery"],
-    queryFn: () => galleryApi.listAll(),
+  const imagesQuery = useInfiniteQuery({
+    queryKey: ["admin-gallery", "cursor-pages"],
+    queryFn: ({ pageParam }) => galleryApi.listAllPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const images = imagesQuery.data?.pages.flatMap((page) => page.items);
+  const isLoading = imagesQuery.isLoading;
 
   const { data: categories = [] } = useQuery({
     queryKey: ["admin-categories"],
@@ -217,6 +221,14 @@ const AdminGallery = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+        {imagesQuery.hasNextPage && (
+          <div className="mt-6 text-center">
+            <Button variant="outline" onClick={() => imagesQuery.fetchNextPage()} disabled={imagesQuery.isFetchingNextPage}>
+              {imagesQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Load more media
+            </Button>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   Calendar,
@@ -143,11 +143,15 @@ const Account = () => {
     enabled: !!user,
   });
 
-  const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
-    queryKey: ["my-appointments", user?.id],
-    queryFn: () => appointmentsApi.listMine(),
+  const appointmentsQuery = useInfiniteQuery({
+    queryKey: ["my-appointments", user?.id, "cursor-pages"],
+    queryFn: ({ pageParam }) => appointmentsApi.listMinePage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
     enabled: !!user,
   });
+  const appointments = appointmentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const appointmentsLoading = appointmentsQuery.isLoading;
 
   const { data: loyaltyData } = useQuery({
     queryKey: ["loyalty-points", user?.id],
@@ -173,11 +177,14 @@ const Account = () => {
   });
   const shopEnabled = features.commerce && (commerce?.enabled ?? false);
 
-  const { data: orders = [] } = useQuery({
-    queryKey: ["my-orders", user?.id],
-    queryFn: () => ordersApi.listMine(),
+  const ordersQuery = useInfiniteQuery({
+    queryKey: ["my-orders", user?.id, "cursor-pages"],
+    queryFn: ({ pageParam }) => ordersApi.listMinePage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
     enabled: !!user,
   });
+  const orders = ordersQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   const { data: cart } = useQuery({
     queryKey: ["cart"],
@@ -423,6 +430,14 @@ const Account = () => {
                     ))}
                   </div>
                 )}
+                {appointmentsQuery.hasNextPage && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" onClick={() => appointmentsQuery.fetchNextPage()} disabled={appointmentsQuery.isFetchingNextPage}>
+                      {appointmentsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Load more appointments
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Past Appointments */}
@@ -585,6 +600,14 @@ const Account = () => {
                     ))}
                   </div>
                 )}
+                {ordersQuery.hasNextPage && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" onClick={() => ordersQuery.fetchNextPage()} disabled={ordersQuery.isFetchingNextPage}>
+                      {ordersQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Load more orders
+                    </Button>
+                  </div>
+                )}
               </div>
             </TabsContent>
             )}
@@ -684,6 +707,14 @@ const Account = () => {
                         </Card>
                       );
                     })}
+                  </div>
+                )}
+                {appointmentsQuery.hasNextPage && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" onClick={() => appointmentsQuery.fetchNextPage()} disabled={appointmentsQuery.isFetchingNextPage}>
+                      {appointmentsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Load more transactions
+                    </Button>
                   </div>
                 )}
               </div>

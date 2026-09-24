@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { Calendar, Phone, Mail, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Image as ImageIcon } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -83,10 +83,14 @@ const AdminAppointments = () => {
   const { toast } = useToast();
   const { name: studioName } = useStudio();
 
-  const { data: appointments, isLoading } = useQuery({
-    queryKey: ["admin-appointments"],
-    queryFn: () => appointmentsApi.listAll(),
+  const appointmentsQuery = useInfiniteQuery({
+    queryKey: ["admin-appointments", "cursor-pages"],
+    queryFn: ({ pageParam }) => appointmentsApi.listAllPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const appointments = appointmentsQuery.data?.pages.flatMap((page) => page.items);
+  const isLoading = appointmentsQuery.isLoading;
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: AppointmentStatus }) => {
@@ -427,6 +431,14 @@ const AdminAppointments = () => {
               </TableBody>
             </Table>
           </Card>
+        )}
+        {appointmentsQuery.hasNextPage && (
+          <div className="text-center">
+            <Button variant="outline" onClick={() => appointmentsQuery.fetchNextPage()} disabled={appointmentsQuery.isFetchingNextPage}>
+              {appointmentsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Load more appointments
+            </Button>
+          </div>
         )}
       </div>
     </AdminLayout>

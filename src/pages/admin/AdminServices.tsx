@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Scissors } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -77,10 +77,14 @@ const AdminServices = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: services, isLoading } = useQuery({
-    queryKey: ["admin-services"],
-    queryFn: () => servicesApi.listAll(),
+  const servicesQuery = useInfiniteQuery({
+    queryKey: ["admin-services", "cursor-pages"],
+    queryFn: ({ pageParam }) => servicesApi.listAllPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const services = servicesQuery.data?.pages.flatMap((page) => page.items);
+  const isLoading = servicesQuery.isLoading;
 
   const { data: categories = [] } = useQuery({
     queryKey: ["admin-categories"],
@@ -319,6 +323,14 @@ const AdminServices = () => {
               </TableBody>
             </Table>
           </Card>
+        )}
+        {servicesQuery.hasNextPage && (
+          <div className="text-center">
+            <Button variant="outline" onClick={() => servicesQuery.fetchNextPage()} disabled={servicesQuery.isFetchingNextPage}>
+              {servicesQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Load more services
+            </Button>
+          </div>
         )}
       </div>
 

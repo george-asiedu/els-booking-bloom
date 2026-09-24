@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
@@ -41,10 +41,14 @@ const Shop = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["public-products"],
-    queryFn: () => productsApi.listActive(),
+  const productsQuery = useInfiniteQuery({
+    queryKey: ["public-products", "cursor-pages"],
+    queryFn: ({ pageParam }) => productsApi.listActivePage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const products = productsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const isLoading = productsQuery.isLoading;
   const { data: categories = [] } = useQuery({
     queryKey: ["public-product-categories"],
     queryFn: () => productCategoriesApi.listActive(),
@@ -315,6 +319,14 @@ const Shop = () => {
                   </Reveal>
                 ))}
               </div>
+              {productsQuery.hasNextPage && (
+                <div className="mt-10 text-center">
+                  <Button variant="outline" onClick={() => productsQuery.fetchNextPage()} disabled={productsQuery.isFetchingNextPage}>
+                    {productsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Load more products
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>

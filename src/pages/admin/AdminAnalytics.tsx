@@ -48,7 +48,7 @@ const AdminAnalytics = () => {
   // Fetch appointments for analytics
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ["admin-analytics-appointments"],
-    queryFn: () => appointmentsApi.listAll(),
+    queryFn: () => appointmentsApi.listAllForAnalytics(),
   });
 
   // Fetch services for popular services chart

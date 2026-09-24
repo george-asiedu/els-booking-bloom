@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Play, ImageIcon } from "lucide-react";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { Play, ImageIcon, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
@@ -28,10 +28,14 @@ const Gallery = () => {
   const [activeCat, setActiveCat] = useState("all");
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  const { data: apiImages, isLoading } = useQuery({
-    queryKey: ["public-gallery"],
-    queryFn: () => galleryApi.listActive(),
+  const galleryQuery = useInfiniteQuery({
+    queryKey: ["public-gallery", "cursor-pages"],
+    queryFn: ({ pageParam }) => galleryApi.listActivePage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
+  const apiImages = galleryQuery.data?.pages.flatMap((page) => page.items);
+  const isLoading = galleryQuery.isLoading;
   const { data: categoriesData } = useQuery({
     queryKey: ["public-categories"],
     queryFn: () => categoriesApi.listActive(),
@@ -174,6 +178,13 @@ const Gallery = () => {
                   </Reveal>
                 ))}
               </div>
+              {galleryQuery.hasNextPage && (
+                <div className="mt-10 text-center">
+                  <Button variant="outline" onClick={() => galleryQuery.fetchNextPage()} disabled={galleryQuery.isFetchingNextPage}>
+                    {galleryQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading…</> : "Load more work"}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
