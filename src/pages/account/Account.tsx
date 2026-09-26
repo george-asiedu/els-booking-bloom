@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
 import { format } from "date-fns";
 import {
   Calendar,
@@ -17,7 +18,8 @@ import {
   Receipt,
   Download,
   ShoppingBag,
-  Package
+  Package,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,8 +55,20 @@ import {
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
   confirmed: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  pending_reschedule:
+    "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+};
+
+// The raw enum reads badly to a customer ("pending_reschedule"), and this one
+// needs to say who they're waiting on.
+const statusLabels: Record<string, string> = {
+  pending: "pending",
+  confirmed: "confirmed",
+  pending_reschedule: "awaiting studio approval",
+  completed: "completed",
+  cancelled: "cancelled",
 };
 
 const orderStatusColors: Record<string, string> = {
@@ -101,6 +115,9 @@ const Account = () => {
   const { toast } = useToast();
   const initialTab = searchParams.get("tab") || "appointments";
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [rescheduling, setRescheduling] = useState<AppointmentDTO | null>(
+    null,
+  );
   const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [payAppt, setPayAppt] = useState<{
@@ -400,13 +417,26 @@ const Account = () => {
                             </div>
                             <div className="flex flex-col items-end gap-2">
                               <Badge className={statusColors[apt.status]}>
-                                {apt.status}
+                                {statusLabels[apt.status] ?? apt.status}
                               </Badge>
                               <PaymentBadge apt={apt} />
                               <Button size="sm" variant="outline" onClick={() => downloadBookingDocument(apt, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor })}>
                                 <Download className="h-4 w-4 mr-1" />
                                 Booking document
                               </Button>
+                              {apt.status !== "cancelled" &&
+                                apt.status !== "completed" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setRescheduling(apt)}
+                                  >
+                                    <CalendarClock className="h-4 w-4 mr-1" />
+                                    {apt.status === "pending_reschedule"
+                                      ? "Change again"
+                                      : "Reschedule"}
+                                  </Button>
+                                )}
                               {apt.payment &&
                                 apt.payment.status !== "paid" &&
                                 apt.status !== "cancelled" && (
@@ -827,6 +857,14 @@ const Account = () => {
             </TabsContent>
             )}
           </Tabs>
+
+      <RescheduleDialog
+        appointment={rescheduling}
+        onOpenChange={(o) => !o && setRescheduling(null)}
+        audience="customer"
+        invalidateKeys={["my-appointments"]}
+      />
+
         </div>
       </section>
 

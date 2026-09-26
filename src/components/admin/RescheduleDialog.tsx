@@ -26,15 +26,22 @@ import { useToast } from "@/hooks/use-toast";
 export const RescheduleDialog = ({
   appointment,
   onOpenChange,
+  // A studio move is final; a customer's is a request the studio must approve,
+  // and the copy has to say so rather than implying it's done.
+  audience = "admin",
+  invalidateKeys = ["admin-appointments"],
 }: {
   appointment: AppointmentDTO | null;
   onOpenChange: (open: boolean) => void;
+  audience?: "admin" | "customer";
+  invalidateKeys?: string[];
 }) => {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const isCustomer = audience === "customer";
 
   // Seed with the current slot so a small change is a small edit.
   useEffect(() => {
@@ -54,11 +61,15 @@ export const RescheduleDialog = ({
         ...(reason.trim() ? { reason: reason.trim() } : {}),
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
+    onSuccess: (_data) => {
+      for (const k of invalidateKeys) {
+        queryClient.invalidateQueries({ queryKey: [k] });
+      }
       toast({
-        title: "Appointment moved",
-        description: "The customer has been emailed the new time.",
+        title: isCustomer ? "Reschedule requested" : "Appointment moved",
+        description: isCustomer
+          ? "The studio will confirm your new time. Your payment stays with the booking."
+          : "The customer has been emailed the new time.",
       });
       onOpenChange(false);
     },
@@ -122,7 +133,9 @@ export const RescheduleDialog = ({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            The customer is emailed the old and new times straight away.
+            {isCustomer
+              ? "Your new time is held while the studio reviews it, and any deposit you've paid stays with the booking. The studio needs a couple of hours' notice, and the time has to fall inside its opening hours."
+              : "The customer is emailed the old and new times straight away."}
           </p>
         </div>
 
@@ -141,8 +154,10 @@ export const RescheduleDialog = ({
             {mutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Moving…
+                {isCustomer ? "Requesting…" : "Moving…"}
               </>
+            ) : isCustomer ? (
+              "Request new time"
             ) : (
               "Move appointment"
             )}
