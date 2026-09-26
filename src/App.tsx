@@ -59,6 +59,7 @@ const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminProductCategories = lazy(() => import("./pages/admin/AdminProductCategories"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions"));
 const AdminCommerce = lazy(() => import("./pages/admin/AdminCommerce"));
 const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 const PlatformLogin = lazy(() => import("./pages/platform/PlatformLogin"));
@@ -71,6 +72,9 @@ const PlatformRequests = lazy(() => import("./pages/platform/PlatformRequests"))
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit"));
 const PlatformActivity = lazy(() => import("./pages/platform/PlatformActivity"));
 const PlatformReviews = lazy(() => import("./pages/platform/PlatformReviews"));
+const PlatformTransactions = lazy(
+  () => import("./pages/platform/PlatformTransactions"),
+);
 const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
@@ -236,6 +240,7 @@ const App = () => (
                 <Route path="products" element={<AdminProducts />} />
                 <Route path="product-categories" element={<AdminProductCategories />} />
                 <Route path="orders" element={<AdminOrders />} />
+                <Route path="transactions" element={<AdminTransactions />} />
                 <Route path="commerce" element={<AdminCommerce />} />
               </Route>
 
@@ -257,6 +262,7 @@ const App = () => (
                   <Route path="studios/:id" element={<PlatformStudioDetail />} />
                   <Route path="requests" element={<PlatformRequests />} />
                 <Route path="reviews" element={<PlatformReviews />} />
+                <Route path="transactions" element={<PlatformTransactions />} />
                   <Route path="billing" element={<PlatformBilling />} />
                   <Route path="audit" element={<PlatformAudit />} />
                   <Route path="activity" element={<PlatformActivity />} />

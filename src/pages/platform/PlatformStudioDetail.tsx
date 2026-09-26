@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, LogIn, Save, ScrollText, Receipt, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  LogIn,
+  Save,
+  ScrollText,
+  Receipt,
+  Trash2,
+  KeyRound,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -70,6 +79,7 @@ const PlatformStudioDetail = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [entering, setEntering] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const { data: studio, isLoading, isError, error } = useQuery({
     queryKey: ["platform", "studio", id],
@@ -180,6 +190,27 @@ const PlatformStudioDetail = () => {
     onSettled: () => invalidate(),
   });
 
+  // Emails the studio's owner a reset link. Deliberately not a "reveal password"
+  // action: stored passwords are bcrypt hashes and cannot be read back, so a
+  // reset is the only way to get a locked-out admin in — and the link goes to
+  // their mailbox, never to this screen.
+  const resetMutation = useMutation({
+    mutationFn: () => platformApi.sendStudioPasswordReset(id),
+    onSuccess: (res) => {
+      setResetOpen(false);
+      toast({
+        title: "Reset link sent",
+        description: res.message,
+      });
+    },
+    onError: (err) =>
+      toast({
+        variant: "destructive",
+        title: "Couldn't send the reset link",
+        description: err instanceof Error ? err.message : "Please try again.",
+      }),
+  });
+
   const handleEnter = async () => {
     setEntering(true);
     try {
@@ -260,6 +291,16 @@ const PlatformStudioDetail = () => {
               <ScrollText className="mr-2 h-4 w-4" />
               Activity
             </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to={`/platform/transactions?studio=${id}`}>
+              <Receipt className="mr-2 h-4 w-4" />
+              Transactions
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={() => setResetOpen(true)}>
+            <KeyRound className="mr-2 h-4 w-4" />
+            Send password reset
           </Button>
           <Button onClick={handleEnter} disabled={entering}>
             {entering ? (
@@ -509,6 +550,52 @@ const PlatformStudioDetail = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send a password reset link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {studio.owner?.email ? (
+                <>
+                  We'll email <strong>{studio.owner.email}</strong> a link to set a
+                  new password. It expires in 1 hour and can only be used once.
+                </>
+              ) : (
+                <>
+                  We'll email this studio's owner a link to set a new password. It
+                  expires in 1 hour and can only be used once.
+                </>
+              )}{" "}
+              You won't see their password — stored passwords are one-way hashes,
+              so nobody can read them back. This action is recorded in the audit
+              log.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                resetMutation.mutate();
+              }}
+              disabled={resetMutation.isPending}
+            >
+              {resetMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending…
+                </>
+              ) : (
+                "Send reset link"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </PlatformLayout>
   );
 };

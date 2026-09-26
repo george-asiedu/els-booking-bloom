@@ -23,7 +23,8 @@ import {
   Rocket,
   Megaphone,
   Quote,
-  Globe
+  Globe,
+  Receipt,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const navItems = [
   { name: "Product Categories", path: "/admin/product-categories", icon: Tag },
   { name: "Orders", path: "/admin/orders", icon: Package },
   { name: "Shop Settings", path: "/admin/commerce", icon: Store },
+  { name: "Transactions", path: "/admin/transactions", icon: Receipt },
   { name: "Payments", path: "/admin/payments", icon: CreditCard },
   { name: "Billing & plan", path: "/admin/billing", icon: CreditCard },
   { name: "Share your story", path: "/admin/testimonial", icon: Quote },

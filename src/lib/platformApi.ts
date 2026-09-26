@@ -5,6 +5,12 @@
 // normal els_token/els_user — doesn't sign the super admin out of /platform.
 
 import { ApiError } from "./apiClient";
+import {
+  ledgerQuery,
+  type LedgerFilters,
+  type LedgerEntryDTO,
+  type LedgerSummaryDTO,
+} from "./api";
 import { FeatureRequestDTO, FeatureRequestStatus } from "./api";
 import { getDeviceId } from "./deviceIdentity";
 
@@ -244,6 +250,37 @@ export interface ImpersonateResult {
   user: { id: string; email: string; role: string };
 }
 
+export interface PlatformQueueCounts {
+  active?: number;
+  completed?: number;
+  delayed?: number;
+  failed?: number;
+  waiting?: number;
+  paused?: number;
+  [k: string]: number | undefined;
+}
+
+export interface PlatformQueueFailure {
+  id?: string;
+  failedReason?: string;
+  attemptsMade?: number;
+  data?: unknown;
+}
+
+// `enabled: false` when REDIS_URL isn't configured — the other fields are then
+// absent, so the UI must handle that case rather than assume counts exist.
+export interface PlatformQueueStatus {
+  message: string;
+  data: {
+    enabled: boolean;
+    email?: { counts: PlatformQueueCounts; recentFailures: PlatformQueueFailure[] };
+    reconcilePayments?: {
+      counts: PlatformQueueCounts;
+      recentFailures: PlatformQueueFailure[];
+    };
+  };
+}
+
 interface Envelope<T> {
   message: string;
   data: T;
@@ -446,5 +483,61 @@ export const platformApi = {
     if (params.statusCode) qs.set("statusCode", String(params.statusCode));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return platformRequest<PlatformActivityLogPage>(`/activity-logs${suffix}`);
+  },
+
+  // ---- Transaction ledger (any studio, or platform-wide) ----
+
+  async listTransactions(
+    params: { studioId?: string } & LedgerFilters = {},
+  ): Promise<{ entries: LedgerEntryDTO[]; nextCursor: string | null }> {
+    const qs = new URLSearchParams(ledgerQuery(params));
+    if (params.studioId) qs.set("studioId", params.studioId);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await platformRequest<{
+      message: string;
+      entries: LedgerEntryDTO[];
+      nextCursor: string | null;
+    }>(`/transactions${suffix}`);
+    return { entries: res.entries ?? [], nextCursor: res.nextCursor ?? null };
+  },
+
+  async transactionSummary(
+    params: { studioId?: string; from?: string; to?: string } = {},
+  ): Promise<LedgerSummaryDTO> {
+    const qs = new URLSearchParams();
+    if (params.studioId) qs.set("studioId", params.studioId);
+    if (params.from) qs.set("from", params.from);
+    if (params.to) qs.set("to", params.to);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await platformRequest<Envelope<LedgerSummaryDTO>>(
+      `/transactions/summary${suffix}`,
+    );
+    return res.data;
+  },
+
+  // ---- Studio admin account recovery ----
+
+  /**
+   * Email a studio admin a password-reset link. There is no endpoint that
+   * reveals an existing password: they are bcrypt hashes and cannot be read
+   * back, so a reset is the only way to get a locked-out admin back in.
+   */
+  async sendStudioPasswordReset(
+    studioId: string,
+    userId?: string,
+  ): Promise<{ message: string; data: { email: string; expiresAt: string } }> {
+    return platformRequest<{
+      message: string;
+      data: { email: string; expiresAt: string };
+    }>(`/studios/${studioId}/send-password-reset`, {
+      method: "POST",
+      body: userId ? { userId } : {},
+    });
+  },
+
+  // ---- Background job queues (read-only health panel) ----
+
+  async queues(): Promise<PlatformQueueStatus> {
+    return platformRequest<PlatformQueueStatus>("/queues");
   },
 };

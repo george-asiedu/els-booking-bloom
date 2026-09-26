@@ -1,7 +1,18 @@
 import { useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { Calendar, Phone, Mail, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Image as ImageIcon } from "lucide-react";
+import {
+  Calendar,
+  Phone,
+  Mail,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Loader2,
+  Image as ImageIcon,
+  Trash2,
+} from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +40,16 @@ import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
 import { useStudio } from "@/hooks/useStudio";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type AppointmentStatus = AppointmentDTO["status"];
 type Appointment = AppointmentDTO;
@@ -75,6 +96,9 @@ const buildReceiptMessage = (a: Appointment, brand: string): string => {
 
 const AdminAppointments = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [pendingDelete, setPendingDelete] = useState<AppointmentDTO | null>(
+    null,
+  );
   const [aSearch, setASearch] = useState("");
   const [aPayment, setAPayment] = useState("all");
   const [aFrom, setAFrom] = useState("");
@@ -107,6 +131,27 @@ const AdminAppointments = () => {
       toast({
         variant: "destructive",
         title: "Error",
+        description: error.message,
+      });
+    },
+  });
+
+  // Hard delete, distinct from setting status to "cancelled": this removes the
+  // booking record entirely, so it's behind a confirmation.
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => appointmentsApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
+      setPendingDelete(null);
+      toast({
+        title: "Booking deleted",
+        description: "The booking has been permanently removed.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Couldn't delete the booking",
         description: error.message,
       });
     },
@@ -423,6 +468,15 @@ const AdminAppointments = () => {
                               </a>
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="w-32 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setPendingDelete(appointment)}
+                          >
+                            <Trash2 className="mr-1 h-4 w-4" />
+                            Delete
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -441,6 +495,45 @@ const AdminAppointments = () => {
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this booking?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `${pendingDelete.full_name}'s booking will be permanently removed. This can't be undone — if you only want to call it off, set the status to "cancelled" instead so the record is kept.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              Keep booking
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingDelete) deleteMutation.mutate(pendingDelete.id);
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete booking"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </AdminLayout>
   );
 };
