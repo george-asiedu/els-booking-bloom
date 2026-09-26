@@ -4,6 +4,7 @@ import { Loader2, Receipt, ExternalLink } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -86,6 +87,13 @@ const AdminTransactions = () => {
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
+  });
+
+  // Refunds live alongside the ledger rather than on their own page: a studio
+  // admin looking for "did that refund go through" is already looking at money.
+  const refundsQuery = useQuery({
+    queryKey: ["admin-refunds"],
+    queryFn: () => refundsApi.list({ limit: 25 }),
   });
 
   const detailQuery = useQuery({
@@ -279,6 +287,78 @@ const AdminTransactions = () => {
             </div>
           </CardContent>
         </Card>
+
+        {(refundsQuery.data?.length ?? 0) > 0 ? (
+          <Card>
+            <CardContent className="py-4">
+              <p className="mb-1 text-sm font-medium">Recent refunds</p>
+              <p className="mb-3 text-xs text-muted-foreground">
+                A refund stays pending until the provider confirms it. The
+                customer is emailed a receipt once it completes.
+              </p>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {refundsQuery.data!.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {entryDate(r.processedAt ?? r.createdAt)}
+                        </TableCell>
+                        <TableCell className="max-w-[180px] text-sm">
+                          <span className="block truncate">
+                            {r.customerName ?? r.customerEmail ?? "—"}
+                          </span>
+                          <span className="block truncate font-mono text-[11px] text-muted-foreground">
+                            {r.reference}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] text-sm">
+                          <span className="block truncate">
+                            {r.reason ?? "—"}
+                          </span>
+                          {r.failureReason ? (
+                            <span className="block truncate text-[11px] text-destructive">
+                              {r.failureReason}
+                            </span>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              r.status === "PROCESSED"
+                                ? "default"
+                                : r.status === "FAILED"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {r.status === "PROCESSED"
+                              ? "Refunded"
+                              : r.status === "FAILED"
+                                ? "Failed"
+                                : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium tabular-nums">
+                          −{formatGHS(r.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {listQuery.hasNextPage ? (
           <div className="flex justify-center">

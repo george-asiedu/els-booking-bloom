@@ -105,13 +105,23 @@ export interface AppointmentServiceDTO {
   category: ServiceCategory;
 }
 
-export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+export type PaymentStatus =
+  | "pending"
+  | "paid"
+  | "failed"
+  | "refunded"
+  | "partially_refunded";
 export type PaymentType = "full" | "partial";
 
 export interface PaymentInfoDTO {
+  // Present on admin reads; absent on the public verify shape, which has no
+  // reason to expose an internal payment id.
+  id?: string;
   status: PaymentStatus;
   type: PaymentType;
   amount: number; // amount charged/paid in this transaction
+  // Running total already refunded, so the UI can show what is left to give back.
+  refunded_amount?: number;
   total_amount: number; // full amount due for the booking
   balance: number; // total_amount - amount (0 for full payments)
   reference: string | null;
@@ -172,9 +182,12 @@ interface RawAppointment {
   discountAmount: number;
   pointsRedeemed: number;
   payment?: {
-    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+    id: string;
+    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
     type: "FULL" | "PARTIAL";
     amount: number;
+    // Running total of processed refunds against this payment.
+    refundedAmount?: number;
     totalAmount: number;
     reference: string | null;
     channel: string | null;
@@ -233,9 +246,11 @@ const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
   amount_due: (a.totalPrice ?? 0) - (a.discountAmount ?? 0),
   payment: a.payment
     ? {
+        id: a.payment.id,
         status: a.payment.status.toLowerCase() as PaymentStatus,
         type: a.payment.type.toLowerCase() as PaymentType,
         amount: a.payment.amount,
+        refunded_amount: a.payment.refundedAmount ?? 0,
         total_amount: a.payment.totalAmount,
         balance: Math.max(0, a.payment.totalAmount - a.payment.amount),
         reference: a.payment.reference,
@@ -1119,6 +1134,19 @@ export const appointmentsApi = {
     return normalizeAppointment(res.data);
   },
 
+  // Move a booking to a new slot. The server enforces the rules (no clash, not
+  // cancelled or completed, not the same slot) and emails the customer.
+  async reschedule(
+    id: string,
+    input: { date: string; time: string; reason?: string },
+  ): Promise<AppointmentDTO> {
+    const res = await apiRequest<Envelope<RawAppointment>>(
+      `/appointments/${id}/reschedule`,
+      { method: "PATCH", auth: true, body: input },
+    );
+    return normalizeAppointment(res.data);
+  },
+
   // Permanently removes a booking (studio admin). Cancelling sets a status;
   // this deletes the record outright, so callers confirm first.
   async remove(id: string): Promise<void> {
@@ -1640,6 +1668,8 @@ export interface OrderDTO {
   points_redeemed: number;
   delivery_fee: number;
   total: number;
+  // Running total of processed refunds against this order.
+  refunded_amount?: number;
   profit: number; // Σ (unit-cost)×qty, excludes delivery — commerce revenue
   reference: string | null;
   paid_at: string | null;
@@ -1656,6 +1686,8 @@ interface RawOrder {
   id: string;
   orderNumber: string;
   status: "PENDING_PAYMENT" | "PAID" | "FULFILLED" | "CANCELLED";
+  // Running total of processed refunds against this order.
+  refundedAmount?: number;
   fulfillment: "PICKUP" | "DELIVERY";
   deliveryAddress: string | null;
   deliveryPhone: string | null;
@@ -1702,6 +1734,7 @@ const normalizeOrder = (o: RawOrder): OrderDTO => {
     points_redeemed: o.pointsRedeemed ?? 0,
     delivery_fee: o.deliveryFee,
     total: o.total,
+    refunded_amount: o.refundedAmount ?? 0,
     profit,
     reference: o.reference,
     paid_at: o.paidAt,
@@ -2260,5 +2293,65 @@ export const transactionsApi = {
       Envelope<{ entry: LedgerEntryDTO; attempts: PaymentAttemptDTO[] }>
     >(`/transactions/${id}`, { auth: true });
     return res.data;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Refunds (studio admin)
+// ---------------------------------------------------------------------------
+
+export type RefundStatus = "PENDING" | "PROCESSED" | "FAILED";
+
+export interface RefundDTO {
+  id: string;
+  reference: string;
+  amount: number;
+  currency: string;
+  status: RefundStatus;
+  reason: string | null;
+  paymentId: string | null;
+  orderId: string | null;
+  appointmentId: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  failureReason: string | null;
+  processedAt: string | null;
+  initiatedByEmail: string | null;
+  createdAt: string;
+}
+
+export const refundsApi = {
+  async list(params: { status?: RefundStatus; limit?: number } = {}): Promise<RefundDTO[]> {
+    const p = new URLSearchParams();
+    if (params.status) p.set("status", params.status);
+    if (params.limit) p.set("limit", String(params.limit));
+    const qs = p.toString();
+    const res = await apiRequest<Envelope<RefundDTO[]>>(
+      `/refunds${qs ? `?${qs}` : ""}`,
+      { auth: true },
+    );
+    return res.data;
+  },
+
+  // `amount` omitted refunds everything still refundable — the server owns that
+  // ceiling, so the UI never has to compute it.
+  async refundPayment(
+    paymentId: string,
+    input: { amount?: number; reason?: string } = {},
+  ): Promise<{ message: string; data: RefundDTO | null }> {
+    return apiRequest<{ message: string; data: RefundDTO | null }>(
+      `/refunds/payments/${paymentId}`,
+      { method: "POST", auth: true, body: input },
+    );
+  },
+
+  async refundOrder(
+    orderId: string,
+    input: { amount?: number; reason?: string } = {},
+  ): Promise<{ message: string; data: RefundDTO | null }> {
+    return apiRequest<{ message: string; data: RefundDTO | null }>(
+      `/refunds/orders/${orderId}`,
+      { method: "POST", auth: true, body: input },
+    );
   },
 };

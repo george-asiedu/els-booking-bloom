@@ -12,6 +12,8 @@ import {
   Loader2,
   Image as ImageIcon,
   Trash2,
+  CalendarClock,
+  Undo2,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
+import { RefundDialog, type RefundTarget } from "@/components/admin/RefundDialog";
+import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { Input } from "@/components/ui/input";
@@ -99,6 +103,9 @@ const AdminAppointments = () => {
   const [pendingDelete, setPendingDelete] = useState<AppointmentDTO | null>(
     null,
   );
+  const [pendingReschedule, setPendingReschedule] =
+    useState<AppointmentDTO | null>(null);
+  const [pendingRefund, setPendingRefund] = useState<RefundTarget | null>(null);
   const [aSearch, setASearch] = useState("");
   const [aPayment, setAPayment] = useState("all");
   const [aFrom, setAFrom] = useState("");
@@ -468,6 +475,41 @@ const AdminAppointments = () => {
                               </a>
                             </Button>
                           )}
+                          {appointment.status !== "cancelled" &&
+                          appointment.status !== "completed" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-32"
+                              onClick={() => setPendingReschedule(appointment)}
+                            >
+                              <CalendarClock className="mr-1 h-4 w-4" />
+                              Reschedule
+                            </Button>
+                          ) : null}
+                          {appointment.payment?.id &&
+                          (appointment.payment.status === "paid" ||
+                            appointment.payment.status ===
+                              "partially_refunded") ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-32"
+                              onClick={() =>
+                                setPendingRefund({
+                                  kind: "payment",
+                                  id: appointment.payment!.id!,
+                                  paid: appointment.payment!.amount,
+                                  alreadyRefunded:
+                                    appointment.payment!.refunded_amount ?? 0,
+                                  label: `${appointment.full_name} — ${appointment.services?.name ?? "booking"}`,
+                                })
+                              }
+                            >
+                              <Undo2 className="mr-1 h-4 w-4" />
+                              Refund
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -495,6 +537,16 @@ const AdminAppointments = () => {
           </div>
         )}
       </div>
+
+      <RescheduleDialog
+        appointment={pendingReschedule}
+        onOpenChange={(o) => !o && setPendingReschedule(null)}
+      />
+      <RefundDialog
+        target={pendingRefund}
+        onOpenChange={(o) => !o && setPendingRefund(null)}
+        invalidateKeys={["admin-appointments", "admin-ledger"]}
+      />
 
       <AlertDialog
         open={!!pendingDelete}
