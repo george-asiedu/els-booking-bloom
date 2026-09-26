@@ -1084,12 +1084,10 @@ export const appointmentsApi = {
    * should use: a 4-hour service starting at 10:00 blocks 11:00 too, and the
    * server refuses those, so offering them would just produce errors.
    */
-  async busySlots(
-    date: string,
-  ): Promise<{ start: string; minutes: number }[]> {
-    const res = await apiRequest<
-      Envelope<string[]> & { busy?: { start: string; minutes: number }[] }
-    >(`/appointments/availability?date=${encodeURIComponent(date)}`);
+  async busySlots(date: string): Promise<BusySlot[]> {
+    const res = await apiRequest<Envelope<string[]> & { busy?: BusySlot[] }>(
+      `/appointments/availability?date=${encodeURIComponent(date)}`,
+    );
     return res.busy ?? [];
   },
 
@@ -2297,6 +2295,14 @@ export const ledgerQuery = (f: LedgerFilters = {}): string => {
   if (f.cursor) p.set("cursor", f.cursor);
   return p.toString();
 };
+
+// A booking that occupies part of a day. `start` is normalised 24-hour;
+// `label` is however it was stored (the picker writes 12-hour).
+export interface BusySlot {
+  start: string;
+  label: string;
+  minutes: number;
+}
 
 export const transactionsApi = {
   async list(

@@ -53,6 +53,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { PaymentTarget } from "@/lib/api";
+import { slotIsBusy, parseDurationMinutes } from "@/lib/slots";
 
 const timeSlots = [
   "9:00 AM",
@@ -240,23 +241,40 @@ const Book = () => {
     }
   }, [profile, user, form, restored]);
 
-  // Times already booked for the chosen date are removed from the picker.
+  // Slots unavailable for the chosen date are removed from the picker.
+  //
+  // This has to account for how long each booking RUNS, not just when it
+  // starts: a 4-hour service booked at 10:00 also occupies 11:00, 12:00 and
+  // 13:00, and the server refuses those. Offering them would only produce a
+  // rejection after the customer had filled the form in.
   const selectedDate = form.watch("date");
   const selectedDateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
-  const { data: takenSlots = [] } = useQuery({
-    queryKey: ["taken-slots", selectedDateStr],
-    queryFn: () => appointmentsApi.takenSlots(selectedDateStr),
+  const { data: busy = [] } = useQuery({
+    queryKey: ["busy-slots", selectedDateStr],
+    queryFn: () => appointmentsApi.busySlots(selectedDateStr),
     enabled: !!selectedDateStr,
   });
-  const availableTimeSlots = timeSlots.filter((t) => !takenSlots.includes(t));
 
-  // If the picked time becomes unavailable after choosing a date, clear it.
+  // The chosen service's length decides which slots it can still fit into, so
+  // changing the service re-filters the times.
+  const selectedServiceForSlots = services.find(
+    (s) => s.id === form.watch("service"),
+  );
+  const serviceMinutes = parseDurationMinutes(
+    selectedServiceForSlots?.duration,
+  );
+  const availableTimeSlots = timeSlots.filter(
+    (t) => !slotIsBusy(t, serviceMinutes, busy),
+  );
+
+  // If the picked time becomes unavailable after choosing a date or a longer
+  // service, clear it rather than letting the form carry a slot that will fail.
   const selectedTime = form.watch("time");
   useEffect(() => {
-    if (selectedTime && takenSlots.includes(selectedTime)) {
+    if (selectedTime && slotIsBusy(selectedTime, serviceMinutes, busy)) {
       form.setValue("time", "");
     }
-  }, [takenSlots, selectedTime, form]);
+  }, [busy, selectedTime, serviceMinutes, form]);
 
   const handleDesignImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -668,9 +686,13 @@ const Book = () => {
                           )}
                         </SelectContent>
                       </Select>
-                      {selectedDateStr && takenSlots.length > 0 && (
+                      {selectedDateStr && busy.length > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Some times are already booked and hidden.
+                          {availableTimeSlots.length === 0
+                            ? "Every time that day is taken. Please try another date."
+                            : serviceMinutes && serviceMinutes > 60
+                              ? "Times that don't leave room for this service are hidden."
+                              : "Times already booked are hidden."}
                         </p>
                       )}
                       <FormMessage />
