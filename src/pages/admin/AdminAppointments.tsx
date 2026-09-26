@@ -14,6 +14,7 @@ import {
   Trash2,
   CalendarClock,
   Undo2,
+  Replace,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import {
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
 import { RefundDialog, type RefundTarget } from "@/components/admin/RefundDialog";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
+import { ChangeServiceDialog } from "@/components/admin/ChangeServiceDialog";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { Input } from "@/components/ui/input";
@@ -106,6 +108,8 @@ const AdminAppointments = () => {
   const [pendingReschedule, setPendingReschedule] =
     useState<AppointmentDTO | null>(null);
   const [pendingRefund, setPendingRefund] = useState<RefundTarget | null>(null);
+  const [changingService, setChangingService] =
+    useState<AppointmentDTO | null>(null);
   const [aSearch, setASearch] = useState("");
   const [aPayment, setAPayment] = useState("all");
   const [aFrom, setAFrom] = useState("");
@@ -487,6 +491,18 @@ const AdminAppointments = () => {
                               Reschedule
                             </Button>
                           ) : null}
+                          {appointment.status !== "cancelled" &&
+                          appointment.status !== "completed" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-32"
+                              onClick={() => setChangingService(appointment)}
+                            >
+                              <Replace className="mr-1 h-4 w-4" />
+                              Change service
+                            </Button>
+                          ) : null}
                           {appointment.payment?.id &&
                           (appointment.payment.status === "paid" ||
                             appointment.payment.status ===
@@ -541,6 +557,10 @@ const AdminAppointments = () => {
       <RescheduleDialog
         appointment={pendingReschedule}
         onOpenChange={(o) => !o && setPendingReschedule(null)}
+      />
+      <ChangeServiceDialog
+        appointment={changingService}
+        onOpenChange={(o) => !o && setChangingService(null)}
       />
       <RefundDialog
         target={pendingRefund}

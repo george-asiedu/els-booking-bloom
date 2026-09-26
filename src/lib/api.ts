@@ -1077,6 +1077,22 @@ export const appointmentsApi = {
   },
 
   // Time slots already taken for a date (so the picker can exclude them).
+  /**
+   * Slots blocked on a date, accounting for how long each booking runs.
+   *
+   * `takenSlots` remains the exact start times. `busySlots` is what a picker
+   * should use: a 4-hour service starting at 10:00 blocks 11:00 too, and the
+   * server refuses those, so offering them would just produce errors.
+   */
+  async busySlots(
+    date: string,
+  ): Promise<{ start: string; minutes: number }[]> {
+    const res = await apiRequest<
+      Envelope<string[]> & { busy?: { start: string; minutes: number }[] }
+    >(`/appointments/availability?date=${encodeURIComponent(date)}`);
+    return res.busy ?? [];
+  },
+
   async takenSlots(date: string): Promise<string[]> {
     const res = await apiRequest<Envelope<string[]>>(
       `/appointments/availability?date=${encodeURIComponent(date)}`,
@@ -1132,6 +1148,27 @@ export const appointmentsApi = {
       },
     );
     return normalizeAppointment(res.data);
+  },
+
+  // Swap the booked service (admin). Re-prices the booking, and may trigger a
+  // refund or leave a balance due — the server returns which.
+  async changeService(
+    id: string,
+    serviceId: string,
+  ): Promise<{
+    message: string;
+    data: {
+      newDue: number;
+      netPaid: number;
+      refunded: number;
+      balanceDue: number;
+    };
+  }> {
+    return apiRequest(`/appointments/${id}/service`, {
+      method: "PATCH",
+      auth: true,
+      body: { serviceId },
+    });
   },
 
   // Move a booking to a new slot. The server enforces the rules (no clash, not
