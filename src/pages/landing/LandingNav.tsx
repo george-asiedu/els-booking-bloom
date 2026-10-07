@@ -33,12 +33,12 @@ export const NavSection = () => {
           <Link to="/" className="animate-fade-in">
             <BrandLogo />
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
+          <nav className="hidden items-center gap-7 lg:flex">
             {NAV_LINKS.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
-                className="group relative text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="group relative whitespace-nowrap text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {l.label}
                 <span className="absolute -bottom-1 left-0 h-px w-0 bg-primary transition-[width] duration-300 group-hover:w-full" />
@@ -54,7 +54,7 @@ export const NavSection = () => {
               </Link>
             </Button>
           </nav>
-          <div className="flex items-center gap-1 md:hidden">
+          <div className="flex items-center gap-1 lg:hidden">
             <ThemeToggle />
             <button
               onClick={() => setMenuOpen((v) => !v)}
@@ -66,7 +66,7 @@ export const NavSection = () => {
           </div>
         </div>
         {menuOpen && (
-          <div className="border-t border-border bg-background px-4 py-4 md:hidden">
+          <div className="border-t border-border bg-background px-4 py-4 lg:hidden">
             <div className="flex flex-col gap-1">
               {NAV_LINKS.map((l) => (
                 <a

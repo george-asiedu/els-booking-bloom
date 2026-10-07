@@ -41,8 +41,11 @@ export const HeroSection = () => {
             </p>
           </div>
 
-          {/* Product showcase */}
-          <div className="animate-fade-in relative mx-auto w-full max-w-md [animation-delay:400ms] lg:max-w-none">
+          {/* Product showcase. Large screens only: on phones and tablets it
+              would sit below the call to action, crowd the floating cards
+              into a narrow column, and repeat the interactive mockup in
+              "Your own website" a few sections down. */}
+          <div className="animate-fade-in relative hidden w-full [animation-delay:400ms] lg:block lg:w-auto lg:mr-6">
             <StorefrontMockup studio={STUDIOS[0]} />
             <FloatCard className="-left-4 top-8 sm:-left-8">
               <Calendar className="h-4 w-4 text-primary" /> New booking

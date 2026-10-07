@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GHS, DemoStudio } from "./content";
 
@@ -46,14 +45,9 @@ export const StorefrontMockup = ({
             <p className="truncate font-serif text-base font-semibold leading-tight">
               {studio.name}
             </p>
-            <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <span className="flex" style={{ color: "hsl(var(--gold))" }}>
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-3 w-3 fill-current" />
-                ))}
-              </span>
-              4.9 · 214 reviews
-            </div>
+            {/* No rating here: these are real studio names, and an
+                invented score would read as a fact about them. */}
+            <p className="mt-0.5 text-xs text-muted-foreground">Booking online now</p>
           </div>
         </div>
 
