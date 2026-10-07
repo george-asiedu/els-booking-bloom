@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Mail } from "lucide-react";
+import { Check, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Reveal } from "@/components/Reveal";
 import { BrandLogo } from "@/components/BrandLogo";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { PLATFORM, PLANS, planPrice, studioUrl } from "@/config/platform";
@@ -19,15 +18,15 @@ export const PricingSection = () => {
       <section id="pricing" className="bg-secondary py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="mx-auto mb-10 max-w-2xl text-center">
-            <Reveal>
-              <h2 className="font-serif text-3xl font-bold md:text-5xl">
-                Simple pricing. No surprises.
+            <div>
+              <h2 className="font-serif text-3xl font-semibold md:text-5xl">
+                Two plans, paid monthly or yearly.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Booking is always included. Add the online shop with Premium. No
-                setup fees, cancel anytime.
+                Both include bookings, payments and your website. Premium adds an
+                online shop. There's no setup fee and you can cancel at any time.
               </p>
-            </Reveal>
+            </div>
             <div className="mt-6 inline-flex rounded-full border border-border bg-card p-1">
               {(["MONTHLY", "YEARLY"] as const).map((c) => (
                 <button
@@ -51,32 +50,33 @@ export const PricingSection = () => {
 
           <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
             {PLANS.map((plan, i) => (
-              <Reveal
+              <div
                 key={plan.id}
-                delay={i * 100}
                 className={cn(
-                  "relative rounded-3xl border bg-card p-8 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1",
+                  "relative flex flex-col rounded-xl border bg-card p-8",
                   plan.featured
                     ? "border-primary shadow-lg ring-1 ring-primary/20"
-                    : "border-border hover:shadow-lg",
+                    : "border-border",
                 )}
               >
                 {plan.featured && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    Most popular
+                    Adds the online shop
                   </span>
                 )}
                 <h3 className="text-xl font-semibold">{plan.name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>
                 <div className="mt-5 flex items-end gap-1">
-                  <span className="font-serif text-4xl font-bold">
+                  <span className="font-serif text-4xl font-semibold">
                     {GHS(planPrice(plan, cadence))}
                   </span>
                   <span className="mb-1 text-sm text-muted-foreground">
                     /{cadence === "MONTHLY" ? "month" : "year"}
                   </span>
                 </div>
-                <ul className="mt-6 space-y-3">
+                {/* flex-1 takes up the spare height, so every card's button
+                    lines up at the bottom whatever its feature count. */}
+                <ul className="mt-6 flex-1 space-y-3">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -90,10 +90,10 @@ export const PricingSection = () => {
                   asChild
                 >
                   <Link to={`/onboarding?plan=${plan.id}&cadence=${cadence}`}>
-                    Get started with {plan.name}
+                    Choose {plan.name}
                   </Link>
                 </Button>
-              </Reveal>
+              </div>
             ))}
           </div>
 
@@ -122,21 +122,20 @@ export const FaqSection = () => {
       {/* ---------------------------------------------------------------- FAQ */}
       <section className="py-20 md:py-28">
         <div className="container mx-auto max-w-3xl px-4">
-          <Reveal>
-            <h2 className="mb-10 text-center font-serif text-3xl font-bold md:text-4xl">
+          <div>
+            <h2 className="mb-10 text-center font-serif text-3xl font-semibold md:text-4xl">
               Frequently asked questions
             </h2>
-          </Reveal>
+          </div>
           <div className="space-y-4">
             {FAQ.map((item, i) => (
-              <Reveal
+              <div
                 key={item.q}
-                delay={i * 60}
                 className="rounded-2xl border border-border bg-card p-5"
               >
                 <h3 className="font-semibold">{item.q}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{item.a}</p>
-              </Reveal>
+              </div>
             ))}
           </div>
         </div>
@@ -156,29 +155,26 @@ export const FinalCtaSection = () => {
             <div className="animate-float-slow absolute -left-10 -top-10 h-52 w-52 rounded-full bg-primary/15 blur-3xl" />
             <div className="animate-float-slow absolute -bottom-12 -right-8 h-56 w-56 rounded-full bg-primary/10 blur-3xl [animation-delay:2s]" />
           </div>
-          <Reveal>
-            <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight md:text-5xl">
-              Your next client could be
-              <br className="hidden md:block" /> looking for you right now.
+          <div>
+            <h2 className="mx-auto max-w-2xl font-serif text-3xl font-semibold leading-tight md:text-5xl">
+              Ready to take bookings online?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Give your beauty business a storefront that works as beautifully as
-              you do.
+              Set up your studio now, or message us first if you'd like a hand.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button size="lg" className="group w-full sm:w-auto" asChild>
                 <Link to="/onboarding">
-                  Start your studio
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  Set up your studio
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
                 <a href={studioUrl(PLATFORM.demoSlug)} target="_blank" rel="noreferrer">
-                  See a live studio
+                  See a real studio's page
                 </a>
               </Button>
             </div>
-          </Reveal>
+          </div>
         </div>
       </section>
 
@@ -196,8 +192,7 @@ export const FooterSection = () => {
             <div className="col-span-2 md:col-span-2">
               <BrandLogo full />
               <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-                One beautiful storefront for bookings, payments, products and
-                loyal clients — built for beauty businesses.
+                Booking websites for hair, nail, lash and makeup studios in Ghana.
               </p>
             </div>
             <FooterCol
@@ -212,7 +207,7 @@ export const FooterSection = () => {
               title="Studios"
               links={[
                 { label: "Studio login", to: "/admin/login" },
-                { label: "Get started", to: "/onboarding" },
+                { label: "Set up your studio", to: "/onboarding" },
               ]}
             />
             <FooterCol

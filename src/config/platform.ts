@@ -10,11 +10,11 @@ const num = (v: string | undefined, def: number) => {
 export const PLATFORM = {
   name: env.VITE_PLATFORM_NAME || "Zuri Studios",
   tagline: env.VITE_PLATFORM_TAGLINE || "Beauty businesses, booked.",
-  // Small badge shown above the hero headline.
+  // Short line above the hero headline: who the product is for.
   heroBadge:
-    env.VITE_PLATFORM_HERO_BADGE || "Bookings · Shop · Payments — in one place",
+    env.VITE_PLATFORM_HERO_BADGE || "For hair, nail, lash and makeup studios in Ghana",
   description:
-    "Zuri is the all-in-one platform that lets beauty studios take bookings, sell products, accept Mobile-Money payments and reward loyal clients — from one branded site.",
+    "Zuri gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
   whatsapp: env.VITE_PLATFORM_WHATSAPP || "0203631199", // e.g. "233200000000"
   email: env.VITE_PLATFORM_EMAIL || "customersupport@zuristudios.com",
   // A live studio to showcase from the landing page.
@@ -56,11 +56,11 @@ export interface PlanDef {
 
 const STANDARD_FEATURES = [
   "Online bookings & scheduling",
-  "Your own branded site + subdomain",
+  "Your own website and web address",
   "Accept booking payments (Mobile Money & card)",
   "Loyalty points & referrals",
   "Reviews & photo/video gallery",
-  "Promotions banner",
+  "A banner for offers and promotions",
 ];
 
 export const PLANS: PlanDef[] = [
@@ -81,9 +81,9 @@ export const PLANS: PlanDef[] = [
     featured: true,
     features: [
       "Everything in Standard",
-      "Online shop — products, cart & orders",
+      "An online shop with cart and checkout",
       "Sell products during booking",
-      "Split settlement straight to your account",
+      "Payments settled straight to your account",
     ],
   },
 ];

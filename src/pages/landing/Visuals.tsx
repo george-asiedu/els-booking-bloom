@@ -37,7 +37,7 @@ export const StorefrontMockup = ({
         {/* Studio header */}
         <div className="flex items-center gap-3">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-serif text-lg font-bold text-white"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-serif text-lg font-semibold text-white"
             style={{ backgroundColor: brand }}
           >
             {studio.name.charAt(0)}

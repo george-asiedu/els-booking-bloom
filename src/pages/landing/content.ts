@@ -53,36 +53,35 @@ export const FEATURES = [
   {
     icon: Calendar,
     title: "Bookings",
-    text: "Let clients discover your services and book anytime — with availability, deposits and reminders built in.",
+    text: "Clients only see times you're actually free, pay a deposit if you ask for one, and get a reminder the day before.",
   },
   {
     icon: Smartphone,
     title: "Payments",
-    text: "Accept Mobile Money and card payments, with money settling straight to your own account.",
+    text: "Clients pay by Mobile Money or card. The money goes straight to your own account.",
   },
   {
     icon: ShoppingBag,
-    title: "Products",
-    text: "Sell products directly from your branded storefront, with cart, checkout and orders.",
+    title: "Shop",
+    text: "Sell the products you use. Clients can add them to a booking and collect them at their appointment.",
   },
   {
     icon: Gift,
-    title: "Loyalty",
-    text: "Reward repeat clients with points and referrals — give them a reason to come back.",
+    title: "Loyalty points",
+    text: "Clients earn points each visit and spend them on a later booking. Referrals earn points too.",
   },
   {
     icon: Star,
     title: "Reviews",
-    text: "Build trust with real customer experiences shown right on your storefront.",
+    text: "Clients review you after their appointment. You choose which reviews appear on your page.",
   },
 ];
 
 export const JOURNEY = [
-  { n: "01", title: "Discover", text: "A client discovers your studio online — on your own branded link." },
-  { n: "02", title: "Book", text: "They choose a service, date and time in a few taps." },
-  { n: "03", title: "Pay", text: "They pay securely with Mobile Money or card." },
-  { n: "04", title: "Return", text: "They leave a review and earn loyalty points." },
-  { n: "05", title: "Repeat", text: "They come back — and become a loyal, paying regular." },
+  { n: "1", title: "They find you", text: "From your link on Instagram, WhatsApp or Google, they land on your own page." },
+  { n: "2", title: "They book", text: "They choose a service and a free time. Nothing to download, no account needed to look." },
+  { n: "3", title: "They pay", text: "A deposit or the full amount, by Mobile Money or card, and get a receipt by email." },
+  { n: "4", title: "They come back", text: "A reminder before the visit, points after it, and a quick review if they're happy." },
 ];
 
 export const FAQ = [
@@ -100,7 +99,7 @@ export const FAQ = [
   },
   {
     q: "Can I cancel or change my plan?",
-    a: "Yes — upgrade, downgrade or switch between monthly and yearly anytime from your dashboard. Cancel whenever you like.",
+    a: "Yes. Upgrade, downgrade or switch between monthly and yearly from your dashboard at any time, or cancel.",
   },
   {
     q: "Can I use my own domain?",

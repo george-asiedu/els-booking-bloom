@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -50,8 +50,7 @@ export const NavSection = () => {
             </Button>
             <Button size="sm" className="group" asChild>
               <Link to="/onboarding">
-                Get started
-                <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                Set up your studio
               </Link>
             </Button>
           </nav>
@@ -84,7 +83,7 @@ export const NavSection = () => {
                   <Link to="/admin/login">Studio login</Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/onboarding">Get started</Link>
+                  <Link to="/onboarding">Set up your studio</Link>
                 </Button>
               </div>
             </div>

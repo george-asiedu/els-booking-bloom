@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { platformReviewsApi } from "@/lib/api";
 import { Gift, Star, Check, Upload, MessageSquareQuote, TrendingUp } from "lucide-react";
-import { Reveal } from "@/components/Reveal";
 import { CountUp } from "@/components/CountUp";
 import { cn } from "@/lib/utils";
 import { GHS } from "./content";
@@ -13,16 +12,13 @@ export const BookingSection = () => {
       {/* ------------------------------------------------ Booking experience */}
       <section className="bg-secondary py-20 md:py-28">
         <div className="container mx-auto grid grid-cols-1 items-center gap-12 px-4 lg:grid-cols-2">
-          <Reveal>
-            <span className="text-sm font-semibold uppercase tracking-wide text-primary">
-              Booking
-            </span>
-            <h2 className="mt-2 font-serif text-3xl font-bold md:text-5xl">
-              A booking experience clients actually enjoy.
+          <div>
+            <h2 className="font-serif text-3xl font-semibold md:text-5xl">
+              Clients can book without messaging you.
             </h2>
             <p className="mt-4 max-w-md text-muted-foreground">
-              Let clients book you while you're busy making them beautiful. They
-              even attach a design reference so you're ready before they arrive.
+              They pick a service, see the times you're actually free, and can
+              attach a photo of the look they want, so you're ready when they arrive.
             </p>
             <ul className="mt-6 space-y-3">
               {[
@@ -35,9 +31,9 @@ export const BookingSection = () => {
                 </li>
               ))}
             </ul>
-          </Reveal>
+          </div>
 
-          <Reveal delay={100} className="mx-auto w-full max-w-md">
+          <div className="mx-auto w-full max-w-md">
             <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
               <p className="font-serif text-lg font-semibold">
                 Book your appointment
@@ -116,11 +112,11 @@ export const BookingSection = () => {
                 Upload design reference (optional)
               </div>
 
-              <button className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5">
+              <button className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-transform">
                 Confirm booking
               </button>
             </div>
-          </Reveal>
+          </div>
         </div>
       </section>
 
@@ -134,7 +130,7 @@ export const BusinessSection = () => {
       {/* ---------------------------------------------------- Business side */}
       <section className="py-20 md:py-28">
         <div className="container mx-auto grid grid-cols-1 items-center gap-12 px-4 lg:grid-cols-2">
-          <Reveal delay={100} className="order-2 mx-auto w-full max-w-lg lg:order-1">
+          <div className="order-2 mx-auto w-full max-w-lg lg:order-1">
             <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
               <div className="flex items-center justify-between">
                 <p className="font-serif text-lg font-semibold">Today</p>
@@ -149,14 +145,14 @@ export const BusinessSection = () => {
                   { label: "Returning clients", value: 11 },
                 ].map((m) => (
                   <div key={m.label} className="rounded-xl border border-border p-4">
-                    <p className="font-serif text-2xl font-bold text-primary">
+                    <p className="font-serif text-2xl font-semibold text-primary">
                       <CountUp value={m.value} />
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">{m.label}</p>
                   </div>
                 ))}
                 <div className="rounded-xl border border-border bg-primary/5 p-4">
-                  <p className="font-serif text-2xl font-bold text-primary">
+                  <p className="font-serif text-2xl font-semibold text-primary">
                     <CountUp value={2480} prefix="GHS " />
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">Revenue</p>
@@ -181,19 +177,15 @@ export const BusinessSection = () => {
                 ))}
               </div>
             </div>
-          </Reveal>
+          </div>
 
-          <Reveal className="order-1 lg:order-2">
-            <span className="text-sm font-semibold uppercase tracking-wide text-primary">
-              For studio owners
-            </span>
-            <h2 className="mt-2 font-serif text-3xl font-bold md:text-5xl">
-              Run the business.
-              <br /> Without the busywork.
+          <div className="order-1 lg:order-2">
+            <h2 className="font-serif text-3xl font-semibold md:text-5xl">
+              See how your week is going at a glance.
             </h2>
             <p className="mt-4 max-w-md text-muted-foreground">
-              Appointments, revenue, popular services, new and returning clients,
-              reviews and loyalty — all in one clear dashboard, updated live.
+              Today's appointments, what you've taken this month, your most booked
+              services and who keeps coming back, all on one screen.
             </p>
             <div className="mt-6 flex flex-wrap gap-3 text-sm">
               {["Appointments", "Revenue", "Reviews", "Loyalty", "Analytics"].map(
@@ -207,7 +199,7 @@ export const BusinessSection = () => {
                 ),
               )}
             </div>
-          </Reveal>
+          </div>
         </div>
       </section>
 
@@ -228,36 +220,38 @@ export const LoyaltyReviewsSection = () => {
       <section className="bg-secondary py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="mx-auto mb-14 max-w-2xl text-center">
-            <Reveal>
-              <h2 className="font-serif text-3xl font-bold md:text-5xl">
-                Make great clients
-                <br /> want to come back.
+            <div>
+              <h2 className="font-serif text-3xl font-semibold md:text-5xl">
+                Give your regulars a reason to come back.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Zuri isn't just bookings — it helps you build the long-term
-                relationships that keep your chairs full.
+                Points for every visit, a bonus when they bring a friend, and
+                their reviews on your page for new clients to read.
               </p>
-            </Reveal>
+            </div>
           </div>
 
           <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
-            <Reveal className="rounded-3xl border border-border bg-card p-7 shadow-sm">
-              <MessageSquareQuote className="h-8 w-8 text-primary/40" />
+            <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <MessageSquareQuote className="h-4 w-4" aria-hidden />
+                Example of a review on a studio's page
+              </p>
               <div className="mt-4 flex" style={{ color: "hsl(var(--gold))" }}>
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="h-5 w-5 fill-current" />
                 ))}
               </div>
               <p className="mt-4 font-serif text-xl leading-snug">
-                “Absolutely loved my nails. The booking process was so easy — and
-                I earned points I actually used!”
+                “Booked on my lunch break, paid the deposit with MoMo, and earned
+                points towards my next fill.”
               </p>
               <p className="mt-4 text-sm text-muted-foreground">
-                Ama · returning client
+                Ama, a regular
               </p>
-            </Reveal>
+            </div>
 
-            <Reveal delay={120} className="rounded-3xl border border-border bg-card p-7 shadow-sm">
+            <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 font-serif text-lg font-semibold">
                   <Gift className="h-5 w-5 text-primary" /> Zuri Rewards
@@ -271,7 +265,7 @@ export const LoyaltyReviewsSection = () => {
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Current points
                   </p>
-                  <p className="font-serif text-4xl font-bold text-primary">
+                  <p className="font-serif text-4xl font-semibold text-primary">
                     <CountUp value={350} />
                   </p>
                 </div>
@@ -279,21 +273,20 @@ export const LoyaltyReviewsSection = () => {
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Next reward
                   </p>
-                  <p className="font-serif text-2xl font-bold">500</p>
+                  <p className="font-serif text-2xl font-semibold">500</p>
                 </div>
               </div>
               <Bar pct={70} className="mt-4 h-2.5" />
               <p className="mt-2 text-sm text-muted-foreground">150 points to go</p>
-            </Reveal>
+            </div>
           </div>
 
           {/* Real studio testimonials, if any */}
           {testimonials.length > 0 && (
             <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
               {testimonials.slice(0, 3).map((t, i) => (
-                <Reveal
+                <div
                   key={t.id}
-                  delay={i * 90}
                   className="rounded-2xl border border-border bg-card p-6"
                 >
                   <div className="mb-3 flex gap-1" style={{ color: "hsl(var(--gold))" }}>
@@ -316,7 +309,7 @@ export const LoyaltyReviewsSection = () => {
                       </span>
                     ) : null}
                   </p>
-                </Reveal>
+                </div>
               ))}
             </div>
           )}
@@ -334,14 +327,14 @@ export const HowSection = () => {
       <section id="how" className="py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="mx-auto mb-14 max-w-2xl text-center">
-            <Reveal>
-              <h2 className="font-serif text-3xl font-bold md:text-5xl">
-                Live in a day.
+            <div>
+              <h2 className="font-serif text-3xl font-semibold md:text-5xl">
+                Set up in about 10 minutes.
               </h2>
               <p className="mt-4 text-muted-foreground">
                 Three simple steps from sign-up to your first paid booking.
               </p>
-            </Reveal>
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {[
@@ -349,15 +342,15 @@ export const HowSection = () => {
               { n: "2", t: "Make it yours", d: "Add your logo and colours, list your services and products, set your hours." },
               { n: "3", t: "Share your link", d: "Send clients your booking link and start taking bookings the same day." },
             ].map((s, i) => (
-              <Reveal key={s.n} delay={i * 120} className="text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary font-serif text-xl font-bold text-primary-foreground shadow-lg shadow-primary/25">
+              <div key={s.n} className="text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary font-serif text-xl font-semibold text-primary-foreground shadow-lg shadow-primary/25">
                   {s.n}
                 </div>
                 <h3 className="mb-2 text-lg font-semibold">{s.t}</h3>
                 <p className="mx-auto max-w-xs text-sm text-muted-foreground">
                   {s.d}
                 </p>
-              </Reveal>
+              </div>
             ))}
           </div>
         </div>
