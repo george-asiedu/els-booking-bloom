@@ -34,6 +34,7 @@ import {
   channelLabel,
   entryDate,
 } from "@/lib/ledgerFormat";
+import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
 const PAGE_SIZE = 50;
 
@@ -170,19 +171,13 @@ const PlatformTransactions = () => {
               </SelectContent>
             </Select>
 
-            <Input
-              type="date"
-              aria-label="From date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="w-[150px]"
-            />
-            <Input
-              type="date"
-              aria-label="To date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="w-[150px]"
+            <DateRangeField
+              from={from}
+              to={to}
+              onChange={(f, t) => {
+                setFrom(f);
+                setTo(t);
+              }}
             />
 
             <Button

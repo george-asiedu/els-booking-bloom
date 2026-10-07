@@ -41,7 +41,6 @@ import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
 import { ChangeServiceDialog } from "@/components/admin/ChangeServiceDialog";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { Input } from "@/components/ui/input";
 import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +56,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatGHS } from "@/lib/currency";
+import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
 type AppointmentStatus = AppointmentDTO["status"];
 type Appointment = AppointmentDTO;
@@ -276,8 +276,14 @@ const AdminAppointments = () => {
               <SelectItem value="unpaid">No payment</SelectItem>
             </SelectContent>
           </Select>
-          <Input type="date" value={aFrom} onChange={(e) => setAFrom(e.target.value)} className="w-[150px]" title="From date" />
-          <Input type="date" value={aTo} onChange={(e) => setATo(e.target.value)} className="w-[150px]" title="To date" />
+          <DateRangeField
+            from={aFrom}
+            to={aTo}
+            onChange={(f, t) => {
+              setAFrom(f);
+              setATo(t);
+            }}
+          />
         </FilterBar>
 
         {/* Appointments Table */}
