@@ -15,8 +15,16 @@ import {
   CalendarClock,
   Undo2,
   Replace,
+  MoreHorizontal,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,6 +87,9 @@ const buildWhatsappMessage = (a: Appointment, brand: string): string => {
 
 const statusConfig = {
   pending: { label: "Pending", variant: "secondary" as const, icon: AlertCircle },
+  // A customer moved the booking and the studio hasn't approved the new time.
+  // Missing before, so the page crashed on the first such booking.
+  pending_reschedule: { label: "New time requested", variant: "secondary" as const, icon: CalendarClock },
   confirmed: { label: "Confirmed", variant: "default" as const, icon: CheckCircle },
   completed: { label: "Completed", variant: "outline" as const, icon: CheckCircle },
   cancelled: { label: "Cancelled", variant: "destructive" as const, icon: XCircle },
@@ -261,6 +272,7 @@ const AdminAppointments = () => {
             <SelectContent>
               <SelectItem value="all">Any status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="pending_reschedule">New time requested</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -308,7 +320,7 @@ const AdminAppointments = () => {
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -428,7 +440,9 @@ const AdminAppointments = () => {
                         })()}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-2">
+                        {/* Status stays one click away; everything else lives in
+                            the menu, so every row is the same height. */}
+                        <div className="flex items-center justify-end gap-2">
                           <Select
                             value={appointment.status}
                             onValueChange={(value) =>
@@ -438,110 +452,102 @@ const AdminAppointments = () => {
                               })
                             }
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger
+                              className="h-9 w-[150px]"
+                              aria-label={`Status for ${appointment.full_name}`}
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="pending_reschedule">New time requested</SelectItem>
                               <SelectItem value="confirmed">Confirmed</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
                               <SelectItem value="cancelled">Cancelled</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="w-32 border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
-                          >
-                            <a
-                              href={whatsappLink(
-                                appointment.phone,
-                                buildWhatsappMessage(appointment, studioName),
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <WhatsappIcon className="h-4 w-4 mr-1" />
-                              Notify
-                            </a>
-                          </Button>
-                          {appointment.payment?.status === "paid" && (
-                            <Button
-                              asChild
-                              size="sm"
-                              variant="outline"
-                              className="w-32 border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
-                            >
-                              <a
-                                href={whatsappLink(
-                                  appointment.phone,
-                                  buildReceiptMessage(appointment, studioName),
-                                )}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 shrink-0"
+                                aria-label={`More actions for ${appointment.full_name}`}
                               >
-                                <WhatsappIcon className="h-4 w-4 mr-1" />
-                                Send receipt
-                              </a>
-                            </Button>
-                          )}
-                          {appointment.status !== "cancelled" &&
-                          appointment.status !== "completed" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-32"
-                              onClick={() => setPendingReschedule(appointment)}
-                            >
-                              <CalendarClock className="mr-1 h-4 w-4" />
-                              Reschedule
-                            </Button>
-                          ) : null}
-                          {appointment.status !== "cancelled" &&
-                          appointment.status !== "completed" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-32"
-                              onClick={() => setChangingService(appointment)}
-                            >
-                              <Replace className="mr-1 h-4 w-4" />
-                              Change service
-                            </Button>
-                          ) : null}
-                          {appointment.payment?.id &&
-                          (appointment.payment.status === "paid" ||
-                            appointment.payment.status ===
-                              "partially_refunded") ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-32"
-                              onClick={() =>
-                                setPendingRefund({
-                                  kind: "payment",
-                                  id: appointment.payment!.id!,
-                                  paid: appointment.payment!.amount,
-                                  alreadyRefunded:
-                                    appointment.payment!.refunded_amount ?? 0,
-                                  label: `${appointment.full_name} — ${appointment.services?.name ?? "booking"}`,
-                                })
-                              }
-                            >
-                              <Undo2 className="mr-1 h-4 w-4" />
-                              Refund
-                            </Button>
-                          ) : null}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="w-32 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => setPendingDelete(appointment)}
-                          >
-                            <Trash2 className="mr-1 h-4 w-4" />
-                            Delete
-                          </Button>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuItem asChild>
+                                <a
+                                  href={whatsappLink(
+                                    appointment.phone,
+                                    buildWhatsappMessage(appointment, studioName),
+                                  )}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <WhatsappIcon className="mr-2 h-4 w-4 text-[#1da851]" />
+                                  Message on WhatsApp
+                                </a>
+                              </DropdownMenuItem>
+                              {appointment.payment?.status === "paid" && (
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={whatsappLink(
+                                      appointment.phone,
+                                      buildReceiptMessage(appointment, studioName),
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <WhatsappIcon className="mr-2 h-4 w-4 text-[#1da851]" />
+                                    Send receipt on WhatsApp
+                                  </a>
+                                </DropdownMenuItem>
+                              )}
+                              {appointment.status !== "cancelled" &&
+                                appointment.status !== "completed" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onSelect={() => setPendingReschedule(appointment)}>
+                                      <CalendarClock className="mr-2 h-4 w-4" />
+                                      Reschedule
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setChangingService(appointment)}>
+                                      <Replace className="mr-2 h-4 w-4" />
+                                      Change service
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              {appointment.payment?.id &&
+                                (appointment.payment.status === "paid" ||
+                                  appointment.payment.status === "partially_refunded") && (
+                                  <DropdownMenuItem
+                                    onSelect={() =>
+                                      setPendingRefund({
+                                        kind: "payment",
+                                        id: appointment.payment!.id!,
+                                        paid: appointment.payment!.amount,
+                                        alreadyRefunded: appointment.payment!.refunded_amount ?? 0,
+                                        label: `${appointment.full_name} — ${appointment.services?.name ?? "booking"}`,
+                                      })
+                                    }
+                                  >
+                                    <Undo2 className="mr-2 h-4 w-4" />
+                                    Refund
+                                  </DropdownMenuItem>
+                                )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onSelect={() => setPendingDelete(appointment)}
+                                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete booking
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
