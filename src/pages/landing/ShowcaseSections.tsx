@@ -18,7 +18,7 @@ export const HeroSection = () => {
           <div className="text-center lg:text-left">
             <p className="animate-fade-in mb-5 font-medium text-primary">{PLATFORM.heroBadge}</p>
             <h1 className="animate-fade-in font-serif text-4xl font-semibold leading-[1.08] [animation-delay:100ms] sm:text-5xl md:text-6xl">
-              Bookings, payments and a website for your beauty studio.
+              Bookings, payments and a website for your beauty business.
             </h1>
             <p className="animate-fade-in mx-auto mt-6 max-w-xl text-lg text-muted-foreground [animation-delay:200ms] lg:mx-0">
               Clients see your prices, pick a free time and pay a deposit by Mobile Money or
@@ -96,7 +96,7 @@ export const FeaturesSection = () => {
                   <h3 className="text-xl font-semibold">Bookings</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Clients book themselves, any time of day, including while
-                    you're with someone in the chair.
+                    you're busy with another client.
                   </p>
                 </div>
                 <div className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">

@@ -244,7 +244,7 @@ export const LoyaltyReviewsSection = () => {
               </div>
               <p className="mt-4 font-serif text-xl leading-snug">
                 “Booked on my lunch break, paid the deposit with MoMo, and earned
-                points towards my next fill.”
+                points towards my next visit.”
               </p>
               <p className="mt-4 text-sm text-muted-foreground">
                 Ama, a regular

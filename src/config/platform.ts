@@ -10,9 +10,10 @@ const num = (v: string | undefined, def: number) => {
 export const PLATFORM = {
   name: env.VITE_PLATFORM_NAME || "Zuri Studios",
   tagline: env.VITE_PLATFORM_TAGLINE || "Beauty businesses, booked.",
-  // Short line above the hero headline: who the product is for.
+  // Short line above the hero headline: who the product is for. Deliberately
+  // not a list of trades, so no beauty business reads itself as left out.
   heroBadge:
-    env.VITE_PLATFORM_HERO_BADGE || "For hair, nail, lash and makeup studios in Ghana",
+    env.VITE_PLATFORM_HERO_BADGE || "Made for beauty businesses across Ghana",
   description:
     "Zuri gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
   whatsapp: env.VITE_PLATFORM_WHATSAPP || "0203631199", // e.g. "233200000000"

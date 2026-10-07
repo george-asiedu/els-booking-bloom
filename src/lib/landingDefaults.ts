@@ -4,7 +4,8 @@
 // knows exactly what a blank field will display.
 //
 // Written to sound like a person at the front desk: plain, specific, no
-// superlatives. Works for any kind of studio (hair, nails, lashes, makeup).
+// superlatives. Nothing here assumes a particular trade: the same words have
+// to work for a barber, a spa, a nail bar or a makeup artist.
 export const landingDefaults = (studioName: string) => ({
   heroEyebrow: studioName,
   heroHeadline: "Book your next appointment in under a minute.",

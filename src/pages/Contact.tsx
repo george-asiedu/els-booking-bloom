@@ -238,22 +238,17 @@ const Contact = () => {
             Frequently Asked Questions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Only answers the platform itself makes true for every studio.
+                Policies (cancellation fees, walk-ins) differ by business and
+                must not be invented on a studio's behalf. */}
             {[
               {
                 q: "How do I book an appointment?",
-                a: "You can book through our website's booking page, or reach out via WhatsApp or phone for immediate assistance.",
+                a: "Use the booking page to pick a service and a free time. You can also message or call using the details above.",
               },
               {
-                q: "What's your cancellation policy?",
-                a: "Please provide at least 24 hours notice for cancellations to avoid a cancellation fee.",
-              },
-              {
-                q: "How often should I get lash refills?",
-                a: "For best results, lash refills are recommended every 2-3 weeks depending on your lash growth cycle.",
-              },
-              {
-                q: "Do you accept walk-ins?",
-                a: "Walk-ins are welcome based on availability, but appointments are recommended to guarantee your preferred time.",
+                q: "Can I change my appointment?",
+                a: "Yes. Sign in, open your account and choose Reschedule on the booking. We'll confirm the new time.",
               },
             ].map((faq, index) => (
               <div
