@@ -56,6 +56,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatGHS } from "@/lib/currency";
 
 type AppointmentStatus = AppointmentDTO["status"];
 type Appointment = AppointmentDTO;
@@ -88,12 +89,12 @@ const buildReceiptMessage = (a: Appointment, brand: string): string => {
   const p = a.payment;
   if (!p) return "";
   const label = p.type === "partial" ? "Deposit paid" : "Amount paid";
-  const balanceLine = p.balance > 0 ? `Balance due at studio: GHS ${p.balance}\n` : "";
+  const balanceLine = p.balance > 0 ? `Balance due at studio: ${formatGHS(p.balance)}\n` : "";
   return (
     `Hi ${a.full_name}, here's your payment receipt from ${brand}:\n\n` +
     `Service: ${a.services?.name ?? "your service"}\n` +
     `Date: ${a.appointment_date} at ${a.appointment_time}\n` +
-    `${label}: GHS ${p.amount}\n` +
+    `${label}: ${formatGHS(p.amount)}\n` +
     balanceLine +
     `Reference: ${p.reference ?? "—"}\n\n` +
     `Thank you!`
@@ -408,7 +409,7 @@ const AdminAppointments = () => {
                                 </Badge>
                                 <p className="text-xs text-muted-foreground">
                                   GHS {p.amount}
-                                  {p.balance > 0 && ` · GHS ${p.balance} due`}
+                                  {p.balance > 0 && ` · ${formatGHS(p.balance)} due`}
                                 </p>
                               </div>
                             );

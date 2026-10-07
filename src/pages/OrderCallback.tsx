@@ -12,6 +12,7 @@ import {
   PaymentResultStatus,
   ResultRow,
 } from "@/components/payment/PaymentResultScreen";
+import { formatGHS } from "@/lib/currency";
 
 const OrderCallback = () => {
   const [params] = useSearchParams();
@@ -47,7 +48,7 @@ const OrderCallback = () => {
       ? whatsappLink(
           studioWhatsapp,
           `Hi ${studioName}, I've just placed order ${order.order_number} ` +
-            `(GHS ${order.total}). Looking forward to it!`,
+            `(${formatGHS(order.total)}). Looking forward to it!`,
         )
       : null;
 
@@ -63,13 +64,13 @@ const OrderCallback = () => {
     ? [
         ...order.items.map((it) => ({
           label: `${it.name} ×${it.quantity}`,
-          value: `GHS ${it.line_total}`,
+          value: formatGHS(it.line_total),
         })),
-        { label: "Subtotal", value: `GHS ${order.subtotal}` },
+        { label: "Subtotal", value: formatGHS(order.subtotal) },
         ...(order.delivery_fee > 0
-          ? [{ label: "Delivery", value: `GHS ${order.delivery_fee}` }]
+          ? [{ label: "Delivery", value: formatGHS(order.delivery_fee) }]
           : []),
-        { label: "Total", value: `GHS ${order.total}`, highlight: true },
+        { label: "Total", value: formatGHS(order.total), highlight: true },
         {
           label: "Fulfilment",
           value: order.fulfillment === "delivery" ? "Delivery" : "Pickup at studio",

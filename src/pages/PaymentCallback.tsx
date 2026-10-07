@@ -11,6 +11,7 @@ import {
   PaymentResultStatus,
   ResultRow,
 } from "@/components/payment/PaymentResultScreen";
+import { formatGHS } from "@/lib/currency";
 
 const PaymentCallback = () => {
   const [params] = useSearchParams();
@@ -50,11 +51,11 @@ const PaymentCallback = () => {
         { label: "Date", value: `${receipt.appointment_date} · ${receipt.appointment_time}` },
         {
           label: receipt.type === "partial" ? "Deposit paid" : "Amount paid",
-          value: `GHS ${receipt.amount}`,
+          value: formatGHS(receipt.amount),
           highlight: true,
         },
         ...(receipt.balance > 0
-          ? [{ label: "Balance due at studio", value: `GHS ${receipt.balance}` }]
+          ? [{ label: "Balance due at studio", value: formatGHS(receipt.balance) }]
           : []),
         { label: "Reference", value: receipt.reference ?? "—" },
       ]
@@ -68,8 +69,8 @@ const PaymentCallback = () => {
             `Service: ${receipt.service_name}\n` +
             `Date: ${receipt.appointment_date}\n` +
             `Time: ${receipt.appointment_time}\n` +
-            `${receipt.type === "partial" ? "Deposit paid" : "Amount paid"}: GHS ${receipt.amount}\n` +
-            (receipt.balance > 0 ? `Balance due at studio: GHS ${receipt.balance}\n` : "") +
+            `${receipt.type === "partial" ? "Deposit paid" : "Amount paid"}: ${formatGHS(receipt.amount)}\n` +
+            (receipt.balance > 0 ? `Balance due at studio: ${formatGHS(receipt.balance)}\n` : "") +
             `Reference: ${receipt.reference}\n`,
         )
       : null;

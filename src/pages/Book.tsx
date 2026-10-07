@@ -54,6 +54,7 @@ import { useStudio } from "@/hooks/useStudio";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { PaymentTarget } from "@/lib/api";
 import { slotIsBusy, parseDurationMinutes } from "@/lib/slots";
+import { formatGHS } from "@/lib/currency";
 
 const timeSlots = [
   "9:00 AM",
@@ -1052,9 +1053,9 @@ const Book = () => {
                     : !user
                       ? "Log in to book"
                       : hasAddOns
-                        ? `Pay GHS ${bookingPayNow} & Book`
+                        ? `Pay ${formatGHS(bookingPayNow)} & Book`
                         : paymentEnabled
-                          ? `Pay GHS ${payNowAmount} & Book`
+                          ? `Pay ${formatGHS(payNowAmount)} & Book`
                           : "Request Appointment"}
                 </Button>
               </form>

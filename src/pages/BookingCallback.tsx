@@ -14,6 +14,7 @@ import {
   PaymentResultStatus,
   ResultRow,
 } from "@/components/payment/PaymentResultScreen";
+import { formatGHS } from "@/lib/currency";
 
 const BookingCallback = () => {
   const [params] = useSearchParams();
@@ -66,16 +67,16 @@ const BookingCallback = () => {
       ? [
           {
             label: `${payment.service_name}${payment.type === "partial" ? " (deposit)" : ""}`,
-            value: `GHS ${payment.amount}`,
+            value: formatGHS(payment.amount),
           },
         ]
       : []),
     ...(order?.items.map((it) => ({
       label: `${it.name} ×${it.quantity}`,
-      value: `GHS ${it.line_total}`,
+      value: formatGHS(it.line_total),
     })) ?? []),
     ...(payment && payment.balance > 0
-      ? [{ label: "Balance due at studio", value: `GHS ${payment.balance}` }]
+      ? [{ label: "Balance due at studio", value: formatGHS(payment.balance) }]
       : []),
   ];
 

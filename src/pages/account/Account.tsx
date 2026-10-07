@@ -51,6 +51,7 @@ import {
   downloadOrderReceipt,
   downloadBookingDocument,
 } from "@/lib/receipt";
+import { formatGHS } from "@/lib/currency";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -95,7 +96,7 @@ const PaymentBadge = ({ apt }: { apt: AppointmentDTO }) => {
   if (p.status === "paid") {
     return (
       <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-        {p.type === "partial" ? `Deposit paid · GHS ${p.balance} due` : "Paid"}
+        {p.type === "partial" ? `Deposit paid · ${formatGHS(p.balance)} due` : "Paid"}
       </Badge>
     );
   }

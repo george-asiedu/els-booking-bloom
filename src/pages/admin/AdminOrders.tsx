@@ -26,6 +26,7 @@ import { RefundDialog, type RefundTarget } from "@/components/admin/RefundDialog
 import { FilterBar } from "@/components/admin/FilterBar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
 const statusColors: Record<string, string> = {
   pending_payment: "secondary",
@@ -128,7 +129,7 @@ const AdminOrders = () => {
           />
           <StatCard
             label="Profit (revenue)"
-            value={`GHS ${stats.profit.toLocaleString()}`}
+            value={formatGHS(stats.profit)}
           />
         </div>
 

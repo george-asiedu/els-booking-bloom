@@ -25,6 +25,7 @@ import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
+import { formatGHS } from "@/lib/currency";
 
 const ProductDetail = () => {
   const { id = "" } = useParams();
@@ -348,7 +349,7 @@ const ProductDetail = () => {
                     >
                       <Truck className="h-4 w-4 text-primary" /> Delivery
                       <span className="ml-auto text-muted-foreground">
-                        {deliveryFee > 0 ? `GHS ${deliveryFee}` : "Free"}
+                        {deliveryFee > 0 ? formatGHS(deliveryFee) : "Free"}
                       </span>
                     </button>
                   )}

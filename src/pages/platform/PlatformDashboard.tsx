@@ -25,6 +25,7 @@ import { PlatformLayout } from "./PlatformLayout";
 import { platformApi, StudioSummary, StudioStatus } from "@/lib/platformApi";
 import { enterStudioAsAdmin } from "@/lib/impersonate";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
 const statusVariant: Record<
   StudioStatus,
@@ -133,7 +134,7 @@ const PlatformDashboard = () => {
       {/* Platform analytics */}
       {analytics && (
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Total revenue" value={`GHS ${analytics.totalRevenue.toLocaleString()}`} />
+          <Stat label="Total revenue" value={formatGHS(analytics.totalRevenue)} />
           <Stat label="Total users" value={analytics.totalUsers.toLocaleString()} />
           <Stat
             label="Active studios"

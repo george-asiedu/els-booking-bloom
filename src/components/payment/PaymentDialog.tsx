@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { paymentsApi, PaymentTarget } from "@/lib/api";
+import { formatGHS } from "@/lib/currency";
 
 // Paystack Ghana mobile-money provider codes.
 const MOMO_PROVIDERS = [
@@ -196,7 +197,7 @@ export const PaymentDialog = ({
     }
   };
 
-  const amountLabel = target ? `GHS ${target.amount}` : "";
+  const amountLabel = target ? formatGHS(target.amount) : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
