@@ -216,15 +216,15 @@ const ProductDetail = () => {
                 {product.on_promo ? (
                   <span className="flex items-baseline gap-2">
                     <span className="text-muted-foreground line-through">
-                      GHS {product.price}
+                      {formatGHS(product.price)}
                     </span>
                     <span className="text-2xl font-bold text-primary">
-                      GHS {product.effective_price}
+                      {formatGHS(product.effective_price)}
                     </span>
                   </span>
                 ) : (
                   <span className="text-2xl font-bold text-primary">
-                    GHS {product.price}
+                    {formatGHS(product.price)}
                   </span>
                 )}
               </div>
@@ -378,11 +378,9 @@ const ProductDetail = () => {
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <span className="text-sm text-muted-foreground">You'll pay</span>
                   <span className="text-lg font-bold text-primary">
-                    GHS{" "}
-                    {Math.round(
-                      (lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0)) *
-                        100,
-                    ) / 100}
+                    {formatGHS(
+                      lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0),
+                    )}
                   </span>
                 </div>
 

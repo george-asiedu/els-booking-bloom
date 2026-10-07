@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { servicesApi, categoriesApi, ServiceDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
 type Service = ServiceDTO;
 
@@ -280,13 +281,13 @@ const AdminServices = () => {
                       {service.on_promo ? (
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground line-through text-sm">
-                            GHS {service.price}
+                            {formatGHS(service.price)}
                           </span>
-                          <span className="font-medium">GHS {service.promo_price}</span>
+                          <span className="font-medium">{formatGHS(service.promo_price)}</span>
                           <Badge className="bg-green-600 hover:bg-green-600">Promo</Badge>
                         </div>
                       ) : (
-                        <>GHS {service.price}</>
+                        <>{formatGHS(service.price)}</>
                       )}
                     </TableCell>
                     <TableCell>

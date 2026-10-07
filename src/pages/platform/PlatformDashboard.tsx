@@ -229,7 +229,7 @@ const PlatformDashboard = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-sm">
-                        GHS {s.revenue.toLocaleString()}
+                        {formatGHS(s.revenue)}
                       </TableCell>
                       <TableCell className="text-right">{s.userCount}</TableCell>
                       <TableCell className="text-right">

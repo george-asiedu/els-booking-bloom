@@ -35,24 +35,29 @@ const Gallery = () => {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
-  const apiImages = galleryQuery.data?.pages.flatMap((page) => page.items);
+  const pages = galleryQuery.data?.pages;
   const isLoading = galleryQuery.isLoading;
   const { data: categoriesData } = useQuery({
     queryKey: ["public-categories"],
     queryFn: () => categoriesApi.listActive(),
   });
 
-  const hasReal = !!apiImages && apiImages.length > 0;
-  const items: GalleryItem[] = hasReal
-    ? apiImages!.map((img) => ({
-        id: img.id,
-        src: img.image_url,
-        alt: img.title || titleize(img.category),
-        category: img.category,
-        type: img.media_type,
-        external: img.external_video,
-      }))
-    : [];
+  // Memoised on the query's pages so `items` (and `filtered` below) keep their
+  // identity between renders instead of being rebuilt every time.
+  const items = useMemo<GalleryItem[]>(
+    () =>
+      (pages ?? [])
+        .flatMap((page) => page.items)
+        .map((img) => ({
+          id: img.id,
+          src: img.image_url,
+          alt: img.title || titleize(img.category),
+          category: img.category,
+          type: img.media_type,
+          external: img.external_video,
+        })),
+    [pages],
+  );
 
   const nameBySlug = new Map((categoriesData ?? []).map((c) => [c.slug, c.name]));
   const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
@@ -76,7 +81,7 @@ const Gallery = () => {
   }));
 
   const heroImg = items[0]?.src ?? null;
-  const noContent = !isLoading && hasReal === false && apiImages !== undefined && apiImages.length === 0;
+  const noContent = !isLoading && pages !== undefined && items.length === 0;
 
   return (
     <Layout>

@@ -34,6 +34,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { appointmentsApi, servicesApi, reviewsApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatGHS } from "@/lib/currency";
 
 // Distinct, high-contrast slice colors (nails / lashes / hair are all visible).
 const COLORS = ["#d6336c", "#7048e8", "#f59e0b", "#10b981", "#0ea5e9"];
@@ -184,7 +185,7 @@ const AdminAnalytics = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-foreground">
-                    GHS {totalRevenue.toLocaleString()}
+                    {formatGHS(totalRevenue)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     From {completedAppointments.length} completed appointments — tap to view
@@ -214,7 +215,7 @@ const AdminAnalytics = () => {
                           </p>
                         </div>
                         <span className="font-semibold text-foreground">
-                          GHS {a.amount_due}
+                          {formatGHS(a.amount_due)}
                         </span>
                       </div>
                     ))}
@@ -223,7 +224,7 @@ const AdminAnalytics = () => {
               </div>
               <div className="flex items-center justify-between border-t border-border pt-3 font-semibold">
                 <span>Total</span>
-                <span className="text-primary">GHS {totalRevenue.toLocaleString()}</span>
+                <span className="text-primary">{formatGHS(totalRevenue)}</span>
               </div>
             </DialogContent>
           </Dialog>
@@ -408,7 +409,7 @@ const AdminAnalytics = () => {
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{service.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {service.count} bookings • GHS {service.revenue.toLocaleString()} revenue
+                      {service.count} bookings • {formatGHS(service.revenue)} revenue
                     </p>
                   </div>
                   <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">

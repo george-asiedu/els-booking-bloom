@@ -249,7 +249,7 @@ const AdminOrders = () => {
                         )}
                     </TableCell>
                     <TableCell className="font-medium">
-                      GHS {order.total}
+                      {formatGHS(order.total)}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-2">

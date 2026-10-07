@@ -350,18 +350,18 @@ const AdminAppointments = () => {
                             {appointment.discount_amount > 0 ? (
                               <div className="text-sm">
                                 <span className="text-muted-foreground line-through">
-                                  GHS {appointment.total_price}
+                                  {formatGHS(appointment.total_price)}
                                 </span>
                                 <span className="ml-2 font-medium text-foreground">
-                                  GHS {appointment.amount_due}
+                                  {formatGHS(appointment.amount_due)}
                                 </span>
                                 <span className="ml-1 text-xs text-green-600">
-                                  (-GHS {appointment.discount_amount} • {appointment.points_redeemed} pts)
+                                  (−{formatGHS(appointment.discount_amount)} • {appointment.points_redeemed} pts)
                                 </span>
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground">
-                                GHS {appointment.total_price}
+                                {formatGHS(appointment.total_price)}
                               </p>
                             )}
                             {appointment.notes && (
@@ -408,7 +408,7 @@ const AdminAppointments = () => {
                                   {p.type === "partial" ? "Deposit paid" : "Paid"}
                                 </Badge>
                                 <p className="text-xs text-muted-foreground">
-                                  GHS {p.amount}
+                                  {formatGHS(p.amount)}
                                   {p.balance > 0 && ` · ${formatGHS(p.balance)} due`}
                                 </p>
                               </div>
