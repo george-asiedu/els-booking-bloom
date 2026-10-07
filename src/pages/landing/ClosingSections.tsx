@@ -119,8 +119,8 @@ export const PricingSection = () => {
           <p className="mx-auto mt-8 max-w-xl text-center text-sm text-muted-foreground">
             Not ready yet?{" "}
             <a
-              href={contactHref}
-              target={isWhatsapp ? "_blank" : undefined}
+              href={contactHref()}
+              target={isWhatsapp() ? "_blank" : undefined}
               rel="noreferrer"
               className="font-medium text-primary hover:underline"
             >

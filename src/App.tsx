@@ -78,6 +78,7 @@ const PlatformTransactions = lazy(
 );
 const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
 const PlatformJobs = lazy(() => import("./pages/platform/PlatformJobs"));
+const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
@@ -280,6 +281,7 @@ const App = () => (
                 <Route path="transactions" element={<PlatformTransactions />} />
                   <Route path="billing" element={<PlatformBilling />} />
                   <Route path="jobs" element={<PlatformJobs />} />
+                  <Route path="settings" element={<PlatformSettings />} />
                   <Route path="audit" element={<PlatformAudit />} />
                   <Route path="activity" element={<PlatformActivity />} />
                 </Route>

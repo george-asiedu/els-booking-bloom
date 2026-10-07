@@ -115,11 +115,14 @@ export const NAV_LINKS = [
 ];
 
 // How a prospective studio gets in touch: WhatsApp when configured, else email.
-export const isWhatsapp = Boolean(PLATFORM.whatsapp);
-export const contactHref = isWhatsapp
-  ? `https://wa.me/${PLATFORM.whatsapp}?text=${encodeURIComponent(
-      `Hi ${PLATFORM.name}, I'd like to set up my studio.`,
-    )}`
-  : `mailto:${PLATFORM.email}?subject=${encodeURIComponent(
-      `Setting up my studio on ${PLATFORM.name}`,
-    )}`;
+// Functions, not constants, because PLATFORM is filled from the API at
+// startup and can change between visits.
+export const isWhatsapp = () => Boolean(PLATFORM.whatsapp);
+export const contactHref = () =>
+  isWhatsapp()
+    ? `https://wa.me/${PLATFORM.whatsapp}?text=${encodeURIComponent(
+        `Hi ${PLATFORM.name}, I'd like to set up my studio.`,
+      )}`
+    : `mailto:${PLATFORM.email}?subject=${encodeURIComponent(
+        `Setting up my studio on ${PLATFORM.name}`,
+      )}`;

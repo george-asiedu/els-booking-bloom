@@ -162,6 +162,20 @@ export interface PlatformBillingConfig {
   subscriptionSetupFeePremium: number;
   setupFeeMonthsMonthly: number;
   setupFeeMonthsYearly: number;
+  // Plan prices (GHS) charged at signup and renewal.
+  priceStandardMonthly: number;
+  priceStandardYearly: number;
+  pricePremiumMonthly: number;
+  pricePremiumYearly: number;
+}
+
+// Public details on the platform pages. Null = the built-in default.
+export interface PlatformSiteSettings {
+  siteName: string | null;
+  siteHeroBadge: string | null;
+  supportEmail: string | null;
+  supportWhatsapp: string | null;
+  demoStudioSlug: string | null;
 }
 
 export interface StudioDetail {
@@ -371,6 +385,21 @@ export const platformApi = {
       "/billing-config",
     );
     return res.data;
+  },
+
+  async getSiteSettings(): Promise<PlatformSiteSettings> {
+    return (await platformRequest<Envelope<PlatformSiteSettings>>("/site-settings")).data;
+  },
+
+  async updateSiteSettings(
+    input: Partial<PlatformSiteSettings>,
+  ): Promise<PlatformSiteSettings> {
+    return (
+      await platformRequest<Envelope<PlatformSiteSettings>>("/site-settings", {
+        method: "PATCH",
+        body: input,
+      })
+    ).data;
   },
 
   async updateBillingConfig(

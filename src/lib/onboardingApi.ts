@@ -21,6 +21,10 @@ export interface OnboardingConfig {
   subscriptionSetupFeePremium: number;
   setupFeeMonthsMonthly: number;
   setupFeeMonthsYearly: number;
+  priceStandardMonthly: number;
+  priceStandardYearly: number;
+  pricePremiumMonthly: number;
+  pricePremiumYearly: number;
 }
 
 export interface OnboardingStartInput {

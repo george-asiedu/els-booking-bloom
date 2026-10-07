@@ -37,8 +37,7 @@ export const HeroSection = () => {
               </Button>
             </div>
             <p className="animate-fade-in mt-5 text-sm text-muted-foreground [animation-delay:400ms]">
-              {hasNoSetupFee(billing) && "No setup fee. "}Most studios are taking
-              bookings within 10 minutes.
+              {hasNoSetupFee(billing) && "No setup fee. "}
             </p>
           </div>
 

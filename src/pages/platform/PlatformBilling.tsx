@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,17 @@ import { Switch } from "@/components/ui/switch";
 import { platformApi, PlatformBillingConfig } from "@/lib/platformApi";
 import { PlatformLayout } from "./PlatformLayout";
 import { useToast } from "@/hooks/use-toast";
-import { PLANS, planPrice } from "@/config/platform";
 import { formatGHS } from "@/lib/currency";
+
+type Plan = "STANDARD" | "PREMIUM";
+type Cadence = "MONTHLY" | "YEARLY";
+const PLANS: { id: Plan; name: string }[] = [
+  { id: "STANDARD", name: "Standard" },
+  { id: "PREMIUM", name: "Premium" },
+];
+
+const priceKey = (plan: Plan, cadence: Cadence) =>
+  `price${plan === "PREMIUM" ? "Premium" : "Standard"}${cadence === "YEARLY" ? "Yearly" : "Monthly"}` as const;
 
 const PlatformBilling = () => {
   const queryClient = useQueryClient();
@@ -21,26 +30,21 @@ const PlatformBilling = () => {
     queryFn: () => platformApi.getBillingConfig(),
   });
 
-  const [form, setForm] = useState<PlatformBillingConfig>({
-    revenueShareEnabled: false,
-    commissionStandardPercent: 5,
-    commissionPremiumPercent: 8,
-    setupFeeStandard: 0,
-    setupFeePremium: 0,
-    subscriptionSetupFeeStandard: 0,
-    subscriptionSetupFeePremium: 0,
-    setupFeeMonthsMonthly: 2,
-    setupFeeMonthsYearly: 3,
-  });
+  const [form, setForm] = useState<PlatformBillingConfig | null>(null);
   useEffect(() => {
     if (data) setForm(data);
   }, [data]);
 
   const save = useMutation({
-    mutationFn: () => platformApi.updateBillingConfig(form),
-    onSuccess: () => {
+    mutationFn: () => platformApi.updateBillingConfig(form!),
+    onSuccess: (saved) => {
+      setForm(saved);
       queryClient.invalidateQueries({ queryKey: ["platform-billing-config"] });
-      toast({ title: "Billing settings saved" });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-config"] });
+      toast({
+        title: "Billing settings saved",
+        description: "New signups and renewals use these from now on.",
+      });
     },
     onError: (e) =>
       toast({
@@ -50,9 +54,7 @@ const PlatformBilling = () => {
       }),
   });
 
-  const num = (v: string) => (v === "" ? 0 : Number(v));
-
-  if (isLoading) {
+  if (isLoading || !form) {
     return (
       <PlatformLayout>
         <div className="flex justify-center py-16">
@@ -62,171 +64,249 @@ const PlatformBilling = () => {
     );
   }
 
+  const num = (v: string) => (v === "" ? 0 : Number(v));
+  const set = (patch: Partial<PlatformBillingConfig>) => setForm({ ...form, ...patch });
+  const setupFee = (plan: Plan) =>
+    plan === "PREMIUM" ? form.subscriptionSetupFeePremium : form.subscriptionSetupFeeStandard;
+  const coverMonths = (cadence: Cadence) =>
+    cadence === "YEARLY" ? form.setupFeeMonthsYearly : form.setupFeeMonthsMonthly;
+
   return (
     <PlatformLayout>
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <CreditCard className="h-6 w-6 text-primary" />
-          Billing settings
-        </h1>
-        <p className="text-muted-foreground">
-          Control how studios are billed. Plan subscriptions are always offered;
-          revenue-share (a per-transaction cut) is optional.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Subscription setup fee</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <p className="text-sm text-muted-foreground">
-            New studios pay this at signup instead of their first month or year.
-            It covers the months below, and the plan's normal price is due after
-            that. Set a plan's fee to 0 to turn it off for that plan.
+      <div className="max-w-3xl space-y-6">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <CreditCard className="h-6 w-6 text-primary" />
+            Billing settings
+          </h1>
+          <p className="text-muted-foreground">
+            What studios pay you. Changes apply to new signups, renewals and plan changes from
+            the moment you save; payments already started keep the price they were started at.
           </p>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <Field
-              label="Standard setup fee"
-              value={form.subscriptionSetupFeeStandard}
-              onChange={(v) => setForm({ ...form, subscriptionSetupFeeStandard: num(v) })}
-              suffix="GHS"
-            />
-            <Field
-              label="Premium setup fee"
-              value={form.subscriptionSetupFeePremium}
-              onChange={(v) => setForm({ ...form, subscriptionSetupFeePremium: num(v) })}
-              suffix="GHS"
-            />
-            <Field
-              label="Months covered on monthly plans"
-              value={form.setupFeeMonthsMonthly}
-              onChange={(v) => setForm({ ...form, setupFeeMonthsMonthly: num(v) })}
-              suffix="months"
-              min={1}
-              max={24}
-            />
-            <Field
-              label="Months covered on yearly plans"
-              value={form.setupFeeMonthsYearly}
-              onChange={(v) => setForm({ ...form, setupFeeMonthsYearly: num(v) })}
-              suffix="months"
-              min={1}
-              max={24}
-            />
-          </div>
-          {/* What a new studio will actually be asked to pay, so a typo in a
-              fee is obvious before it's saved. */}
-          <div className="rounded-md border bg-muted/40 p-4 text-sm">
-            <p className="mb-2 font-medium">What new studios will see</p>
-            <ul className="space-y-1.5 text-muted-foreground">
-              {PLANS.flatMap((plan) =>
-                (["MONTHLY", "YEARLY"] as const).map((cadence) => {
-                  const fee =
-                    plan.id === "PREMIUM"
-                      ? form.subscriptionSetupFeePremium
-                      : form.subscriptionSetupFeeStandard;
-                  const months =
-                    cadence === "YEARLY" ? form.setupFeeMonthsYearly : form.setupFeeMonthsMonthly;
-                  const then = `${formatGHS(planPrice(plan, cadence))}/${cadence === "YEARLY" ? "year" : "month"}`;
-                  return (
-                    <li key={plan.id + cadence}>
-                      <span className="font-medium text-foreground">
-                        {plan.name}, {cadence === "YEARLY" ? "yearly" : "monthly"}:
-                      </span>{" "}
-                      {fee > 0
-                        ? `${formatGHS(fee)} at signup, covering the first ${months} months, then ${then}.`
-                        : `No setup fee. ${then} from signup.`}
-                    </li>
-                  );
-                }),
-              )}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardContent className="flex items-center justify-between gap-4 py-5">
-          <div>
-            <p className="font-medium">Offer revenue-share at signup</p>
-            <p className="text-sm text-muted-foreground">
-              When on, new studios can choose to pay a per-transaction commission
-              instead of a recurring plan fee. When off, only subscription is shown.
+        {/* Prices */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Plan prices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-x-4 gap-y-3">
+              <span />
+              <span className="text-sm font-medium text-muted-foreground">Per month</span>
+              <span className="text-sm font-medium text-muted-foreground">Per year</span>
+              {PLANS.map((plan) => (
+                <PriceRow key={plan.id} name={plan.name}>
+                  {(["MONTHLY", "YEARLY"] as const).map((cadence) => (
+                    <MoneyInput
+                      key={cadence}
+                      label={`${plan.name} price per ${cadence === "YEARLY" ? "year" : "month"}`}
+                      value={form[priceKey(plan.id, cadence)]}
+                      onChange={(v) => set({ [priceKey(plan.id, cadence)]: num(v) })}
+                    />
+                  ))}
+                </PriceRow>
+              ))}
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              A price must be more than 0. These are what the platform page shows and what
+              studios are charged.
             </p>
-          </div>
-          <Switch
-            checked={form.revenueShareEnabled}
-            onCheckedChange={(v) => setForm({ ...form, revenueShareEnabled: v })}
-          />
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card className={form.revenueShareEnabled ? "" : "opacity-60"}>
-        <CardHeader>
-          <CardTitle className="text-lg">Revenue-share rates</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <p className="text-sm text-muted-foreground">
-            The plan a studio picks sets its commission and one-time activation
-            fee. This is separate from the subscription setup fee above.
-          </p>
+        {/* Setup fee */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Setup fee</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p className="text-sm text-muted-foreground">
+              New studios pay this at signup instead of their first month or year. Set a plan's
+              fee to 0 to turn it off for that plan.
+            </p>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-4">
-              <p className="font-semibold">Standard</p>
-              <Field
-                label="Commission per transaction (%)"
-                value={form.commissionStandardPercent}
-                onChange={(v) =>
-                  setForm({ ...form, commissionStandardPercent: num(v) })
-                }
-                suffix="%"
-                max={100}
-              />
-              <Field
-                label="One-time activation fee (GHS)"
-                value={form.setupFeeStandard}
-                onChange={(v) => setForm({ ...form, setupFeeStandard: num(v) })}
-                suffix="GHS"
-              />
+            <div className="grid gap-6 sm:grid-cols-2">
+              {PLANS.map((plan) => (
+                <Field
+                  key={plan.id}
+                  label={`${plan.name} setup fee`}
+                  value={setupFee(plan.id)}
+                  onChange={(v) =>
+                    set(
+                      plan.id === "PREMIUM"
+                        ? { subscriptionSetupFeePremium: num(v) }
+                        : { subscriptionSetupFeeStandard: num(v) },
+                    )
+                  }
+                  suffix="GHS"
+                />
+              ))}
             </div>
-            <div className="space-y-4">
-              <p className="font-semibold">Premium</p>
-              <Field
-                label="Commission per transaction (%)"
-                value={form.commissionPremiumPercent}
-                onChange={(v) =>
-                  setForm({ ...form, commissionPremiumPercent: num(v) })
-                }
-                suffix="%"
-                max={100}
-              />
-              <Field
-                label="One-time activation fee (GHS)"
-                value={form.setupFeePremium}
-                onChange={(v) => setForm({ ...form, setupFeePremium: num(v) })}
-                suffix="GHS"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            An activation fee of 0 means revenue-share studios are created immediately
-            with no upfront charge. Changing rates affects new signups; existing
-            studios keep the rate they onboarded with.
-          </p>
-        </CardContent>
-      </Card>
 
-      <Button onClick={() => save.mutate()} disabled={save.isPending} size="lg">
-        {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save billing settings
-      </Button>
-    </div>
+            <div className="space-y-3 border-t pt-5">
+              <div>
+                <p className="font-medium">How long the setup fee covers</p>
+                <p className="text-sm text-muted-foreground">
+                  This depends on how a studio chooses to pay, not on which plan it picks. It's
+                  the same for Standard and Premium.
+                </p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Field
+                  label="Studios paying monthly"
+                  value={form.setupFeeMonthsMonthly}
+                  onChange={(v) => set({ setupFeeMonthsMonthly: num(v) })}
+                  suffix="months"
+                  min={1}
+                  max={24}
+                />
+                <Field
+                  label="Studios paying yearly"
+                  value={form.setupFeeMonthsYearly}
+                  onChange={(v) => set({ setupFeeMonthsYearly: num(v) })}
+                  suffix="months"
+                  min={1}
+                  max={24}
+                />
+              </div>
+            </div>
+
+            {/* What a new studio will be asked to pay, so a typo is obvious
+                before it's saved. */}
+            <div className="rounded-md border bg-muted/40 p-4 text-sm">
+              <p className="mb-2 font-medium">What new studios will see</p>
+              <ul className="space-y-1.5 text-muted-foreground">
+                {PLANS.flatMap((plan) =>
+                  (["MONTHLY", "YEARLY"] as const).map((cadence) => {
+                    const fee = setupFee(plan.id);
+                    const price = form[priceKey(plan.id, cadence)];
+                    const then = `${formatGHS(price)}/${cadence === "YEARLY" ? "year" : "month"}`;
+                    return (
+                      <li key={plan.id + cadence}>
+                        <span className="font-medium text-foreground">
+                          {plan.name}, paying {cadence === "YEARLY" ? "yearly" : "monthly"}:
+                        </span>{" "}
+                        {fee > 0
+                          ? `${formatGHS(fee)} at signup, covering the first ${coverMonths(cadence)} months, then ${then}.`
+                          : `No setup fee. ${then} from signup.`}
+                      </li>
+                    );
+                  }),
+                )}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Revenue share */}
+        <Card>
+          <CardContent className="flex items-center justify-between gap-4 py-5">
+            <div>
+              <p className="font-medium">Offer revenue-share at signup</p>
+              <p className="text-sm text-muted-foreground">
+                When on, new studios can choose to pay a per-transaction commission instead of a
+                recurring plan fee. When off, only subscription is shown.
+              </p>
+            </div>
+            <Switch
+              checked={form.revenueShareEnabled}
+              onCheckedChange={(v) => set({ revenueShareEnabled: v })}
+              aria-label="Offer revenue-share at signup"
+            />
+          </CardContent>
+        </Card>
+
+        <Card className={form.revenueShareEnabled ? "" : "opacity-60"}>
+          <CardHeader>
+            <CardTitle className="text-lg">Revenue-share rates</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p className="text-sm text-muted-foreground">
+              The plan a studio picks sets its commission and one-time activation fee. This is
+              separate from the setup fee above.
+            </p>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-4">
+                <p className="font-semibold">Standard</p>
+                <Field
+                  label="Commission per transaction"
+                  value={form.commissionStandardPercent}
+                  onChange={(v) => set({ commissionStandardPercent: num(v) })}
+                  suffix="%"
+                  max={100}
+                />
+                <Field
+                  label="One-time activation fee"
+                  value={form.setupFeeStandard}
+                  onChange={(v) => set({ setupFeeStandard: num(v) })}
+                  suffix="GHS"
+                />
+              </div>
+              <div className="space-y-4">
+                <p className="font-semibold">Premium</p>
+                <Field
+                  label="Commission per transaction"
+                  value={form.commissionPremiumPercent}
+                  onChange={(v) => set({ commissionPremiumPercent: num(v) })}
+                  suffix="%"
+                  max={100}
+                />
+                <Field
+                  label="One-time activation fee"
+                  value={form.setupFeePremium}
+                  onChange={(v) => set({ setupFeePremium: num(v) })}
+                  suffix="GHS"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              An activation fee of 0 means revenue-share studios are created immediately with no
+              upfront charge. Existing studios keep the rate they onboarded with.
+            </p>
+          </CardContent>
+        </Card>
+
+        <div className="sticky bottom-4 flex justify-end">
+          <Button onClick={() => save.mutate()} disabled={save.isPending} size="lg" className="shadow-lg">
+            {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save billing settings
+          </Button>
+        </div>
+      </div>
     </PlatformLayout>
   );
 };
+
+const PriceRow = ({ name, children }: { name: string; children: React.ReactNode }) => (
+  <>
+    <span className="font-medium">{name}</span>
+    {children}
+  </>
+);
+
+const MoneyInput = ({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: string) => void;
+}) => (
+  <div className="flex items-center gap-2">
+    <span className="text-sm text-muted-foreground">GHS</span>
+    <Input
+      type="number"
+      min={1}
+      step="any"
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="max-w-[140px] tabular-nums"
+    />
+  </div>
+);
 
 const Field = ({
   label,
@@ -242,20 +322,25 @@ const Field = ({
   suffix?: string;
   min?: number;
   max?: number;
-}) => (
-  <div className="space-y-2">
-    <Label>{label}</Label>
-    <div className="flex items-center gap-2 max-w-[200px]">
-      <Input
-        type="number"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {suffix && <span className="text-muted-foreground">{suffix}</span>}
+}) => {
+  const id = useId();
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex max-w-[220px] items-center gap-2">
+        <Input
+          id={id}
+          type="number"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="tabular-nums"
+        />
+        {suffix && <span className="text-muted-foreground">{suffix}</span>}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default PlatformBilling;
