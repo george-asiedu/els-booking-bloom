@@ -192,7 +192,7 @@ export const FooterSection = () => {
             <div className="col-span-2 md:col-span-2">
               <BrandLogo full />
               <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-                Bookings, payments and a website for every kind of beauty business in Africa.
+                Bookings, payments and a website for every kind of beauty business in Ghana.
               </p>
             </div>
             <FooterCol
