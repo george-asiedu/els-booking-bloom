@@ -1,0 +1,252 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Check, ArrowRight, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Reveal } from "@/components/Reveal";
+import { BrandLogo } from "@/components/BrandLogo";
+import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
+import { PLATFORM, PLANS, planPrice, studioUrl } from "@/config/platform";
+import { cn } from "@/lib/utils";
+import { GHS, FAQ, isWhatsapp, contactHref } from "./content";
+import { FooterCol } from "./Visuals";
+
+export const PricingSection = () => {
+  const [cadence, setCadence] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+
+  return (
+    <>
+      {/* ------------------------------------------------------------ Pricing */}
+      <section id="pricing" className="bg-secondary py-20 md:py-28">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <Reveal>
+              <h2 className="font-serif text-3xl font-bold md:text-5xl">
+                Simple pricing. No surprises.
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Booking is always included. Add the online shop with Premium. No
+                setup fees, cancel anytime.
+              </p>
+            </Reveal>
+            <div className="mt-6 inline-flex rounded-full border border-border bg-card p-1">
+              {(["MONTHLY", "YEARLY"] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCadence(c)}
+                  className={cn(
+                    "rounded-full px-5 py-1.5 text-sm font-medium transition-colors",
+                    cadence === c
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {c === "MONTHLY" ? "Monthly" : "Yearly"}
+                  {c === "YEARLY" && (
+                    <span className="ml-1 text-xs opacity-80">save 2 months</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
+            {PLANS.map((plan, i) => (
+              <Reveal
+                key={plan.id}
+                delay={i * 100}
+                className={cn(
+                  "relative rounded-3xl border bg-card p-8 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1",
+                  plan.featured
+                    ? "border-primary shadow-lg ring-1 ring-primary/20"
+                    : "border-border hover:shadow-lg",
+                )}
+              >
+                {plan.featured && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                    Most popular
+                  </span>
+                )}
+                <h3 className="text-xl font-semibold">{plan.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>
+                <div className="mt-5 flex items-end gap-1">
+                  <span className="font-serif text-4xl font-bold">
+                    {GHS(planPrice(plan, cadence))}
+                  </span>
+                  <span className="mb-1 text-sm text-muted-foreground">
+                    /{cadence === "MONTHLY" ? "month" : "year"}
+                  </span>
+                </div>
+                <ul className="mt-6 space-y-3">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="mt-8 w-full"
+                  variant={plan.featured ? "default" : "outline"}
+                  asChild
+                >
+                  <Link to={`/onboarding?plan=${plan.id}&cadence=${cadence}`}>
+                    Get started with {plan.name}
+                  </Link>
+                </Button>
+              </Reveal>
+            ))}
+          </div>
+
+          <p className="mx-auto mt-8 max-w-xl text-center text-sm text-muted-foreground">
+            Not ready yet?{" "}
+            <a
+              href={contactHref}
+              target={isWhatsapp ? "_blank" : undefined}
+              rel="noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              Talk to us
+            </a>{" "}
+            and we'll help you get set up.
+          </p>
+        </div>
+      </section>
+
+    </>
+  );
+};
+
+export const FaqSection = () => {
+  return (
+    <>
+      {/* ---------------------------------------------------------------- FAQ */}
+      <section className="py-20 md:py-28">
+        <div className="container mx-auto max-w-3xl px-4">
+          <Reveal>
+            <h2 className="mb-10 text-center font-serif text-3xl font-bold md:text-4xl">
+              Frequently asked questions
+            </h2>
+          </Reveal>
+          <div className="space-y-4">
+            {FAQ.map((item, i) => (
+              <Reveal
+                key={item.q}
+                delay={i * 60}
+                className="rounded-2xl border border-border bg-card p-5"
+              >
+                <h3 className="font-semibold">{item.q}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{item.a}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+    </>
+  );
+};
+
+export const FinalCtaSection = () => {
+  return (
+    <>
+      {/* ---------------------------------------------------------- Final CTA */}
+      <section className="px-4 pb-24 pt-4">
+        <div className="container relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-accent/60 via-background to-primary/10 p-10 text-center md:p-16">
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <div className="animate-float-slow absolute -left-10 -top-10 h-52 w-52 rounded-full bg-primary/15 blur-3xl" />
+            <div className="animate-float-slow absolute -bottom-12 -right-8 h-56 w-56 rounded-full bg-primary/10 blur-3xl [animation-delay:2s]" />
+          </div>
+          <Reveal>
+            <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight md:text-5xl">
+              Your next client could be
+              <br className="hidden md:block" /> looking for you right now.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+              Give your beauty business a storefront that works as beautifully as
+              you do.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button size="lg" className="group w-full sm:w-auto" asChild>
+                <Link to="/onboarding">
+                  Start your studio
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+                <a href={studioUrl(PLATFORM.demoSlug)} target="_blank" rel="noreferrer">
+                  See a live studio
+                </a>
+              </Button>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+    </>
+  );
+};
+
+export const FooterSection = () => {
+  return (
+    <>
+      {/* ------------------------------------------------------------- Footer */}
+      <footer className="border-t border-border bg-card">
+        <div className="container mx-auto px-4 py-14">
+          <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
+            <div className="col-span-2 md:col-span-2">
+              <BrandLogo full />
+              <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+                One beautiful storefront for bookings, payments, products and
+                loyal clients — built for beauty businesses.
+              </p>
+            </div>
+            <FooterCol
+              title="Product"
+              links={[
+                { label: "Features", href: "#features" },
+                { label: "Pricing", href: "#pricing" },
+                { label: "How it works", href: "#how" },
+              ]}
+            />
+            <FooterCol
+              title="Studios"
+              links={[
+                { label: "Studio login", to: "/admin/login" },
+                { label: "Get started", to: "/onboarding" },
+              ]}
+            />
+            <FooterCol
+              title="Legal"
+              links={[
+                { label: "Privacy", to: "/privacy" },
+                { label: "Terms", to: "/terms" },
+              ]}
+            />
+          </div>
+
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Zuri Studios. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <a
+                href={`mailto:${PLATFORM.email}`}
+                className="flex items-center gap-1.5 hover:text-foreground"
+              >
+                <Mail className="h-4 w-4" /> {PLATFORM.email}
+              </a>
+              {PLATFORM.whatsapp && (
+                <a
+                  href={`https://wa.me/${PLATFORM.whatsapp}`}
+                  className="flex items-center gap-1.5 hover:text-foreground"
+                >
+                  <WhatsappIcon className="h-4 w-4" /> WhatsApp
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+};
