@@ -274,11 +274,32 @@ export interface PlatformQueueStatus {
   data: {
     enabled: boolean;
     email?: { counts: PlatformQueueCounts; recentFailures: PlatformQueueFailure[] };
-    reconcilePayments?: {
-      counts: PlatformQueueCounts;
-      recentFailures: PlatformQueueFailure[];
-    };
   };
+}
+
+// A recurring background job (see ELS-Server src/scheduler). Times are ISO.
+export interface ScheduledJobDTO {
+  key: string;
+  label: string;
+  description: string;
+  schedule: string;
+  enabled: boolean;
+  running: boolean;
+  // The last run started but its process died before finishing.
+  interrupted: boolean;
+  nextRunAt: string | null;
+  lastStartedAt: string | null;
+  lastFinishedAt: string | null;
+  lastStatus: "RUNNING" | "SUCCESS" | "FAILED" | null;
+  // "schedule", or "manual:<email>" for a run started from the console.
+  lastTrigger: string | null;
+  lastResult: Record<string, unknown> | null;
+  lastError: string | null;
+  lastDurationMs: number | null;
+  runCount: number;
+  failureCount: number;
+  updatedBy: string | null;
+  updatedAt: string | null;
 }
 
 interface Envelope<T> {
@@ -535,9 +556,31 @@ export const platformApi = {
     });
   },
 
-  // ---- Background job queues (read-only health panel) ----
+  // ---- Background work ----
 
   async queues(): Promise<PlatformQueueStatus> {
     return platformRequest<PlatformQueueStatus>("/queues");
+  },
+
+  async jobs(): Promise<ScheduledJobDTO[]> {
+    return (await platformRequest<Envelope<ScheduledJobDTO[]>>("/jobs")).data;
+  },
+
+  async setJobEnabled(key: string, enabled: boolean): Promise<ScheduledJobDTO> {
+    return (
+      await platformRequest<Envelope<ScheduledJobDTO>>(`/jobs/${encodeURIComponent(key)}`, {
+        method: "PATCH",
+        body: { enabled },
+      })
+    ).data;
+  },
+
+  async runJob(key: string): Promise<ScheduledJobDTO> {
+    return (
+      await platformRequest<Envelope<ScheduledJobDTO>>(
+        `/jobs/${encodeURIComponent(key)}/run`,
+        { method: "POST" },
+      )
+    ).data;
   },
 };

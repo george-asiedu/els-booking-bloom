@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Loader2, Receipt } from "lucide-react";
 import { PlatformLayout } from "./PlatformLayout";
@@ -86,12 +86,6 @@ const PlatformTransactions = () => {
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 
-  const queuesQuery = useQuery({
-    queryKey: ["platform-queues"],
-    queryFn: () => platformApi.queues(),
-    refetchInterval: 30_000,
-  });
-
   const entries = listQuery.data?.pages.flatMap((p) => p.entries) ?? [];
   const studios = studiosQuery.data ?? [];
   const studioName = studioId
@@ -104,8 +98,6 @@ const PlatformTransactions = () => {
     else next.set("studio", v);
     setParams(next, { replace: true });
   };
-
-  const q = queuesQuery.data?.data;
 
   return (
     <PlatformLayout>
@@ -300,55 +292,14 @@ const PlatformTransactions = () => {
           </div>
         ) : null}
 
-        {/* Queue health sits here because a stalled reconcile queue is the most
-            likely reason a payment looks stuck in this very table. */}
-        <Card>
-          <CardContent className="py-4">
-            <p className="mb-3 text-sm font-medium">Background jobs</p>
-            {queuesQuery.isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : !q?.enabled ? (
-              <p className="text-sm text-muted-foreground">
-                Queues are disabled (no REDIS_URL configured). Emails send
-                inline and payment reconciliation doesn't run on a schedule.
-              </p>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {(
-                  [
-                    ["Email", q.email],
-                    ["Payment reconciliation", q.reconcilePayments],
-                  ] as const
-                ).map(([label, queue]) => (
-                  <div key={label} className="rounded-md border p-3">
-                    <p className="text-sm font-medium">{label}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {queue
-                        ? Object.entries(queue.counts)
-                            .filter(([, v]) => typeof v === "number")
-                            .map(([k, v]) => `${k}: ${v}`)
-                            .join(" · ")
-                        : "No data"}
-                    </p>
-                    {queue && queue.recentFailures.length > 0 ? (
-                      <ul className="mt-2 space-y-1">
-                        {queue.recentFailures.slice(0, 3).map((f, i) => (
-                          <li
-                            key={f.id ?? i}
-                            className="truncate text-xs text-destructive"
-                            title={f.failedReason}
-                          >
-                            {f.failedReason ?? "Unknown failure"}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <p className="text-xs text-muted-foreground">
+          A payment stuck on pending is normally settled by the reconciliation job.
+          See{" "}
+          <Link to="/platform/jobs" className="underline underline-offset-2">
+            Background jobs
+          </Link>{" "}
+          for when it last ran.
+        </p>
       </div>
     </PlatformLayout>
   );
