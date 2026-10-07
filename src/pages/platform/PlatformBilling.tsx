@@ -10,6 +10,10 @@ import { platformApi, PlatformBillingConfig } from "@/lib/platformApi";
 import { PlatformLayout } from "./PlatformLayout";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
+import { YEARLY_FREE_MONTHS } from "@/config/platform";
+
+const yearlyFrom = (monthly: number) =>
+  Math.round(monthly * (12 - YEARLY_FREE_MONTHS) * 100) / 100;
 
 type Plan = "STANDARD" | "PREMIUM";
 type Cadence = "MONTHLY" | "YEARLY";
@@ -97,20 +101,30 @@ const PlatformBilling = () => {
               <span className="text-sm font-medium text-muted-foreground">Per year</span>
               {PLANS.map((plan) => (
                 <PriceRow key={plan.id} name={plan.name}>
-                  {(["MONTHLY", "YEARLY"] as const).map((cadence) => (
-                    <MoneyInput
-                      key={cadence}
-                      label={`${plan.name} price per ${cadence === "YEARLY" ? "year" : "month"}`}
-                      value={form[priceKey(plan.id, cadence)]}
-                      onChange={(v) => set({ [priceKey(plan.id, cadence)]: num(v) })}
-                    />
-                  ))}
+                  <MoneyInput
+                    label={`${plan.name} price per month`}
+                    value={form[priceKey(plan.id, "MONTHLY")]}
+                    // The yearly price follows the monthly one as you type.
+                    onChange={(v) =>
+                      set({
+                        [priceKey(plan.id, "MONTHLY")]: num(v),
+                        [priceKey(plan.id, "YEARLY")]: yearlyFrom(num(v)),
+                      })
+                    }
+                  />
+                  <p className="text-sm tabular-nums">
+                    <span className="font-medium">{formatGHS(form[priceKey(plan.id, "YEARLY")])}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {12 - YEARLY_FREE_MONTHS} × monthly
+                    </span>
+                  </p>
                 </PriceRow>
               ))}
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              A price must be more than 0. These are what the platform page shows and what
-              studios are charged.
+              Set the monthly price; the yearly price is always {12 - YEARLY_FREE_MONTHS} months of
+              it, so studios paying yearly save {YEARLY_FREE_MONTHS} months as the platform page
+              promises. A price must be more than 0.
             </p>
           </CardContent>
         </Card>

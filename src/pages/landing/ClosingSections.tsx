@@ -4,7 +4,7 @@ import { Check, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
-import { PLATFORM, PLANS, planPrice, studioUrl } from "@/config/platform";
+import { PLATFORM, PLANS, planPrice, studioUrl, YEARLY_FREE_MONTHS } from "@/config/platform";
 import { cn } from "@/lib/utils";
 import { GHS, FAQ, isWhatsapp, contactHref } from "./content";
 import { FooterCol } from "./Visuals";
@@ -50,7 +50,9 @@ export const PricingSection = () => {
                 >
                   {c === "MONTHLY" ? "Monthly" : "Yearly"}
                   {c === "YEARLY" && (
-                    <span className="ml-1 text-xs opacity-80">save 2 months</span>
+                    <span className="ml-1 text-xs opacity-80">
+                      save {YEARLY_FREE_MONTHS} months
+                    </span>
                   )}
                 </button>
               ))}

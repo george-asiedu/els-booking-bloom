@@ -49,6 +49,11 @@ export const studioUrl = (slug: string) =>
     ? `${window.location.protocol}//${slug}.${PLATFORM.rootDomain}`
     : `/s/${slug}`;
 
+// A yearly plan is priced at 12 months minus this many. The server derives
+// yearly prices the same way (YEARLY_MONTHS_CHARGED in ELS-Server
+// platformService), so the "save 2 months" label is always true.
+export const YEARLY_FREE_MONTHS = 2;
+
 export type PlanId = "STANDARD" | "PREMIUM";
 
 export interface PlanDef {
