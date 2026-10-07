@@ -29,13 +29,7 @@ export interface StudioConfigDTO {
     accentColor: string | null;
     fontFamily: string | null;
   };
-  content: {
-    heroHeadline: string | null;
-    heroSubtext: string | null;
-    aboutText: string | null;
-    featureCards: StudioFeatureCard[] | null;
-    showTestimonials: boolean;
-  };
+  content: StudioContentDTO;
   settings: StudioFeatureFlags;
 }
 
@@ -55,11 +49,26 @@ export interface StudioBrandingDTO {
   fontFamily: string | null;
 }
 
+// The studio's own landing-page wording and images. Null means "use the
+// storefront's default" for that slot.
 export interface StudioContentDTO {
+  heroEyebrow: string | null;
   heroHeadline: string | null;
   heroSubtext: string | null;
+  heroImageUrl: string | null;
+  aboutHeading: string | null;
   aboutText: string | null;
+  aboutImageUrl: string | null;
+  featuresHeading: string | null;
   featureCards: StudioFeatureCard[] | null;
+  servicesHeading: string | null;
+  galleryHeading: string | null;
+  reviewsHeading: string | null;
+  loyaltyHeading: string | null;
+  loyaltyText: string | null;
+  ctaHeading: string | null;
+  ctaImageUrl: string | null;
+  contactHeading: string | null;
   showTestimonials: boolean;
 }
 

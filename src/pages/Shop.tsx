@@ -166,15 +166,9 @@ const Shop = () => {
   return (
     <Layout>
       <StudioPageHero
-        eyebrow="The studio shop"
-        title={
-          <>
-            Beauty essentials,
-            <br />
-            <span className="text-primary">chosen for you.</span>
-          </>
-        }
-        description="Curated products to prep, style and maintain your look between appointments."
+        eyebrow="Shop"
+        title="Products we use and sell"
+        description="The products we use in the studio, available to buy online."
         image={heroImg}
         variant="commerce"
       />

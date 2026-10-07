@@ -168,8 +168,8 @@ const Cart = () => {
     <Layout>
       <StudioPageHero
         eyebrow="Your bag"
-        title="Almost yours."
-        description="Review your selected products before completing your purchase."
+        title="Check your order"
+        description="Change quantities or remove items before you pay."
         variant="compact"
       />
 

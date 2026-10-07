@@ -86,15 +86,9 @@ const Contact = () => {
   return (
     <Layout>
       <StudioPageHero
-        eyebrow="Get in touch"
-        title={
-          <>
-            Come say
-            <br />
-            <span className="text-primary">hello.</span>
-          </>
-        }
-        description="Have questions or want to book an appointment? Reach out through any of these channels."
+        eyebrow="Contact"
+        title="Get in touch"
+        description="Questions about a service, a price or a time? Message or call us using any of the details below."
         image={gallery.find((g) => g.media_type === "image")?.image_url ?? null}
         variant="editorial"
       />

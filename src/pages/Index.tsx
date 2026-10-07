@@ -1,26 +1,29 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight,
-  ArrowUpRight,
-  Sparkles,
-  Gift,
-  ShoppingBag,
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  Instagram,
-  Music2,
-  Facebook,
+  Award,
   ChevronLeft,
   ChevronRight,
-  Quote,
+  Clock,
+  Facebook,
+  Gem,
+  Heart,
+  Instagram,
+  Mail,
+  MapPin,
+  Music2,
+  Palette,
+  Phone,
+  ShieldCheck,
+  ShoppingBag,
+  Smile,
+  Sparkles,
+  Star,
+  type LucideIcon,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
-import { Reveal } from "@/components/Reveal";
 import { Lightbox } from "@/components/storefront/Lightbox";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import {
@@ -31,14 +34,28 @@ import {
   businessHoursApi,
   commerceApi,
   productsApi,
+  type ServiceDTO,
 } from "@/lib/api";
-import { services as staticServices } from "@/data/services";
 import { useStudio } from "@/hooks/useStudio";
 import heroFallback from "@/assets/hero-beauty.jpg";
 import { formatGHS } from "@/lib/currency";
+import { landingDefaults } from "@/lib/landingDefaults";
+import { useHideSplashWhen } from "@/lib/splash";
 
-const GHS = formatGHS;
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Icons a studio can pick for its highlight cards (Appearance → Landing page).
+const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
+  star: Star,
+  clock: Clock,
+  heart: Heart,
+  sparkles: Sparkles,
+  award: Award,
+  gem: Gem,
+  palette: Palette,
+  smile: Smile,
+  shield: ShieldCheck,
+};
 
 // Turn a stored handle (or full URL) into a working social profile link.
 const socialHref = (kind: "instagram" | "tiktok" | "facebook", v: string) => {
@@ -55,27 +72,48 @@ const to12h = (t: string | null) => {
   const hr = h % 12 || 12;
   return `${hr}:${String(m ?? 0).padStart(2, "0")} ${ampm}`;
 };
+const priceOf = (s: ServiceDTO) =>
+  s.on_promo && s.promo_price != null ? s.promo_price : s.price;
+
+/** A section's heading: one size, left-aligned, with an optional link on the right. */
+const SectionHeading = ({
+  title,
+  intro,
+  action,
+}: {
+  title: string;
+  intro?: string;
+  action?: React.ReactNode;
+}) => (
+  <div className="mb-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+    <div className="max-w-2xl">
+      <h2 className="font-serif text-3xl font-semibold leading-tight md:text-4xl">{title}</h2>
+      {intro && <p className="mt-3 text-muted-foreground">{intro}</p>}
+    </div>
+    {action}
+  </div>
+);
 
 const Index = () => {
-  const { name: studioName, config, features } = useStudio();
-  const heroHeadline = config?.content.heroHeadline;
-  const heroSubtext = config?.content.heroSubtext;
-  const aboutText = config?.content.aboutText;
-  const showTestimonials = config?.content.showTestimonials ?? true;
+  const { name: studioName, config, features, isLoading: configLoading } = useStudio();
+  const content = config?.content;
+  const defaults = landingDefaults(studioName);
+  // The studio's own wording for a slot, or the default.
+  const copy = (field: keyof typeof defaults) => content?.[field] || defaults[field];
+  const showTestimonials = content?.showTestimonials ?? true;
+  const highlights = (content?.featureCards ?? []).filter((c) => c.title?.trim());
 
   const [lightbox, setLightbox] = useState<number | null>(null);
   const reviewsRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: apiServices } = useQuery({
+  const { data: services = [] } = useQuery({
     queryKey: ["public-services-catalog"],
     queryFn: () => servicesApi.listActive(),
   });
-  const source = apiServices && apiServices.length > 0 ? apiServices : staticServices;
-  const popularServices = source.filter((s) => s.popular);
-  const services = (popularServices.length > 0 ? popularServices : source).slice(0, 6);
-  const featured = services.slice(0, 2);
+  const popular = services.filter((s) => s.popular);
+  const priceList = (popular.length > 0 ? popular : services).slice(0, 8);
 
-  const { data: gallery = [] } = useQuery({
+  const { data: gallery = [], isLoading: galleryLoading } = useQuery({
     queryKey: ["public-gallery"],
     queryFn: () => galleryApi.listActive(),
     enabled: features.gallery,
@@ -111,306 +149,225 @@ const Index = () => {
     ...products.filter((p) => !p.popular),
   ].slice(0, 4);
 
-  // Real imagery drives the composition; fall back to the bundled photo.
-  const galleryImgs = gallery.filter((g) => g.media_type === "image").map((g) => ({ src: g.image_url, alt: g.title || studioName }));
-  const heroBg = galleryImgs[0]?.src ?? heroFallback;
-  const introImg = galleryImgs[1]?.src ?? galleryImgs[0]?.src ?? heroFallback;
-  const ctaBg = galleryImgs[2]?.src ?? galleryImgs[0]?.src ?? heroFallback;
+  // The studio's chosen photos first, then its own gallery, then a bundled
+  // photo so a brand-new studio's page is never empty.
+  const galleryImgs = gallery
+    .filter((g) => g.media_type === "image")
+    .map((g) => ({ src: g.image_url, alt: g.title || studioName }));
+  const heroBg = content?.heroImageUrl ?? galleryImgs[0]?.src ?? heroFallback;
+  const aboutImg =
+    content?.aboutImageUrl ?? galleryImgs[1]?.src ?? galleryImgs[0]?.src ?? heroFallback;
+  const ctaBg = content?.ctaImageUrl ?? galleryImgs[2]?.src ?? galleryImgs[0]?.src ?? heroFallback;
 
-  const stats = [
-    { value: source.length, label: "Services" },
-    { value: gallery.length, label: "Looks created" },
-    { value: reviews.length, label: "Client reviews" },
-  ].filter((s) => s.value > 0);
+  // Keep the loading screen up until the hero is final: the studio's settings
+  // are in, the hero photo is chosen (a gallery photo can replace the default
+  // once the gallery arrives) and that photo has decoded. Without this the
+  // page would flash the default photo and swap it.
+  const [heroLoaded, setHeroLoaded] = useState<string | null>(null);
+  const heroChosen =
+    !configLoading && (Boolean(content?.heroImageUrl) || !features.gallery || !galleryLoading);
+  useHideSplashWhen(heroChosen && heroLoaded === heroBg);
 
   const scrollReviews = (dir: 1 | -1) => {
     const el = reviewsRef.current;
     if (el) el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: "smooth" });
   };
 
+  const sortedHours = [...hours].sort((a, b) => a.day_of_week - b.day_of_week);
+
   return (
     <Layout heroOverlay>
-      {/* ------------------------------------------------------------- Hero */}
-      <section className="relative flex min-h-[92vh] items-center overflow-hidden">
+      {/* Hero: the page's one entrance animation. */}
+      <section className="relative flex min-h-[88vh] items-end overflow-hidden pb-16 md:items-center md:pb-0">
         <img
           src={heroBg}
           alt=""
-          className="animate-fade-in absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
+          onLoad={() => setHeroLoaded(heroBg)}
+          // A broken image shouldn't hold the page hostage.
+          onError={() => setHeroLoaded(heroBg)}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
 
-        <div className="container relative z-10 mx-auto px-4 pt-24">
-          <div className="max-w-xl">
-            <span className="animate-fade-in mb-5 inline-flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-primary">
-              <Sparkles className="h-4 w-4" /> Welcome to {studioName}
-            </span>
-            <h1 className="animate-fade-in font-serif text-4xl font-bold leading-[1.05] text-foreground [animation-delay:120ms] sm:text-5xl md:text-6xl">
-              {heroHeadline ?? (
-                <>
-                  Your beauty,
-                  <br />
-                  <span className="text-primary">your signature.</span>
-                </>
-              )}
+        <div className="container relative z-10 mx-auto px-4 pt-28">
+          <div className="max-w-xl animate-fade-in">
+            <p className="mb-4 font-medium text-primary">{copy("heroEyebrow")}</p>
+            <h1 className="font-serif text-4xl font-semibold leading-[1.08] text-foreground sm:text-5xl md:text-6xl">
+              {copy("heroHeadline")}
             </h1>
-            <p className="animate-fade-in mt-6 max-w-md text-lg text-muted-foreground [animation-delay:240ms]">
-              {heroSubtext ||
-                "Personalised beauty services designed to make you feel confident, polished and unforgettable."}
-            </p>
-            <div className="animate-fade-in mt-8 flex flex-col gap-3 [animation-delay:360ms] sm:flex-row">
-              <Button size="lg" className="group" asChild>
-                <Link to="/book">
-                  Book your appointment
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
+            <p className="mt-5 max-w-md text-lg text-muted-foreground">{copy("heroSubtext")}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button size="lg" asChild>
+                <Link to="/book">Book an appointment</Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/services">Explore services</Link>
+              <Button size="lg" variant="outline" className="bg-background/60" asChild>
+                <Link to="/services">See prices</Link>
               </Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* --------------------------------------------------------- Studio intro */}
+      {/* About */}
       <section className="py-20 md:py-28">
-        <div className="container mx-auto grid grid-cols-1 items-center gap-10 px-4 lg:grid-cols-2 lg:gap-16">
-          <Reveal className="relative order-2 lg:order-1">
-            <img
-              src={introImg}
-              alt={`Work by ${studioName}`}
-              loading="lazy"
-              className="aspect-[4/5] w-full rounded-2xl object-cover"
-            />
-          </Reveal>
-          <Reveal delay={100} className="order-1 lg:order-2">
-            <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-              The studio
-            </span>
-            <h2 className="mt-3 font-serif text-3xl font-bold leading-tight md:text-5xl">
-              Beauty designed around you.
+        <div className="container mx-auto grid grid-cols-1 items-center gap-10 px-4 lg:grid-cols-[5fr,6fr] lg:gap-20">
+          <img
+            src={aboutImg}
+            alt={`At ${studioName}`}
+            loading="lazy"
+            className="aspect-[4/5] w-full rounded-lg object-cover outline outline-1 -outline-offset-1 outline-black/5"
+          />
+          <div>
+            <h2 className="font-serif text-3xl font-semibold leading-tight md:text-4xl">
+              {copy("aboutHeading")}
             </h2>
-            <p className="mt-5 max-w-md text-muted-foreground">
-              {aboutText ||
-                `At ${studioName}, every appointment is personal. From the first consultation to the final reveal, your look is tailored to you â€” using premium products and a careful, artist's eye.`}
+            <p className="mt-5 max-w-prose whitespace-pre-line text-lg leading-relaxed text-muted-foreground">
+              {copy("aboutText")}
             </p>
-            {stats.length > 0 && (
-              <div className="mt-8 flex flex-wrap gap-8">
-                {stats.map((s) => (
-                  <div key={s.label}>
-                    <p className="font-serif text-3xl font-bold text-primary">
-                      {s.value}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
-                  </div>
-                ))}
-              </div>
+            {contact?.showAddress && contact.address && (
+              <p className="mt-6 flex items-start gap-2 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                {contact.address}
+              </p>
             )}
-            <Button className="group mt-8" asChild>
-              <Link to="/book">
-                Book an appointment
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-          </Reveal>
+          </div>
         </div>
       </section>
 
-      {/* ------------------------------------------------------ Featured + services */}
-      {services.length > 0 && (
-        <section className="bg-secondary py-20 md:py-28">
+      {/* Highlights (only when the studio has written some) */}
+      {highlights.length > 0 && (
+        <section className="border-y border-border bg-secondary/60 py-16 md:py-20">
           <div className="container mx-auto px-4">
-            <Reveal className="mx-auto mb-14 max-w-2xl text-center">
-              <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-                Services
-              </span>
-              <h2 className="mt-3 font-serif text-3xl font-bold md:text-5xl">
-                Designed to make you feel your best.
-              </h2>
-            </Reveal>
-
-            {/* Featured (large) */}
-            {featured.length >= 2 && (
-              <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2">
-                {featured.map((s, i) => {
-                  const img: string | null =
-                    "image_url" in s
-                      ? (s as { image_url: string | null }).image_url
-                      : null;
-                  return (
-                  <Reveal
-                    key={s.id}
-                    delay={i * 100}
-                    className="group relative overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    {img && (
-                      <div className="aspect-[16/10] overflow-hidden bg-muted">
-                        <img
-                          src={img}
-                          alt={s.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      </div>
-                    )}
-                    <div className={`flex items-end justify-between gap-4 p-6 ${!img ? "min-h-32" : ""}`}>
-                      <div>
-                        <h3 className="font-serif text-xl font-semibold">{s.name}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {s.duration} Â·{" "}
-                          {s.on_promo && s.promo_price != null
-                            ? GHS(s.promo_price)
-                            : GHS(s.price)}
+            <SectionHeading title={copy("featuresHeading")} />
+            <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+              {highlights.map((h, i) => {
+                const Icon = HIGHLIGHT_ICONS[h.icon ?? ""] ?? Star;
+                return (
+                  <div key={i} className="flex gap-4">
+                    <Icon className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                    <div>
+                      <h3 className="font-semibold">{h.title}</h3>
+                      {h.description && (
+                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                          {h.description}
                         </p>
-                      </div>
-                      <Button size="sm" className="group/btn shrink-0" asChild>
-                        <Link to="/book">
-                          Book
-                          <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
-                        </Link>
-                      </Button>
+                      )}
                     </div>
-                  </Reveal>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Editorial rows */}
-            <div className="mx-auto max-w-4xl divide-y divide-border border-y border-border">
-              {services.map((s, i) => (
-                <Reveal
-                  key={s.id}
-                  delay={(i % 3) * 70}
-                  className="group grid grid-cols-[auto,1fr,auto] items-center gap-4 py-5 transition-colors sm:gap-6"
-                >
-                  <span className="font-serif text-sm text-muted-foreground">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="truncate font-serif text-lg font-semibold transition-colors group-hover:text-primary">
-                      {s.name}
-                    </h3>
-                    <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-                      {s.description}
-                    </p>
                   </div>
-                  <div className="flex items-center gap-4 sm:gap-6">
-                    <div className="hidden text-right sm:block">
-                      <p className="text-sm font-semibold">
-                        {s.on_promo && s.promo_price != null
-                          ? GHS(s.promo_price)
-                          : GHS(s.price)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{s.duration}</p>
-                    </div>
-                    <Link
-                      to="/book"
-                      className="flex items-center gap-1 text-sm font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
-                    >
-                      Book <ArrowUpRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-
-            <div className="mt-10 text-center">
-              <Button variant="outline" className="group" asChild>
-                <Link to="/services">
-                  View all services
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
+                );
+              })}
             </div>
           </div>
         </section>
       )}
 
-      {/* ------------------------------------------------------------- Gallery */}
-      {features.gallery && galleryImgs.length > 0 && (
+      {/* Services: laid out like a salon price list. */}
+      {priceList.length > 0 && (
         <section className="py-20 md:py-28">
-          <div className="container mx-auto px-4">
-            <Reveal className="mx-auto mb-12 max-w-2xl text-center">
-              <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-                Our work
-              </span>
-              <h2 className="mt-3 font-serif text-3xl font-bold md:text-5xl">
-                A little inspiration for your next look.
-              </h2>
-            </Reveal>
+          {/* Capped width so each price sits close to the service it belongs to. */}
+          <div className="container mx-auto max-w-4xl px-4">
+            <SectionHeading
+              title={copy("servicesHeading")}
+              action={
+                <Button variant="outline" asChild>
+                  <Link to="/services">Full price list</Link>
+                </Button>
+              }
+            />
+            <ul className="divide-y divide-border border-y border-border">
+              {priceList.map((s) => (
+                <li key={s.id} className="grid grid-cols-[1fr,auto] items-baseline gap-x-6 gap-y-1 py-5">
+                  <div className="min-w-0">
+                    <h3 className="font-serif text-lg font-semibold">
+                      {s.name}
+                      {s.on_promo && s.promo_price != null && (
+                        <span className="ml-2 align-middle text-xs font-medium text-primary">
+                          On offer
+                        </span>
+                      )}
+                    </h3>
+                    {s.description && (
+                      <p className="mt-1 max-w-prose text-sm text-muted-foreground">{s.description}</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold tabular-nums">
+                      {s.on_promo && s.promo_price != null && (
+                        <span className="mr-2 font-normal text-muted-foreground line-through">
+                          {formatGHS(s.price)}
+                        </span>
+                      )}
+                      {formatGHS(priceOf(s))}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{s.duration}</p>
+                  </div>
+                  <Link
+                    to="/book"
+                    className="col-span-2 text-sm font-medium text-primary underline-offset-4 hover:underline sm:col-span-1 sm:col-start-1"
+                  >
+                    Book {s.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
+      {/* Gallery */}
+      {features.gallery && galleryImgs.length > 0 && (
+        <section className="bg-secondary/60 py-20 md:py-28">
+          <div className="container mx-auto px-4">
+            <SectionHeading
+              title={copy("galleryHeading")}
+              action={
+                <Button variant="outline" asChild>
+                  <Link to="/gallery">See all photos</Link>
+                </Button>
+              }
+            />
             <div className="columns-2 gap-3 [column-fill:_balance] md:columns-3 md:gap-4 lg:columns-4">
               {galleryImgs.slice(0, 10).map((img, i) => (
-                <Reveal key={i} delay={(i % 4) * 60} className="mb-3 md:mb-4">
-                  <button
-                    onClick={() => setLightbox(i)}
-                    className="group relative block w-full overflow-hidden rounded-xl"
-                    aria-label={`View ${img.alt}`}
-                  >
-                    <img
-                      src={img.src}
-                      alt={img.alt}
-                      loading="lazy"
-                      className="w-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center bg-foreground/0 opacity-0 transition-[background-color,opacity] duration-300 group-hover:bg-foreground/20 group-hover:opacity-100">
-                      <span className="rounded-full bg-background/90 px-4 py-1.5 text-xs font-medium">
-                        View
-                      </span>
-                    </span>
-                  </button>
-                </Reveal>
+                <button
+                  key={i}
+                  onClick={() => setLightbox(i)}
+                  className="mb-3 block w-full overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:mb-4"
+                  aria-label={`View ${img.alt}`}
+                >
+                  <img
+                    src={img.src}
+                    alt={img.alt}
+                    loading="lazy"
+                    className="w-full object-cover outline outline-1 -outline-offset-1 outline-black/5 transition-opacity hover:opacity-90"
+                  />
+                </button>
               ))}
-            </div>
-
-            <div className="mt-10 text-center">
-              <Button variant="outline" className="group" asChild>
-                <Link to="/gallery">
-                  View full gallery
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
             </div>
           </div>
           <Lightbox images={galleryImgs.slice(0, 10)} index={lightbox} onIndexChange={setLightbox} />
         </section>
       )}
 
-      {/* ------------------------------------------------------------- Reviews */}
+      {/* Reviews */}
       {features.reviews && showTestimonials && reviews.length > 0 && (
-        <section className="bg-secondary py-20 md:py-28">
+        <section className="py-20 md:py-28">
           <div className="container mx-auto px-4">
-            <Reveal className="mb-10 flex items-end justify-between gap-4">
-              <div>
-                <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-                  Kind words
-                </span>
-                <h2 className="mt-3 font-serif text-3xl font-bold md:text-5xl">
-                  Loved by our clients.
-                </h2>
-              </div>
-              {reviews.length > 1 && (
-                <div className="hidden gap-2 sm:flex">
-                  <button
-                    onClick={() => scrollReviews(-1)}
-                    aria-label="Previous reviews"
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card transition hover:bg-accent"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => scrollReviews(1)}
-                    aria-label="Next reviews"
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card transition hover:bg-accent"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-              )}
-            </Reveal>
-
+            <SectionHeading
+              title={copy("reviewsHeading")}
+              action={
+                reviews.length > 1 && (
+                  <div className="hidden gap-2 sm:flex">
+                    <Button variant="outline" size="icon" onClick={() => scrollReviews(-1)} aria-label="Previous reviews">
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => scrollReviews(1)} aria-label="Next reviews">
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </div>
+                )
+              }
+            />
             <div
               ref={reviewsRef}
               className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -418,18 +375,13 @@ const Index = () => {
               {reviews.map((r) => (
                 <figure
                   key={r.id}
-                  className="w-[85%] shrink-0 snap-start rounded-2xl border border-border bg-card p-7 sm:w-[46%] lg:w-[31%]"
+                  className="flex w-[85%] shrink-0 snap-start flex-col justify-between rounded-lg border border-border bg-card p-6 sm:w-[46%] lg:w-[31%]"
                 >
-                  <Quote className="h-8 w-8 text-primary/30" />
-                  <blockquote className="mt-4 font-serif text-lg leading-snug">
-                    â€œ{r.content}â€
-                  </blockquote>
+                  <blockquote className="text-lg leading-relaxed">“{r.content}”</blockquote>
                   <figcaption className="mt-5 text-sm">
-                    <span className="font-medium">
-                      {r.profiles?.full_name ?? "Client"}
-                    </span>
+                    <span className="font-medium">{r.profiles?.full_name ?? "A client"}</span>
                     {r.services?.name && (
-                      <span className="text-muted-foreground"> Â· {r.services.name}</span>
+                      <span className="block text-muted-foreground">{r.services.name}</span>
                     )}
                   </figcaption>
                 </figure>
@@ -439,135 +391,96 @@ const Index = () => {
         </section>
       )}
 
-      {/* ------------------------------------------------------------- Loyalty */}
+      {/* Loyalty */}
       {features.loyalty && (
-        <section className="py-20 md:py-24">
+        <section className="py-12 md:py-16">
           <div className="container mx-auto px-4">
-            <Reveal className="mx-auto flex max-w-4xl flex-col items-center gap-6 rounded-3xl border border-primary/20 bg-gradient-to-br from-accent/50 to-card p-10 text-center md:p-14">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                <Gift className="h-7 w-7 text-primary" />
-              </span>
-              <div>
-                <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-                  Love coming back?
-                </span>
-                <h2 className="mt-3 font-serif text-3xl font-bold md:text-4xl">
-                  Earn rewards every time you visit.
-                </h2>
-                <p className="mx-auto mt-4 max-w-md text-muted-foreground">
-                  Collect points on every appointment and redeem them for money
-                  off future visits â€” our way of saying thank you.
-                </p>
+            <div className="flex flex-col gap-6 rounded-lg border border-primary/25 bg-accent/40 p-8 md:flex-row md:items-center md:justify-between md:p-10">
+              <div className="max-w-xl">
+                <h2 className="font-serif text-2xl font-semibold md:text-3xl">{copy("loyaltyHeading")}</h2>
+                <p className="mt-2 text-muted-foreground">{copy("loyaltyText")}</p>
               </div>
-              <Button className="group" asChild>
-                <Link to="/account">
-                  Join & earn points
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
+              <Button className="shrink-0" asChild>
+                <Link to="/account">See your points</Link>
               </Button>
-            </Reveal>
+            </div>
           </div>
         </section>
       )}
 
-      {/* ------------------------------------------------------------ Products */}
+      {/* Products */}
       {shopEnabled && featuredProducts.length > 0 && (
-        <section className="bg-secondary py-20 md:py-28">
+        <section className="bg-secondary/60 py-20 md:py-28">
           <div className="container mx-auto px-4">
-            <Reveal className="mb-12 flex items-end justify-between gap-4">
-              <div>
-                <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-                  Shop the studio
-                </span>
-                <h2 className="mt-3 font-serif text-3xl font-bold md:text-5xl">
-                  Take the studio home.
-                </h2>
-              </div>
-              <Button variant="outline" className="hidden group sm:inline-flex" asChild>
-                <Link to="/shop">
-                  <ShoppingBag className="mr-2 h-4 w-4" /> Visit the shop
-                </Link>
-              </Button>
-            </Reveal>
-            <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
-              {featuredProducts.map((product, i) => (
-                <Reveal key={product.id} delay={(i % 4) * 70}>
-                  <Link
-                    to={`/shop/${product.id}`}
-                    className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:shadow-lg"
-                  >
-                    <div className="aspect-square overflow-hidden bg-muted">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Sparkles className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="line-clamp-1 font-medium transition-colors group-hover:text-primary">
-                        {product.name}
-                      </h3>
-                      <p className="mt-1 font-semibold text-primary">
-                        {product.on_promo ? GHS(product.effective_price) : GHS(product.price)}
-                      </p>
-                    </div>
+            <SectionHeading
+              title="From the shop"
+              action={
+                <Button variant="outline" asChild>
+                  <Link to="/shop">
+                    <ShoppingBag className="mr-2 h-4 w-4" /> Visit the shop
                   </Link>
-                </Reveal>
+                </Button>
+              }
+            />
+            <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+              {featuredProducts.map((product) => (
+                <Link key={product.id} to={`/shop/${product.id}`} className="group block">
+                  <div className="aspect-square overflow-hidden rounded-md bg-muted">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-black/5"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        No photo yet
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="mt-3 line-clamp-1 font-medium group-hover:underline">{product.name}</h3>
+                  <p className="mt-0.5 font-semibold tabular-nums">
+                    {formatGHS(product.on_promo ? product.effective_price : product.price)}
+                  </p>
+                </Link>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* ------------------------------------------------------- Booking CTA */}
+      {/* Closing call to action */}
       <section className="relative overflow-hidden py-24 md:py-32">
-        <img src={ctaBg} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-foreground/60" />
-        <div className="container relative z-10 mx-auto px-4 text-center">
-          <Reveal>
-            <span className="text-sm font-medium uppercase tracking-[0.2em] text-background/80">
-              Ready for your next look?
-            </span>
-            <h2 className="mx-auto mt-3 max-w-2xl font-serif text-3xl font-bold text-background md:text-5xl">
-              Your next beauty appointment is just a few clicks away.
-            </h2>
-            <Button size="lg" variant="secondary" className="group mt-8" asChild>
-              <Link to="/book">
-                Book your appointment
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-          </Reveal>
+        <img src={ctaBg} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="container relative z-10 mx-auto px-4">
+          <h2 className="max-w-2xl font-serif text-3xl font-semibold text-white md:text-5xl">
+            {copy("ctaHeading")}
+          </h2>
+          <Button size="lg" variant="secondary" className="mt-8" asChild>
+            <Link to="/book">Book an appointment</Link>
+          </Button>
         </div>
       </section>
 
-      {/* ------------------------------------------------------------- Contact */}
+      {/* Contact */}
       <section className="py-20 md:py-28">
         <div className="container mx-auto grid grid-cols-1 gap-12 px-4 lg:grid-cols-2">
-          <Reveal>
-            <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-              Visit us
-            </span>
-            <h2 className="mt-3 font-serif text-3xl font-bold md:text-5xl">
-              Come say hello.
+          <div>
+            <h2 className="font-serif text-3xl font-semibold leading-tight md:text-4xl">
+              {copy("contactHeading")}
             </h2>
-            <div className="mt-8 space-y-4 text-sm">
+            <div className="mt-8 space-y-5">
               {contact?.showPhone && contact.phone && (
-                <ContactRow icon={<Phone className="h-5 w-5" />} label="Phone">
+                <ContactRow icon={Phone} label="Phone">
                   <a href={`tel:${contact.phone}`} className="hover:text-primary">
                     {contact.phone}
                   </a>
                 </ContactRow>
               )}
               {contact?.showWhatsapp && contact.whatsapp && (
-                <ContactRow icon={<WhatsappIcon className="h-5 w-5" />} label="WhatsApp">
+                <ContactRow icon={WhatsappIcon} label="WhatsApp">
                   <a
                     href={`https://wa.me/${contact.whatsapp.replace(/\D/g, "")}`}
                     target="_blank"
@@ -579,54 +492,37 @@ const Index = () => {
                 </ContactRow>
               )}
               {contact?.showEmail && contact.email && (
-                <ContactRow icon={<Mail className="h-5 w-5" />} label="Email">
+                <ContactRow icon={Mail} label="Email">
                   <a href={`mailto:${contact.email}`} className="hover:text-primary">
                     {contact.email}
                   </a>
                 </ContactRow>
               )}
               {contact?.showInstagram && contact.instagram && (
-                <ContactRow icon={<Instagram className="h-5 w-5" />} label="Instagram">
-                  <a
-                    href={socialHref("instagram", contact.instagram)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-primary"
-                  >
+                <ContactRow icon={Instagram} label="Instagram">
+                  <a href={socialHref("instagram", contact.instagram)} target="_blank" rel="noreferrer" className="hover:text-primary">
                     @{contact.instagram.replace(/^@/, "")}
                   </a>
                 </ContactRow>
               )}
               {contact?.showTiktok && contact.tiktok && (
-                <ContactRow icon={<Music2 className="h-5 w-5" />} label="TikTok">
-                  <a
-                    href={socialHref("tiktok", contact.tiktok)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-primary"
-                  >
+                <ContactRow icon={Music2} label="TikTok">
+                  <a href={socialHref("tiktok", contact.tiktok)} target="_blank" rel="noreferrer" className="hover:text-primary">
                     @{contact.tiktok.replace(/^@/, "")}
                   </a>
                 </ContactRow>
               )}
               {contact?.showFacebook && contact.facebook && (
-                <ContactRow icon={<Facebook className="h-5 w-5" />} label="Facebook">
-                  <a
-                    href={socialHref("facebook", contact.facebook)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-primary"
-                  >
+                <ContactRow icon={Facebook} label="Facebook">
+                  <a href={socialHref("facebook", contact.facebook)} target="_blank" rel="noreferrer" className="hover:text-primary">
                     {contact.facebook.replace(/^https?:\/\/(www\.)?facebook\.com\//, "").replace(/^@/, "")}
                   </a>
                 </ContactRow>
               )}
               {contact?.showAddress && contact.address && (
-                <ContactRow icon={<MapPin className="h-5 w-5" />} label="Address">
+                <ContactRow icon={MapPin} label="Address">
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      contact.address,
-                    )}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="hover:text-primary"
@@ -636,34 +532,29 @@ const Index = () => {
                 </ContactRow>
               )}
             </div>
-          </Reveal>
+          </div>
 
-          {hours.length > 0 && (
-            <Reveal delay={100} className="rounded-2xl border border-border bg-card p-7">
-              <h3 className="flex items-center gap-2 font-serif text-lg font-semibold">
-                <Clock className="h-5 w-5 text-primary" /> Opening hours
+          {sortedHours.length > 0 && (
+            <div className="rounded-lg border border-border bg-card p-6 md:p-8">
+              <h3 className="flex items-center gap-2 font-semibold">
+                <Clock className="h-5 w-5 text-primary" aria-hidden /> Opening hours
               </h3>
-              <ul className="mt-5 space-y-2.5 text-sm">
-                {[...hours]
-                  .sort((a, b) => a.day_of_week - b.day_of_week)
-                  .map((h) => (
-                    <li key={h.id} className="flex justify-between border-b border-border/60 pb-2.5 last:border-0">
-                      <span className="text-muted-foreground">{DAYS[h.day_of_week]}</span>
-                      <span className="font-medium">
-                        {h.is_closed || !h.open_time
-                          ? "Closed"
-                          : `${to12h(h.open_time)} â€“ ${to12h(h.close_time)}`}
-                      </span>
-                    </li>
-                  ))}
-              </ul>
-              <Button className="group mt-6 w-full" asChild>
-                <Link to="/book">
-                  Book an appointment
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
+              <dl className="mt-5 space-y-2.5 text-sm">
+                {sortedHours.map((h) => (
+                  <div key={h.id} className="flex justify-between gap-4 border-b border-border/60 pb-2.5 last:border-0">
+                    <dt className="text-muted-foreground">{DAYS[h.day_of_week]}</dt>
+                    <dd className="font-medium tabular-nums">
+                      {h.is_closed || !h.open_time
+                        ? "Closed"
+                        : `${to12h(h.open_time)} – ${to12h(h.close_time)}`}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <Button className="mt-6 w-full" asChild>
+                <Link to="/book">Book an appointment</Link>
               </Button>
-            </Reveal>
+            </div>
           )}
         </div>
       </section>
@@ -672,21 +563,19 @@ const Index = () => {
 };
 
 const ContactRow = ({
-  icon,
+  icon: Icon,
   label,
   children,
 }: {
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   children: React.ReactNode;
 }) => (
   <div className="flex items-start gap-4">
-    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-      {icon}
-    </span>
+    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
     <div>
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-foreground">{children}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="text-foreground">{children}</p>
     </div>
   </div>
 );

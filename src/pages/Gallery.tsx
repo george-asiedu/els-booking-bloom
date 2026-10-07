@@ -86,15 +86,9 @@ const Gallery = () => {
   return (
     <Layout>
       <StudioPageHero
-        eyebrow="Our work"
-        title={
-          <>
-            A little inspiration
-            <br />
-            <span className="text-primary">for your next look.</span>
-          </>
-        }
-        description="Explore some of our latest work, styles and transformations."
+        eyebrow="Gallery"
+        title="Our recent work"
+        description="Photos of real appointments. Tap any picture to see it larger, and bring one along if you'd like something similar."
         image={heroImg}
         variant="editorial"
       />
@@ -184,7 +178,7 @@ const Gallery = () => {
                       )}
                       <span className="absolute inset-0 flex items-end bg-gradient-to-t from-foreground/70 via-transparent to-transparent p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                         <span className="text-sm font-medium text-background">
-                          View â†’
+                          View →
                         </span>
                       </span>
                     </button>
@@ -194,7 +188,7 @@ const Gallery = () => {
               {galleryQuery.hasNextPage && (
                 <div className="mt-10 text-center">
                   <Button variant="outline" onClick={() => galleryQuery.fetchNextPage()} disabled={galleryQuery.isFetchingNextPage}>
-                    {galleryQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loadingâ€¦</> : "Load more work"}
+                    {galleryQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading…</> : "Load more work"}
                   </Button>
                 </div>
               )}
