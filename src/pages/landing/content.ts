@@ -1,3 +1,4 @@
+import { whatsappLink } from "@/lib/whatsapp";
 import { Calendar, ShoppingBag, Smartphone, Gift, Star } from "lucide-react";
 import { PLATFORM } from "@/config/platform";
 import nails1 from "@/assets/gallery/nails-1.jpg";
@@ -117,12 +118,7 @@ export const NAV_LINKS = [
 // How a prospective studio gets in touch: WhatsApp when configured, else email.
 // Functions, not constants, because PLATFORM is filled from the API at
 // startup and can change between visits.
-export const isWhatsapp = () => Boolean(PLATFORM.whatsapp);
+export const isWhatsapp = () => Boolean(whatsappLink(PLATFORM.whatsapp));
 export const contactHref = () =>
-  isWhatsapp()
-    ? `https://wa.me/${PLATFORM.whatsapp}?text=${encodeURIComponent(
-        `Hi ${PLATFORM.name}, I'd like to set up my studio.`,
-      )}`
-    : `mailto:${PLATFORM.email}?subject=${encodeURIComponent(
-        `Setting up my studio on ${PLATFORM.name}`,
-      )}`;
+  whatsappLink(PLATFORM.whatsapp, `Hi ${PLATFORM.name}, I'd like to set up my studio.`) ??
+  `mailto:${PLATFORM.email}?subject=${encodeURIComponent(`Setting up my studio on ${PLATFORM.name}`)}`;

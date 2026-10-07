@@ -2,9 +2,8 @@ import { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PaystackPop from "@paystack/inline-js";
-import { ordersApi, contactInfoApi } from "@/lib/api";
+import { ordersApi } from "@/lib/api";
 import { downloadOrderReceipt } from "@/lib/receipt";
-import { whatsappLink } from "@/lib/whatsapp";
 import { useStudio } from "@/hooks/useStudio";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,28 +28,12 @@ const OrderCallback = () => {
     retry: 1,
   });
 
-  const { data: contactInfo } = useQuery({
-    queryKey: ["contact-info"],
-    queryFn: () => contactInfoApi.get(),
-  });
-
   const paid = order?.status === "paid";
 
   // A paid order clears the server cart — refresh the badge.
   useEffect(() => {
     if (paid) queryClient.invalidateQueries({ queryKey: ["cart"] });
   }, [paid, queryClient]);
-
-  const studioWhatsapp =
-    contactInfo?.showWhatsapp && contactInfo.whatsapp ? contactInfo.whatsapp : null;
-  const whatsappUrl =
-    studioWhatsapp && order && paid
-      ? whatsappLink(
-          studioWhatsapp,
-          `Hi ${studioName}, I've just placed order ${order.order_number} ` +
-            `(${formatGHS(order.total)}). Looking forward to it!`,
-        )
-      : null;
 
   const status: PaymentResultStatus = !reference
     ? "no-reference"
@@ -121,8 +104,6 @@ const OrderCallback = () => {
       onDownloadReceipt={
         order ? () => downloadOrderReceipt(order, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor }) : undefined
       }
-      whatsappUrl={whatsappUrl}
-      whatsappLabel="Message the studio"
       retryTo="/cart"
       retryLabel="Back to cart"
       accountTo="/account?tab=orders"

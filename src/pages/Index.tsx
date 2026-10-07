@@ -41,6 +41,7 @@ import heroFallback from "@/assets/hero-beauty.jpg";
 import { formatGHS } from "@/lib/currency";
 import { landingDefaults } from "@/lib/landingDefaults";
 import { useHideSplashWhen } from "@/lib/splash";
+import { useStudioWhatsapp } from "@/hooks/useStudioWhatsapp";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -129,6 +130,7 @@ const Index = () => {
     queryKey: ["contact-info"],
     queryFn: () => contactInfoApi.get(),
   });
+  const whatsapp = useStudioWhatsapp();
   const { data: hours = [] } = useQuery({
     queryKey: ["business-hours"],
     queryFn: () => businessHoursApi.list(),
@@ -479,15 +481,15 @@ const Index = () => {
                   </a>
                 </ContactRow>
               )}
-              {contact?.showWhatsapp && contact.whatsapp && (
+              {whatsapp && (
                 <ContactRow icon={WhatsappIcon} label="WhatsApp">
                   <a
-                    href={`https://wa.me/${contact.whatsapp.replace(/\D/g, "")}`}
+                    href={whatsapp.href}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="hover:text-primary"
                   >
-                    {contact.whatsapp}
+                    {whatsapp.display}
                   </a>
                 </ContactRow>
               )}

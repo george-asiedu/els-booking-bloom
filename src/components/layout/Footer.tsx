@@ -4,6 +4,8 @@ import { Instagram, Phone, Mail, MapPin } from "lucide-react";
 import { useStudio } from "@/hooks/useStudio";
 import { contactInfoApi, servicesApi } from "@/lib/api";
 import { StudioMark } from "@/components/StudioMark";
+import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
+import { useStudioWhatsapp } from "@/hooks/useStudioWhatsapp";
 import { landingDefaults } from "@/lib/landingDefaults";
 
 const linkClass = "text-sm text-muted-foreground transition-colors hover:text-primary";
@@ -14,6 +16,7 @@ export const Footer = () => {
     queryKey: ["contact-info"],
     queryFn: () => contactInfoApi.get(),
   });
+  const whatsapp = useStudioWhatsapp();
   // Same query (and cache) as the home page's price list.
   const { data: services = [] } = useQuery({
     queryKey: ["public-services-catalog"],
@@ -83,6 +86,19 @@ export const Footer = () => {
                   <Phone className="h-4 w-4 shrink-0 text-primary" />
                   <a href={`tel:${contact.phone}`} className="hover:text-primary">
                     {contact.phone}
+                  </a>
+                </li>
+              )}
+              {whatsapp && (
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <WhatsappIcon className="h-4 w-4 shrink-0 text-primary" />
+                  <a
+                    href={whatsapp.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary"
+                  >
+                    {whatsapp.display}
                   </a>
                 </li>
               )}

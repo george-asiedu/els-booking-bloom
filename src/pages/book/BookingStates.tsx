@@ -1,15 +1,13 @@
 import { Link } from "react-router-dom";
-import { CheckCircle, MessageCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 
 export const BookingSuccess = ({
   studioName,
-  whatsappConfirmLink,
   onBookAnother,
 }: {
   studioName: string;
-  whatsappConfirmLink: string | null;
   onBookAnother: () => void;
 }) => (
   <Layout>
@@ -25,17 +23,13 @@ export const BookingSuccess = ({
           <p className="text-muted-foreground mb-6">
             Thank you for booking with {studioName}. Your request is
             <span className="font-medium text-foreground"> pending confirmation</span> —
-            we'll confirm shortly. Send us a quick WhatsApp so we can keep you updated.
+            the studio will confirm it shortly. You'll find it under your appointments in your
+            account.
           </p>
           <div className="flex flex-col gap-3">
-            {whatsappConfirmLink && (
-              <Button asChild className="bg-[#25D366] hover:bg-[#1da851] text-white">
-                <a href={whatsappConfirmLink} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Confirm on WhatsApp
-                </a>
-              </Button>
-            )}
+            <Button asChild>
+              <Link to="/account?tab=appointments">View my appointments</Link>
+            </Button>
             <Button variant="outline" onClick={onBookAnother}>
               Book Another Appointment
             </Button>

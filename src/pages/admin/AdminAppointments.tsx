@@ -52,6 +52,7 @@ import { FilterBar } from "@/components/admin/FilterBar";
 import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useStudio } from "@/hooks/useStudio";
 import {
   AlertDialog,
@@ -69,20 +70,58 @@ import { DateRangeField } from "@/components/admin/DateRangeFilter";
 type AppointmentStatus = AppointmentDTO["status"];
 type Appointment = AppointmentDTO;
 
-// Status-aware WhatsApp message the admin sends to the customer.
-const buildWhatsappMessage = (a: Appointment, brand: string): string => {
-  const svc = a.services?.name ?? "your service";
-  const when = `${a.appointment_date} at ${a.appointment_time}`;
-  switch (a.status) {
-    case "confirmed":
-      return `Hi ${a.full_name}, great news! Your ${svc} appointment on ${when} is confirmed. See you soon at ${brand}`;
-    case "completed":
-      return `Hi ${a.full_name}, thank you for visiting ${brand}. We'd love your feedback — leave us a review when you get a moment!`;
-    case "cancelled":
-      return `Hi ${a.full_name}, your ${svc} appointment on ${when} has been cancelled. Reach out anytime to reschedule.`;
-    default:
-      return `Hi ${a.full_name}, we've received your ${svc} request for ${when}. We'll confirm shortly — thank you for booking with ${brand}!`;
+// WhatsApp messages from the studio to the customer. The studio only messages
+// at two points: when it confirms a booking and when the visit is done. Each
+// opens WhatsApp with the text filled in; the admin still presses send.
+const firstName = (a: Appointment) => a.full_name.trim().split(/\s+/)[0] || a.full_name;
+const visitDate = (a: Appointment) =>
+  `${format(parseISO(a.appointment_date), "EEEE d MMMM")} at ${a.appointment_time}`;
+
+const confirmationMessage = (a: Appointment, brand: string) => {
+  const balance =
+    a.payment && a.payment.balance > 0
+      ? `\n\nBalance to pay at the studio: ${formatGHS(a.payment.balance)}.`
+      : "";
+  return (
+    `Hi ${firstName(a)}, your ${a.services?.name ?? "appointment"} at ${brand} is confirmed ` +
+    `for ${visitDate(a)}.${balance}\n\nSee you then!`
+  );
+};
+
+const thankYouMessage = (a: Appointment, brand: string) =>
+  `Hi ${firstName(a)}, thank you for visiting ${brand}. We hope you love your ` +
+  `${a.services?.name ?? "new look"}. We'd be glad to hear how it went, and to see you again soon.`;
+
+const receiptMessage = (a: Appointment, brand: string) => {
+  const p = a.payment!;
+  return (
+    `Hi ${firstName(a)}, here's your payment receipt from ${brand}:\n\n` +
+    `Service: ${a.services?.name ?? "Appointment"}\n` +
+    `Date: ${visitDate(a)}\n` +
+    `${p.type === "partial" ? "Deposit paid" : "Amount paid"}: ${formatGHS(p.amount)}\n` +
+    (p.balance > 0 ? `Balance due at the studio: ${formatGHS(p.balance)}\n` : "") +
+    `Reference: ${p.reference ?? "-"}\n\nThank you!`
+  );
+};
+
+/**
+ * The WhatsApp messages the studio can send for this booking right now: none
+ * until it's confirmed, and none if the customer's number can't be reached on
+ * WhatsApp.
+ */
+const customerMessages = (a: Appointment, brand: string) => {
+  if (a.status !== "confirmed" && a.status !== "completed") return [];
+  const main =
+    a.status === "confirmed"
+      ? { label: "Send confirmation", text: confirmationMessage(a, brand) }
+      : { label: "Send thank-you", text: thankYouMessage(a, brand) };
+  const mainHref = whatsappLink(a.phone, main.text);
+  if (!mainHref) return [];
+  const out = [{ label: main.label, href: mainHref }];
+  if (a.payment?.status === "paid") {
+    out.push({ label: "Send receipt", href: whatsappLink(a.phone, receiptMessage(a, brand))! });
   }
+  return out;
 };
 
 const statusConfig = {
@@ -93,23 +132,6 @@ const statusConfig = {
   confirmed: { label: "Confirmed", variant: "default" as const, icon: CheckCircle },
   completed: { label: "Completed", variant: "outline" as const, icon: CheckCircle },
   cancelled: { label: "Cancelled", variant: "destructive" as const, icon: XCircle },
-};
-
-// Receipt message the admin sends to the customer on WhatsApp.
-const buildReceiptMessage = (a: Appointment, brand: string): string => {
-  const p = a.payment;
-  if (!p) return "";
-  const label = p.type === "partial" ? "Deposit paid" : "Amount paid";
-  const balanceLine = p.balance > 0 ? `Balance due at studio: ${formatGHS(p.balance)}\n` : "";
-  return (
-    `Hi ${a.full_name}, here's your payment receipt from ${brand}:\n\n` +
-    `Service: ${a.services?.name ?? "your service"}\n` +
-    `Date: ${a.appointment_date} at ${a.appointment_time}\n` +
-    `${label}: ${formatGHS(p.amount)}\n` +
-    balanceLine +
-    `Reference: ${p.reference ?? "—"}\n\n` +
-    `Thank you!`
-  );
 };
 
 const AdminAppointments = () => {
@@ -143,11 +165,27 @@ const AdminAppointments = () => {
     mutationFn: async ({ id, status }: { id: string; status: AppointmentStatus }) => {
       await appointmentsApi.updateStatus(id, status);
     },
-    onSuccess: () => {
+    onSuccess: (_, { id, status }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
+      // Confirming or completing is when the customer should hear from the
+      // studio, so offer the message right here.
+      const updated = appointments?.find((a) => a.id === id);
+      const message = updated
+        ? customerMessages({ ...updated, status }, studioName)[0]
+        : undefined;
       toast({
-        title: "Status updated",
-        description: "The appointment status has been updated.",
+        title: `Marked as ${statusConfig[status].label.toLowerCase()}`,
+        description: message
+          ? `Let ${updated!.full_name} know on WhatsApp.`
+          : "The appointment status has been updated.",
+        action: message ? (
+          <ToastAction altText={`${message.label} on WhatsApp`} asChild>
+            <a href={message.href} target="_blank" rel="noopener noreferrer">
+              <WhatsappIcon className="mr-1.5 h-4 w-4 text-[#1da851]" />
+              {message.label}
+            </a>
+          </ToastAction>
+        ) : undefined,
       });
     },
     onError: (error) => {
@@ -326,6 +364,14 @@ const AdminAppointments = () => {
               <TableBody>
                 {filteredAppointments?.map((appointment) => {
                   const StatusIcon = statusConfig[appointment.status].icon;
+                  const messages = customerMessages(appointment, studioName);
+                  const canChange =
+                    appointment.status !== "cancelled" && appointment.status !== "completed";
+                  const canRefund = Boolean(
+                    appointment.payment?.id &&
+                      (appointment.payment.status === "paid" ||
+                        appointment.payment.status === "partially_refunded"),
+                  );
                   return (
                     <TableRow key={appointment.id}>
                       <TableCell>
@@ -478,38 +524,19 @@ const AdminAppointments = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52">
-                              <DropdownMenuItem asChild>
-                                <a
-                                  href={whatsappLink(
-                                    appointment.phone,
-                                    buildWhatsappMessage(appointment, studioName),
-                                  )}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <WhatsappIcon className="mr-2 h-4 w-4 text-[#1da851]" />
-                                  Message on WhatsApp
-                                </a>
-                              </DropdownMenuItem>
-                              {appointment.payment?.status === "paid" && (
-                                <DropdownMenuItem asChild>
-                                  <a
-                                    href={whatsappLink(
-                                      appointment.phone,
-                                      buildReceiptMessage(appointment, studioName),
-                                    )}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
+                              {messages.map((m) => (
+                                <DropdownMenuItem key={m.label} asChild>
+                                  <a href={m.href} target="_blank" rel="noopener noreferrer">
                                     <WhatsappIcon className="mr-2 h-4 w-4 text-[#1da851]" />
-                                    Send receipt on WhatsApp
+                                    {m.label} on WhatsApp
                                   </a>
                                 </DropdownMenuItem>
+                              ))}
+                              {messages.length > 0 && (canChange || canRefund) && (
+                                <DropdownMenuSeparator />
                               )}
-                              {appointment.status !== "cancelled" &&
-                                appointment.status !== "completed" && (
+                              {canChange && (
                                   <>
-                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onSelect={() => setPendingReschedule(appointment)}>
                                       <CalendarClock className="mr-2 h-4 w-4" />
                                       Reschedule
@@ -520,9 +547,7 @@ const AdminAppointments = () => {
                                     </DropdownMenuItem>
                                   </>
                                 )}
-                              {appointment.payment?.id &&
-                                (appointment.payment.status === "paid" ||
-                                  appointment.payment.status === "partially_refunded") && (
+                              {canRefund && (
                                   <DropdownMenuItem
                                     onSelect={() =>
                                       setPendingRefund({
@@ -538,7 +563,9 @@ const AdminAppointments = () => {
                                     Refund
                                   </DropdownMenuItem>
                                 )}
-                              <DropdownMenuSeparator />
+                              {(messages.length > 0 || canChange || canRefund) && (
+                                <DropdownMenuSeparator />
+                              )}
                               <DropdownMenuItem
                                 onSelect={() => setPendingDelete(appointment)}
                                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"

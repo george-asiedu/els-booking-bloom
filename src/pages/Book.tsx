@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toWhatsappNumber } from "@/lib/whatsapp";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, Loader2, Upload, X } from "lucide-react";
@@ -37,7 +38,6 @@ import {
   servicesApi,
   profileApi,
   appointmentsApi,
-  contactInfoApi,
   accountApi,
   paymentsApi,
   productsApi,
@@ -45,7 +45,6 @@ import {
   ordersApi,
   AppointmentDTO,
 } from "@/lib/api";
-import { whatsappLink } from "@/lib/whatsapp";
 import { setPendingBooking, takePendingBooking } from "@/lib/pendingBooking";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,7 +74,10 @@ const timeSlots = [
 
 const bookingSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
+  // The studio confirms on WhatsApp, so it must be a number WhatsApp can open.
+  phone: z
+    .string()
+    .refine((v) => toWhatsappNumber(v) !== null, "Enter a phone number like 024 555 0142"),
   email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
   service: z.string().min(1, "Please select a service"),
   date: z.date({ required_error: "Please select a date" }),
@@ -118,12 +120,6 @@ const Book = () => {
     queryKey: ["user-profile", user?.id],
     queryFn: () => profileApi.getMine(),
     enabled: !!user,
-  });
-
-  // Studio contact info — used for the WhatsApp confirmation button.
-  const { data: contactInfo } = useQuery({
-    queryKey: ["contact-info"],
-    queryFn: () => contactInfoApi.get(),
   });
 
   // Loyalty balance — lets logged-in customers apply points as a discount.
@@ -395,27 +391,10 @@ const Book = () => {
     form.reset();
   };
 
-  // Pre-filled WhatsApp message to the studio confirming the request.
-  const studioWhatsapp =
-    contactInfo?.showWhatsapp && contactInfo.whatsapp ? contactInfo.whatsapp : null;
-  const whatsappConfirmLink =
-    studioWhatsapp && bookedAppointment
-      ? whatsappLink(
-          studioWhatsapp,
-          `Hi ${studioName}, I've just requested an appointment:\n\n` +
-            `Service: ${bookedAppointment.services?.name ?? "Service"}\n` +
-            `Name: ${bookedAppointment.full_name}\n` +
-            `Date: ${bookedAppointment.appointment_date}\n` +
-            `Time: ${bookedAppointment.appointment_time}\n` +
-            `Status: Pending confirmation\n\n` ,
-        )
-      : null;
-
   if (isSubmitted) {
     return (
       <BookingSuccess
         studioName={studioName}
-        whatsappConfirmLink={whatsappConfirmLink}
         onBookAnother={resetBooking}
       />
     );

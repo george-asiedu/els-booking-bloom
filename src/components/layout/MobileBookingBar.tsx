@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useMobileBookingBar } from "@/hooks/useMobileBookingBar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -10,18 +10,8 @@ import { cn } from "@/lib/utils";
  * covers the hero's own CTA. Respects the safe-area inset.
  */
 export const MobileBookingBar = () => {
-  const { pathname } = useLocation();
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 480);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Don't show on the booking flow or the cart/checkout.
-  if (["/book", "/cart"].some((p) => pathname.startsWith(p))) return null;
+  const { allowed, show } = useMobileBookingBar();
+  if (!allowed) return null;
 
   return (
     <div

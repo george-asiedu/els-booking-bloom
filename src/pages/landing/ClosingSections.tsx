@@ -7,6 +7,7 @@ import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { PLATFORM, PLANS, planPrice, studioUrl, YEARLY_FREE_MONTHS } from "@/config/platform";
 import { cn } from "@/lib/utils";
 import { GHS, FAQ, isWhatsapp, contactHref } from "./content";
+import { whatsappLink } from "@/lib/whatsapp";
 import { FooterCol } from "./Visuals";
 import { hasNoSetupFee, subscriptionSetup, useOnboardingConfig } from "@/lib/setupFee";
 
@@ -251,9 +252,11 @@ export const FooterSection = () => {
               >
                 <Mail className="h-4 w-4" /> {PLATFORM.email}
               </a>
-              {PLATFORM.whatsapp && (
+              {isWhatsapp() && (
                 <a
-                  href={`https://wa.me/${PLATFORM.whatsapp}`}
+                  href={whatsappLink(PLATFORM.whatsapp)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-1.5 hover:text-foreground"
                 >
                   <WhatsappIcon className="h-4 w-4" /> WhatsApp

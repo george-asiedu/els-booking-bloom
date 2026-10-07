@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { contactInfoApi, businessHoursApi, galleryApi, ContactInfoDTO } from "@/lib/api";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
+import { useStudioWhatsapp } from "@/hooks/useStudioWhatsapp";
 
 const dayNames = [
   "Sunday",
@@ -18,11 +19,9 @@ const dayNames = [
 ];
 
 // --- Link builders: turn stored values into working hrefs ---
-const digitsOnly = (v: string) => v.replace(/[^\d]/g, "");
 const stripAt = (v: string) => v.replace(/^@/, "").trim();
 
 const telHref = (phone: string) => `tel:${phone.replace(/\s+/g, "")}`;
-const whatsappHref = (phone: string) => `https://wa.me/${digitsOnly(phone)}`;
 const emailHref = (email: string) => `mailto:${email}`;
 const instagramHref = (v: string) =>
   v.startsWith("http") ? v : `https://instagram.com/${stripAt(v)}`;
@@ -40,12 +39,12 @@ interface ContactCard {
   href: string;
 }
 
-const buildCards = (info: ContactInfoDTO): ContactCard[] => {
+const buildCards = (info: ContactInfoDTO, whatsappHref: string | null): ContactCard[] => {
   const cards: ContactCard[] = [];
   if (info.showPhone && info.phone)
     cards.push({ icon: Phone, label: "Phone", value: info.phone, href: telHref(info.phone) });
-  if (info.showWhatsapp && info.whatsapp)
-    cards.push({ icon: WhatsappIcon, label: "WhatsApp", value: "Chat with us", href: whatsappHref(info.whatsapp) });
+  if (whatsappHref)
+    cards.push({ icon: WhatsappIcon, label: "WhatsApp", value: "Chat with us", href: whatsappHref });
   if (info.showEmail && info.email)
     cards.push({ icon: Mail, label: "Email", value: info.email, href: emailHref(info.email) });
   if (info.showInstagram && info.instagram)
@@ -81,7 +80,8 @@ const Contact = () => {
     queryFn: () => galleryApi.listActive(),
   });
 
-  const cards = info ? buildCards(info) : [];
+  const whatsapp = useStudioWhatsapp();
+  const cards = info ? buildCards(info, whatsapp?.href ?? null) : [];
 
   return (
     <Layout>
@@ -206,11 +206,11 @@ const Contact = () => {
               </div>
 
               {/* Quick Actions */}
-              {info && ((info.showWhatsapp && info.whatsapp) || (info.showPhone && info.phone)) && (
+              {info && (whatsapp || (info.showPhone && info.phone)) && (
                 <div className="mt-6 flex flex-col sm:flex-row gap-4">
-                  {info.showWhatsapp && info.whatsapp && (
+                  {whatsapp && (
                     <Button asChild className="flex-1">
-                      <a href={whatsappHref(info.whatsapp)} target="_blank" rel="noopener noreferrer">
+                      <a href={whatsapp.href} target="_blank" rel="noopener noreferrer">
                         <WhatsappIcon className="mr-2 h-4 w-4" />
                         WhatsApp Us
                       </a>

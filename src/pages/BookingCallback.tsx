@@ -1,13 +1,12 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { paymentsApi, contactInfoApi } from "@/lib/api";
+import { paymentsApi } from "@/lib/api";
 import {
   downloadReceipt,
   receiptFromVerify,
   downloadOrderReceipt,
 } from "@/lib/receipt";
-import { whatsappLink } from "@/lib/whatsapp";
 import { useStudio } from "@/hooks/useStudio";
 import {
   PaymentResultScreen,
@@ -29,11 +28,6 @@ const BookingCallback = () => {
     retry: 1,
   });
 
-  const { data: contactInfo } = useQuery({
-    queryKey: ["contact-info"],
-    queryFn: () => contactInfoApi.get(),
-  });
-
   const payment = data?.payment ?? null;
   const order = data?.order ?? null;
   const paid = payment?.status === "paid" || order?.status === "paid";
@@ -41,18 +35,6 @@ const BookingCallback = () => {
   useEffect(() => {
     if (paid) queryClient.invalidateQueries({ queryKey: ["cart"] });
   }, [paid, queryClient]);
-
-  const studioWhatsapp =
-    contactInfo?.showWhatsapp && contactInfo.whatsapp ? contactInfo.whatsapp : null;
-  const whatsappUrl =
-    studioWhatsapp && paid
-      ? whatsappLink(
-          studioWhatsapp,
-          `Hi ${studioName}, I've just paid for my booking${
-            order ? ` and products (order ${order.order_number})` : ""
-          }. See you soon!`,
-        )
-      : null;
 
   const status: PaymentResultStatus = !reference
     ? "no-reference"
@@ -108,8 +90,6 @@ const BookingCallback = () => {
         isError ? (error instanceof Error ? error.message : undefined) : undefined
       }
       receipts={receipts}
-      whatsappUrl={whatsappUrl}
-      whatsappLabel="Message the studio"
       retryTo="/book"
       retryLabel="Back to booking"
       accountTo="/account?tab=appointments"
