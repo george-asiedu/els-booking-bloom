@@ -6,8 +6,10 @@ import { PLATFORM, studioUrl } from "@/config/platform";
 import { cn } from "@/lib/utils";
 import { GHS, STUDIOS, FEATURES, JOURNEY } from "./content";
 import { StorefrontMockup, FloatCard } from "./Visuals";
+import { hasNoSetupFee, useOnboardingConfig } from "@/lib/setupFee";
 
 export const HeroSection = () => {
+  const { data: billing } = useOnboardingConfig();
   return (
     <>
       {/* --------------------------------------------------------------- Hero */}
@@ -35,7 +37,8 @@ export const HeroSection = () => {
               </Button>
             </div>
             <p className="animate-fade-in mt-5 text-sm text-muted-foreground [animation-delay:400ms]">
-              No setup fee. Most studios are taking bookings within 10 minutes.
+              {hasNoSetupFee(billing) && "No setup fee. "}Most studios are taking
+              bookings within 10 minutes.
             </p>
           </div>
 

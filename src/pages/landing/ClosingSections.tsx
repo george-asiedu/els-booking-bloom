@@ -8,9 +8,13 @@ import { PLATFORM, PLANS, planPrice, studioUrl } from "@/config/platform";
 import { cn } from "@/lib/utils";
 import { GHS, FAQ, isWhatsapp, contactHref } from "./content";
 import { FooterCol } from "./Visuals";
+import { hasNoSetupFee, subscriptionSetup, useOnboardingConfig } from "@/lib/setupFee";
 
 export const PricingSection = () => {
   const [cadence, setCadence] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+  const { data: billing } = useOnboardingConfig();
+  const anySetup =
+    subscriptionSetup(billing, "STANDARD", cadence) ?? subscriptionSetup(billing, "PREMIUM", cadence);
 
   return (
     <>
@@ -24,7 +28,12 @@ export const PricingSection = () => {
               </h2>
               <p className="mt-4 text-muted-foreground">
                 Both include bookings, payments and your website. Premium adds an
-                online shop. There's no setup fee and you can cancel at any time.
+                online shop.{" "}
+                {anySetup
+                  ? `A setup fee at signup covers your first ${anySetup.months} months, then the plan price applies. Cancel at any time.`
+                  : hasNoSetupFee(billing)
+                    ? "There's no setup fee and you can cancel at any time."
+                    : "You can cancel at any time."}
               </p>
             </div>
             <div className="mt-6 inline-flex rounded-full border border-border bg-card p-1">
@@ -49,7 +58,7 @@ export const PricingSection = () => {
           </div>
 
           <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
-            {PLANS.map((plan, i) => (
+            {PLANS.map((plan) => (
               <div
                 key={plan.id}
                 className={cn(
@@ -74,6 +83,16 @@ export const PricingSection = () => {
                     /{cadence === "MONTHLY" ? "month" : "year"}
                   </span>
                 </div>
+                {(() => {
+                  const setup = subscriptionSetup(billing, plan.id, cadence);
+                  return setup ? (
+                    <p className="mt-3 rounded-md bg-accent/60 px-3 py-2 text-sm">
+                      Starts with a{" "}
+                      <span className="font-semibold tabular-nums">{GHS(setup.fee)}</span>{" "}
+                      setup fee that covers your first {setup.months} months.
+                    </p>
+                  ) : null;
+                })()}
                 {/* flex-1 takes up the spare height, so every card's button
                     lines up at the bottom whatever its feature count. */}
                 <ul className="mt-6 flex-1 space-y-3">

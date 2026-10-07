@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { platformApi, PlatformBillingConfig } from "@/lib/platformApi";
 import { PlatformLayout } from "./PlatformLayout";
 import { useToast } from "@/hooks/use-toast";
+import { PLANS, planPrice } from "@/config/platform";
+import { formatGHS } from "@/lib/currency";
 
 const PlatformBilling = () => {
   const queryClient = useQueryClient();
@@ -25,6 +27,10 @@ const PlatformBilling = () => {
     commissionPremiumPercent: 8,
     setupFeeStandard: 0,
     setupFeePremium: 0,
+    subscriptionSetupFeeStandard: 0,
+    subscriptionSetupFeePremium: 0,
+    setupFeeMonthsMonthly: 2,
+    setupFeeMonthsYearly: 3,
   });
   useEffect(() => {
     if (data) setForm(data);
@@ -71,6 +77,77 @@ const PlatformBilling = () => {
       </div>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Subscription setup fee</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            New studios pay this at signup instead of their first month or year.
+            It covers the months below, and the plan's normal price is due after
+            that. Set a plan's fee to 0 to turn it off for that plan.
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Field
+              label="Standard setup fee"
+              value={form.subscriptionSetupFeeStandard}
+              onChange={(v) => setForm({ ...form, subscriptionSetupFeeStandard: num(v) })}
+              suffix="GHS"
+            />
+            <Field
+              label="Premium setup fee"
+              value={form.subscriptionSetupFeePremium}
+              onChange={(v) => setForm({ ...form, subscriptionSetupFeePremium: num(v) })}
+              suffix="GHS"
+            />
+            <Field
+              label="Months covered on monthly plans"
+              value={form.setupFeeMonthsMonthly}
+              onChange={(v) => setForm({ ...form, setupFeeMonthsMonthly: num(v) })}
+              suffix="months"
+              min={1}
+              max={24}
+            />
+            <Field
+              label="Months covered on yearly plans"
+              value={form.setupFeeMonthsYearly}
+              onChange={(v) => setForm({ ...form, setupFeeMonthsYearly: num(v) })}
+              suffix="months"
+              min={1}
+              max={24}
+            />
+          </div>
+          {/* What a new studio will actually be asked to pay, so a typo in a
+              fee is obvious before it's saved. */}
+          <div className="rounded-md border bg-muted/40 p-4 text-sm">
+            <p className="mb-2 font-medium">What new studios will see</p>
+            <ul className="space-y-1.5 text-muted-foreground">
+              {PLANS.flatMap((plan) =>
+                (["MONTHLY", "YEARLY"] as const).map((cadence) => {
+                  const fee =
+                    plan.id === "PREMIUM"
+                      ? form.subscriptionSetupFeePremium
+                      : form.subscriptionSetupFeeStandard;
+                  const months =
+                    cadence === "YEARLY" ? form.setupFeeMonthsYearly : form.setupFeeMonthsMonthly;
+                  const then = `${formatGHS(planPrice(plan, cadence))}/${cadence === "YEARLY" ? "year" : "month"}`;
+                  return (
+                    <li key={plan.id + cadence}>
+                      <span className="font-medium text-foreground">
+                        {plan.name}, {cadence === "YEARLY" ? "yearly" : "monthly"}:
+                      </span>{" "}
+                      {fee > 0
+                        ? `${formatGHS(fee)} at signup, covering the first ${months} months, then ${then}.`
+                        : `No setup fee. ${then} from signup.`}
+                    </li>
+                  );
+                }),
+              )}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="flex items-center justify-between gap-4 py-5">
           <div>
             <p className="font-medium">Offer revenue-share at signup</p>
@@ -92,7 +169,8 @@ const PlatformBilling = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-sm text-muted-foreground">
-            The plan a studio picks sets its commission and one-time setup fee.
+            The plan a studio picks sets its commission and one-time activation
+            fee. This is separate from the subscription setup fee above.
           </p>
 
           <div className="grid gap-6 sm:grid-cols-2">
@@ -108,7 +186,7 @@ const PlatformBilling = () => {
                 max={100}
               />
               <Field
-                label="One-time setup fee (GHS)"
+                label="One-time activation fee (GHS)"
                 value={form.setupFeeStandard}
                 onChange={(v) => setForm({ ...form, setupFeeStandard: num(v) })}
                 suffix="GHS"
@@ -126,7 +204,7 @@ const PlatformBilling = () => {
                 max={100}
               />
               <Field
-                label="One-time setup fee (GHS)"
+                label="One-time activation fee (GHS)"
                 value={form.setupFeePremium}
                 onChange={(v) => setForm({ ...form, setupFeePremium: num(v) })}
                 suffix="GHS"
@@ -134,7 +212,7 @@ const PlatformBilling = () => {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            A setup fee of 0 means revenue-share studios are created immediately
+            An activation fee of 0 means revenue-share studios are created immediately
             with no upfront charge. Changing rates affects new signups; existing
             studios keep the rate they onboarded with.
           </p>
@@ -155,12 +233,14 @@ const Field = ({
   value,
   onChange,
   suffix,
+  min = 0,
   max,
 }: {
   label: string;
   value: number;
   onChange: (v: string) => void;
   suffix?: string;
+  min?: number;
   max?: number;
 }) => (
   <div className="space-y-2">
@@ -168,7 +248,7 @@ const Field = ({
     <div className="flex items-center gap-2 max-w-[200px]">
       <Input
         type="number"
-        min={0}
+        min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(e.target.value)}
