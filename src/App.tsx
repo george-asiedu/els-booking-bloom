@@ -15,7 +15,7 @@ import { SessionGuard } from "@/components/SessionGuard";
 import { StudioTheme } from "@/components/StudioTheme";
 import { FeatureRoute } from "@/components/FeatureRoute";
 import { Analytics } from "@vercel/analytics/react";
-import { studioStore } from "@/lib/apiClient";
+import { ApiError, studioStore } from "@/lib/apiClient";
 import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
 import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
 import { PlatformLayout } from "./pages/platform/PlatformLayout";
@@ -154,7 +154,11 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 30 * 60 * 1000, // keep unused data cached for 30 minutes
       refetchOnWindowFocus: false,
-      retry: 1,
+      // One retry for a network blip or a 5xx. Never for a 4xx: a 404 won't
+      // fix itself, and retrying a 429 (rate limited) only uses up more of
+      // the allowance.
+      retry: (failureCount, error) =>
+        failureCount < 1 && !(error instanceof ApiError && error.status < 500),
     },
   },
 });
