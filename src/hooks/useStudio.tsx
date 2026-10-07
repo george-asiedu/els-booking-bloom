@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { studioApi, StudioConfigDTO, StudioFeatureFlags } from "@/lib/api";
 
@@ -35,13 +35,18 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
 
   // Theming is applied by <StudioTheme/> inside the router, so the platform
   // console stays neutral and a studio's colors never bleed onto other areas.
-  const name = config?.name || FALLBACK_NAME;
-  const features = config?.settings ?? ALL_ON;
+  const value = useMemo(
+    () => ({
+      config: config ?? null,
+      isLoading,
+      name: config?.name || FALLBACK_NAME,
+      features: config?.settings ?? ALL_ON,
+    }),
+    [config, isLoading],
+  );
 
   return (
-    <StudioContext.Provider
-      value={{ config: config ?? null, isLoading, name, features }}
-    >
+    <StudioContext.Provider value={value}>
       {children}
     </StudioContext.Provider>
   );

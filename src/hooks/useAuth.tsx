@@ -1,7 +1,9 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   ReactNode,
 } from "react";
@@ -34,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       const authedUser = await authApi.login(email, password);
       setUser(authedUser);
@@ -46,9 +48,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           : "Login failed";
       return { error: new Error(message), user: null };
     }
-  };
+  }, []);
 
-  const signUp = async (payload: SignupPayload) => {
+  const signUp = useCallback(async (payload: SignupPayload) => {
     try {
       const authedUser = await authApi.signup(payload);
       setUser(authedUser);
@@ -60,19 +62,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           : "Signup failed";
       return { error: new Error(message), user: null };
     }
-  };
+  }, []);
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     authApi.logout();
     setUser(null);
-  };
+  }, []);
 
-  const isAdmin = user?.role === "ADMIN";
+  // Memoised so consumers re-render when the session changes, not on every
+  // render of the provider.
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAdmin: user?.role === "ADMIN",
+      signIn,
+      signUp,
+      signOut,
+    }),
+    [user, isLoading, signIn, signUp, signOut],
+  );
 
   return (
-    <AuthContext.Provider
-      value={{ user, isLoading, isAdmin, signIn, signUp, signOut }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
