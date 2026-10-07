@@ -52,6 +52,7 @@ import {
   SelectValue as FSelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
 interface ProductFormData {
   name: string;
@@ -345,12 +346,12 @@ const AdminProducts = () => {
                       {p.on_promo ? (
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground line-through text-sm">
-                            GHS {p.price}
+                            {formatGHS(p.price)}
                           </span>
-                          <span className="font-medium">GHS {p.promo_price}</span>
+                          <span className="font-medium">{formatGHS(p.promo_price)}</span>
                         </div>
                       ) : (
-                        <>GHS {p.price}</>
+                        <>{formatGHS(p.price)}</>
                       )}
                     </TableCell>
                     <TableCell>

@@ -15,6 +15,16 @@ export interface OnboardingConfig {
   commissionPremiumPercent: number;
   setupFeeStandard: number;
   setupFeePremium: number;
+  // Subscription setup fee per plan (0 = none), paid at signup instead of the
+  // first period and covering the first setupFeeMonths* months.
+  subscriptionSetupFeeStandard: number;
+  subscriptionSetupFeePremium: number;
+  setupFeeMonthsMonthly: number;
+  setupFeeMonthsYearly: number;
+  priceStandardMonthly: number;
+  priceStandardYearly: number;
+  pricePremiumMonthly: number;
+  pricePremiumYearly: number;
 }
 
 export interface OnboardingStartInput {

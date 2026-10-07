@@ -267,11 +267,21 @@ All colors MUST be HSL.
 
   html,
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     /* Never let a stray wide child push the page into horizontal scroll.
        Use `clip` (not `hidden`) so it doesn't create a scroll container that
        would break `position: sticky` headers. */
     overflow-x: clip;
     max-width: 100%;
+  }
+
+  /* Even out ragged headings and avoid one-word last lines in body copy. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
 }

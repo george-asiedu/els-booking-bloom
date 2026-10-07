@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PLATFORM, PLANS, planPrice } from "@/config/platform";
+import { subscriptionSetup } from "@/lib/setupFee";
 import {
   onboardingApi,
   Plan,
@@ -75,8 +76,12 @@ const Onboarding = () => {
   const setupFee =
     plan === "PREMIUM" ? cfg?.setupFeePremium ?? 0 : cfg?.setupFeeStandard ?? 0;
   const revShare = billingMode === "REVENUE_SHARE";
-  // Amount charged now: plan price (subscription) or one-time setup fee (rev-share).
-  const dueToday = revShare ? setupFee : price;
+  // Subscription setup fee for the selected plan, when the platform sets one.
+  const subSetup = revShare ? null : subscriptionSetup(cfg, plan, cadence);
+  const per = cadence === "MONTHLY" ? "month" : "year";
+  // Amount charged now: the activation fee (revenue-share), the setup fee
+  // (subscription with one), or the first period's price.
+  const dueToday = revShare ? setupFee : subSetup ? subSetup.fee : price;
 
   // Load the platform billing config so we know whether to offer revenue-share.
   useEffect(() => {
@@ -296,7 +301,7 @@ const Onboarding = () => {
                 <button
                   key={p.id}
                   onClick={() => setPlan(p.id)}
-                  className={`relative rounded-xl border p-5 text-left transition-colors ${
+                  className={`relative flex flex-col justify-start rounded-xl border p-5 text-left transition-colors ${
                     plan === p.id
                       ? "border-primary ring-2 ring-primary/30"
                       : "border-border hover:border-primary/40"
@@ -304,7 +309,7 @@ const Onboarding = () => {
                 >
                   {p.featured && (
                     <span className="absolute -top-2.5 right-4 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                      Most popular
+                      Adds the online shop
                     </span>
                   )}
                   <div className="flex items-center justify-between">
@@ -323,6 +328,14 @@ const Onboarding = () => {
                       /{cadence === "MONTHLY" ? "mo" : "yr"}
                     </span>
                   </div>
+                  {(() => {
+                    const s = billingMode === "SUBSCRIPTION" ? subscriptionSetup(cfg, p.id, cadence) : null;
+                    return s ? (
+                      <p className="mt-1 text-xs font-medium text-foreground">
+                        {GHS(s.fee)} setup fee covers your first {s.months} months
+                      </p>
+                    ) : null;
+                  })()}
                   <p className="mt-1 text-xs text-muted-foreground">{p.blurb}</p>
                   <ul className="mt-4 space-y-2 border-t border-border pt-4">
                     {p.features.map((f) => (
@@ -354,7 +367,12 @@ const Onboarding = () => {
                   >
                     <span className="font-semibold">Plan subscription</span>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Pay {GHS(price)}/{cadence === "MONTHLY" ? "mo" : "yr"} up front.
+                      {(() => {
+                        const s = subscriptionSetup(cfg, plan, cadence);
+                        return s
+                          ? `${GHS(s.fee)} setup fee for your first ${s.months} months, then ${GHS(price)}/${per}.`
+                          : `Pay ${GHS(price)}/${per} up front.`;
+                      })()}{" "}
                       No cut of your sales.
                     </p>
                   </button>
@@ -370,7 +388,7 @@ const Onboarding = () => {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {commissionPct}% per transaction
                       {setupFee > 0
-                        ? `, plus a one-time ${GHS(setupFee)} setup fee.`
+                        ? `, plus a one-time ${GHS(setupFee)} activation fee.`
                         : `. No upfront plan fee.`}
                     </p>
                   </button>
@@ -490,7 +508,7 @@ const Onboarding = () => {
                 <span className="font-semibold">Due today</span>
                 <span className="font-serif text-xl font-bold text-primary">
                   {GHS(dueToday)}
-                  {!revShare && (
+                  {!revShare && !subSetup && (
                     <span className="text-sm font-normal text-muted-foreground">
                       /{cadence === "MONTHLY" ? "mo" : "yr"}
                     </span>
@@ -501,9 +519,11 @@ const Onboarding = () => {
             <p className="mt-3 text-xs text-muted-foreground">
               {revShare
                 ? setupFee > 0
-                  ? `A one-time ${GHS(setupFee)} setup fee today, then ${commissionPct}% of each customer payment. No recurring plan fee.`
-                  : `No upfront fee — the platform takes ${commissionPct}% of each customer payment.`
-                : `Covers one ${cadence === "MONTHLY" ? "month" : "year"}. You'll renew from your dashboard before it ends — no automatic charges.`}{" "}
+                  ? `A one-time ${GHS(setupFee)} activation fee today, then ${commissionPct}% of each customer payment. No recurring plan fee.`
+                  : `No upfront fee. The platform takes ${commissionPct}% of each customer payment.`
+                : subSetup
+                  ? `The setup fee covers your first ${subSetup.months} months. After that your plan is ${GHS(price)}/${per}, which you renew from your dashboard. There are no automatic charges.`
+                  : `Covers one ${per}. You'll renew from your dashboard before it ends. There are no automatic charges.`}{" "}
               By continuing you agree to our{" "}
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms</a> and{" "}
               <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.

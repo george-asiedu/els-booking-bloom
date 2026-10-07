@@ -1,10 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
 import { StudioProvider } from "@/hooks/useStudio";
@@ -15,10 +15,11 @@ import { SessionGuard } from "@/components/SessionGuard";
 import { StudioTheme } from "@/components/StudioTheme";
 import { FeatureRoute } from "@/components/FeatureRoute";
 import { Analytics } from "@vercel/analytics/react";
-import { studioStore } from "@/lib/apiClient";
+import { ApiError, studioStore } from "@/lib/apiClient";
 import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
 import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
 import { PlatformLayout } from "./pages/platform/PlatformLayout";
+import { hideSplash } from "@/lib/splash";
 
 // Route components are code-split so each page loads on demand — the initial
 // bundle stays small and the admin/platform areas never ship to customers.
@@ -76,6 +77,8 @@ const PlatformTransactions = lazy(
   () => import("./pages/platform/PlatformTransactions"),
 );
 const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
+const PlatformJobs = lazy(() => import("./pages/platform/PlatformJobs"));
+const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
@@ -87,6 +90,18 @@ const PageLoader = () => (
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
+
+// Mounted inside the route Suspense, so it runs once the first page's code has
+// loaded. The two landing pages hide the loading screen themselves when their
+// content is ready; every other page is ready as soon as it renders.
+const SplashController = () => {
+  const { pathname } = useLocation();
+  const isLanding = pathname === "/" || pathname === "/welcome";
+  useEffect(() => {
+    if (!isLanding) hideSplash();
+  }, [isLanding]);
+  return null;
+};
 
 // The apex "/" shows the Zuri platform landing page, unless a studio is active
 // (subdomain in prod, or /s/:slug / impersonation locally) — then it's that
@@ -139,7 +154,11 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 30 * 60 * 1000, // keep unused data cached for 30 minutes
       refetchOnWindowFocus: false,
-      retry: 1,
+      // One retry for a network blip or a 5xx. Never for a 4xx: a 404 won't
+      // fix itself, and retrying a 429 (rate limited) only uses up more of
+      // the allowance.
+      retry: (failureCount, error) =>
+        failureCount < 1 && !(error instanceof ApiError && error.status < 500),
     },
   },
 });
@@ -158,6 +177,7 @@ const App = () => (
             <SessionGuard />
             <StudioTheme />
             <Suspense fallback={<PageLoader />}>
+            <SplashController />
             <Routes>
               <Route path="/" element={<RootRoute />} />
               <Route path="/welcome" element={<PlatformLanding />} />
@@ -264,6 +284,8 @@ const App = () => (
                 <Route path="reviews" element={<PlatformReviews />} />
                 <Route path="transactions" element={<PlatformTransactions />} />
                   <Route path="billing" element={<PlatformBilling />} />
+                  <Route path="jobs" element={<PlatformJobs />} />
+                  <Route path="settings" element={<PlatformSettings />} />
                   <Route path="audit" element={<PlatformAudit />} />
                   <Route path="activity" element={<PlatformActivity />} />
                 </Route>

@@ -5,7 +5,6 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -30,6 +29,7 @@ import {
 import { FilterBar } from "@/components/admin/FilterBar";
 import {
   transactionsApi,
+  refundsApi,
   type LedgerEntryType,
   type LedgerStatus,
 } from "@/lib/api";
@@ -45,6 +45,7 @@ import {
   entryDate,
 } from "@/lib/ledgerFormat";
 import { formatGHS } from "@/lib/currency";
+import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
 const PAGE_SIZE = 25;
 
@@ -186,19 +187,13 @@ const AdminTransactions = () => {
             </SelectContent>
           </Select>
 
-          <Input
-            type="date"
-            aria-label="From date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="w-[150px]"
-          />
-          <Input
-            type="date"
-            aria-label="To date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="w-[150px]"
+          <DateRangeField
+            from={from}
+            to={to}
+            onChange={(f, t) => {
+              setFrom(f);
+              setTo(t);
+            }}
           />
         </FilterBar>
 

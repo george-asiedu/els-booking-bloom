@@ -1,6 +1,15 @@
-import { jsPDF } from "jspdf";
+import type { jsPDF } from "jspdf";
+
+// jsPDF is ~600 kB. It's only needed when someone actually clicks a download
+// button, so it is fetched then instead of shipping with every page that can
+// offer a receipt.
+const createPdf = async (): Promise<jsPDF> => {
+  const { jsPDF } = await import("jspdf");
+  return new jsPDF({ unit: "pt", format: "a4" });
+};
 import { format } from "date-fns";
 import { AppointmentDTO, PaymentReceiptDTO, OrderDTO } from "./api";
+import { formatGHS } from "@/lib/currency";
 
 // Neutral platform fallback; callers pass the current studio's name.
 const DEFAULT_BRAND = "Zuri Studios";
@@ -44,7 +53,7 @@ const pdfColor = (hex: string | null | undefined, fallback: [number, number, num
   return match ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)] : fallback;
 };
 
-const money = (n: number) => `GHS ${n.toLocaleString()}`;
+const money = formatGHS;
 
 const drawHeader = (doc: jsPDF, brand: DocumentBrand, title: string, reference: string | null, issuedAt: Date) => {
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -116,8 +125,8 @@ export const receiptFromVerify = (r: PaymentReceiptDTO): ReceiptData => ({
 });
 
 /** Download an appointment document even when the booking has no payment. */
-export const downloadBookingDocument = (apt: AppointmentDTO, brand: BrandInput = DEFAULT_BRAND) => {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+export const downloadBookingDocument = async (apt: AppointmentDTO, brand: BrandInput = DEFAULT_BRAND) => {
+  const doc = await createPdf();
   const branding = brandDetails(brand);
   const issuedAt = new Date(apt.created_at);
   const { left, right, y: startY, color } = drawHeader(doc, branding,
@@ -169,8 +178,8 @@ export const downloadBookingDocument = (apt: AppointmentDTO, brand: BrandInput =
 };
 
 // Generate and download a branded PDF receipt for a paid booking transaction.
-export const downloadReceipt = (data: ReceiptData, brand: BrandInput = DEFAULT_BRAND) => {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+export const downloadReceipt = async (data: ReceiptData, brand: BrandInput = DEFAULT_BRAND) => {
+  const doc = await createPdf();
   const branding = brandDetails(brand);
   const { left, right, y: startY, color } = drawHeader(doc, branding, "Payment receipt", data.reference, data.issuedAt);
   let y = startY;
@@ -268,8 +277,8 @@ export const downloadReceipt = (data: ReceiptData, brand: BrandInput = DEFAULT_B
 };
 
 // Generate and download a branded PDF receipt for a product order.
-export const downloadOrderReceipt = (order: OrderDTO, brand: BrandInput = DEFAULT_BRAND) => {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+export const downloadOrderReceipt = async (order: OrderDTO, brand: BrandInput = DEFAULT_BRAND) => {
+  const doc = await createPdf();
   const branding = brandDetails(brand);
   const pageWidth = doc.internal.pageSize.getWidth();
   const left = 48;
@@ -316,7 +325,6 @@ export const downloadOrderReceipt = (order: OrderDTO, brand: BrandInput = DEFAUL
   doc.line(left, y, right, y);
   y += 22;
 
-  const money = (n: number) => `GHS ${n.toLocaleString()}`;
   doc.setFontSize(11);
   order.items.forEach((it) => {
     doc.setTextColor(...DARK);

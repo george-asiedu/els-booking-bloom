@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { MobileBookingBar } from "./MobileBookingBar";
+import { WhatsappChatButton } from "./WhatsappChatButton";
 import { PromoMarquee } from "@/components/PromoMarquee";
 import { StudioPreviewExit } from "@/components/StudioPreviewExit";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export const Layout = ({ children, heroOverlay = false }: LayoutProps) => {
       </main>
       <Footer />
       <MobileBookingBar />
+      <WhatsappChatButton />
       <StudioPreviewExit />
     </div>
   );

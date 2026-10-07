@@ -4,6 +4,7 @@ import { useStudio } from "@/hooks/useStudio";
 import { applyStudioTheme } from "@/lib/theme";
 import { studioStore } from "@/lib/apiClient";
 import { PLATFORM } from "@/config/platform";
+import { rememberStudioSplash } from "@/lib/splash";
 
 /**
  * Applies the active studio's brand colours to the storefront and studio admin,
@@ -22,6 +23,13 @@ export const StudioTheme = () => {
   useEffect(() => {
     applyStudioTheme(neutral ? null : config?.branding ?? null);
     document.title = !neutral && config?.name ? config.name : PLATFORM.name;
+    if (!neutral && config) {
+      rememberStudioSplash({
+        name: config.name,
+        logoUrl: config.branding.logoUrl,
+        primaryColor: config.branding.primaryColor,
+      });
+    }
   }, [neutral, config]);
 
   return null;

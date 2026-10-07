@@ -1,16 +1,14 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout/Layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Reveal } from "@/components/Reveal";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
-import { services as staticServices } from "@/data/services";
 import { servicesApi, categoriesApi, galleryApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatGHS } from "@/lib/currency";
+import { useStudio } from "@/hooks/useStudio";
 
 const GHS = formatGHS;
 const titleize = (slug: string) =>
@@ -35,6 +33,7 @@ const price = (s: DisplayService) =>
   s.on_promo && s.promo_price != null ? s.promo_price : s.price;
 
 const Services = () => {
+  const { name: studioName } = useStudio();
   const [activeCat, setActiveCat] = useState<string>("all");
 
   const { data: apiServices, isLoading } = useQuery({
@@ -50,8 +49,7 @@ const Services = () => {
     queryFn: () => galleryApi.listActive(),
   });
 
-  const source: DisplayService[] =
-    apiServices && apiServices.length > 0 ? apiServices : staticServices;
+  const source: DisplayService[] = apiServices ?? [];
 
   const nameBySlug = new Map((categoriesData ?? []).map((c) => [c.slug, c.name]));
   const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
@@ -63,10 +61,6 @@ const Services = () => {
     ...present.filter((s) => !orderedSlugs.includes(s)),
   ];
 
-  const featured = useMemo(
-    () => source.filter((s) => s.popular).slice(0, 2),
-    [source],
-  );
   const filtered =
     activeCat === "all" ? source : source.filter((s) => s.category === activeCat);
 
@@ -77,198 +71,147 @@ const Services = () => {
   return (
     <Layout>
       <StudioPageHero
-        eyebrow="Our services"
-        title={
-          <>
-            Your next look
-            <br />
-            <span className="text-primary">starts here.</span>
-          </>
-        }
-        description="Beauty experiences designed around you â€” from everyday essentials to your next signature look."
+        eyebrow={studioName}
+        title="Services and prices"
+        description="Everything we offer, what it costs and how long it takes. Prices are per appointment."
         image={heroImg}
         variant="editorial"
         cta={{ label: "Book an appointment", to: "/book" }}
       />
 
       <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto max-w-4xl px-4">
           {isLoading ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-40 w-full" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
               ))}
             </div>
           ) : source.length === 0 ? (
-            <div className="mx-auto max-w-md py-16 text-center">
-              <Sparkles className="mx-auto mb-4 h-10 w-10 text-primary/40" />
-              <h2 className="font-serif text-2xl font-bold">
-                We're preparing something special.
-              </h2>
-              <p className="mt-2 text-muted-foreground">
-                Services will be available soon.
+            <div className="py-16">
+              <h2 className="font-serif text-2xl font-semibold">No services listed yet</h2>
+              <p className="mt-2 max-w-md text-muted-foreground">
+                {studioName} hasn't added its services here yet. Get in touch and we'll tell you
+                what we offer and what it costs.
               </p>
               <Button className="mt-6" asChild>
-                <Link to="/contact">Contact studio</Link>
+                <Link to="/contact">Contact us</Link>
               </Button>
             </div>
           ) : (
             <>
-              {/* Featured */}
-              {featured.length >= 2 && activeCat === "all" && (
-                <div className="mb-14">
-                  <Reveal className="mb-6">
-                    <span className="text-sm font-medium uppercase tracking-[0.2em] text-primary">
-                      Most loved
-                    </span>
-                  </Reveal>
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {featured.map((s, i) => (
-                      <Reveal
-                        key={s.id}
-                        delay={i * 100}
-                        className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-br from-accent/40 to-card p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                      >
-                        <div>
-                          <h3 className="font-serif text-xl font-semibold">{s.name}</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {s.duration} Â· from {GHS(price(s))}
-                          </p>
-                        </div>
-                        <Button size="sm" className="group/btn shrink-0" asChild>
-                          <Link to="/book">
-                            Book
-                            <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
-                          </Link>
-                        </Button>
-                      </Reveal>
-                    ))}
-                  </div>
+              {tabSlugs.length > 1 && (
+                <div
+                  className="mb-8 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  role="tablist"
+                  aria-label="Service categories"
+                >
+                  {["all", ...tabSlugs].map((slug) => (
+                    <button
+                      key={slug}
+                      role="tab"
+                      aria-selected={activeCat === slug}
+                      onClick={() => setActiveCat(slug)}
+                      className={cn(
+                        "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                        activeCat === slug
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {slug === "all" ? "Everything" : catName(slug)}
+                    </button>
+                  ))}
                 </div>
               )}
 
-              {/* Category filter â€” horizontally scrollable on mobile */}
-              <div className="mb-10 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {["all", ...tabSlugs].map((slug) => (
-                  <button
-                    key={slug}
-                    onClick={() => setActiveCat(slug)}
-                    className={cn(
-                      "shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
-                      activeCat === slug
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {slug === "all" ? "All" : catName(slug)}
-                  </button>
-                ))}
-              </div>
-
-              {/* Editorial rows */}
-              <div className="mx-auto max-w-4xl divide-y divide-border border-y border-border">
-                {filtered.map((s, i) => (
-                  <Reveal
+              {/* The price list. Price and length stay visible at every width:
+                  on a phone they're what people came for. */}
+              <ul className="divide-y divide-border border-y border-border">
+                {filtered.map((s) => (
+                  <li
                     key={s.id}
-                    delay={(i % 4) * 60}
-                    className="group grid grid-cols-[auto,1fr,auto] items-center gap-4 py-6 sm:gap-6"
+                    className="grid grid-cols-[1fr,auto] items-baseline gap-x-6 gap-y-1 py-5"
                   >
-                    <span className="font-serif text-sm text-muted-foreground">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-serif text-lg font-semibold transition-colors group-hover:text-primary">
-                          {s.name}
-                        </h3>
+                      <h3 className="font-serif text-lg font-semibold">
+                        {s.name}
                         {s.popular && (
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                          <span className="ml-2 align-middle text-xs font-medium text-muted-foreground">
                             Popular
                           </span>
                         )}
-                        {s.on_promo && (
-                          <span
-                            className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
-                            style={{ backgroundColor: "hsl(var(--toast-success))" }}
-                          >
-                            Promo
+                        {s.on_promo && s.promo_price != null && (
+                          <span className="ml-2 align-middle text-xs font-medium text-primary">
+                            On offer
                           </span>
                         )}
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {s.description}
-                      </p>
+                      </h3>
+                      {s.description && (
+                        <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+                          {s.description}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-4 sm:gap-6">
-                      <div className="hidden text-right sm:block">
-                        {s.on_promo && s.promo_price != null ? (
-                          <p className="text-sm font-semibold">
-                            <span className="mr-1 text-xs font-normal text-muted-foreground line-through">
-                              {GHS(s.price)}
-                            </span>
-                            {GHS(s.promo_price)}
-                          </p>
-                        ) : (
-                          <p className="text-sm font-semibold">{GHS(s.price)}</p>
+                    <div className="text-right">
+                      <p className="font-semibold tabular-nums">
+                        {s.on_promo && s.promo_price != null && (
+                          <span className="mr-2 font-normal text-muted-foreground line-through">
+                            {GHS(s.price)}
+                          </span>
                         )}
-                        <p className="text-xs text-muted-foreground">{s.duration}</p>
-                      </div>
-                      <Link
-                        to="/book"
-                        className="flex items-center gap-1 text-sm font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
-                      >
-                        Book <ArrowUpRight className="h-4 w-4" />
-                      </Link>
+                        {GHS(price(s))}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{s.duration}</p>
                     </div>
-                  </Reveal>
+                    <Link
+                      to="/book"
+                      className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Book {s.name}
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </>
           )}
         </div>
       </section>
 
-      {/* Booking CTA */}
-      <section className="relative overflow-hidden py-24">
-        <img
-          src={ctaImg ?? undefined}
-          alt=""
-          className={cn(
-            "absolute inset-0 h-full w-full object-cover",
-            !ctaImg && "hidden",
-          )}
-        />
-        <div className={cn("absolute inset-0", ctaImg ? "bg-foreground/60" : "bg-secondary")} />
-        <div className="container relative z-10 mx-auto px-4 text-center">
-          <Reveal>
-            <span
-              className={cn(
-                "text-sm font-medium uppercase tracking-[0.2em]",
-                ctaImg ? "text-background/80" : "text-primary",
-              )}
-            >
-              Ready for your next appointment?
-            </span>
-            <h2
-              className={cn(
-                "mx-auto mt-3 max-w-2xl font-serif text-3xl font-bold md:text-4xl",
-                ctaImg ? "text-background" : "text-foreground",
-              )}
-            >
-              Find a service that fits your style.
-            </h2>
+      {/* Closing prompt */}
+      <section className="relative overflow-hidden py-20 md:py-24">
+        {ctaImg && (
+          <>
+            <img src={ctaImg} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-black/55" />
+          </>
+        )}
+        {!ctaImg && <div className="absolute inset-0 bg-secondary" />}
+        <div className="container relative z-10 mx-auto max-w-4xl px-4">
+          <h2
+            className={cn(
+              "max-w-xl font-serif text-3xl font-semibold md:text-4xl",
+              ctaImg ? "text-white" : "text-foreground",
+            )}
+          >
+            Not sure which to choose?
+          </h2>
+          <p className={cn("mt-3 max-w-md", ctaImg ? "text-white/85" : "text-muted-foreground")}>
+            Book the closest match and add a note, or send us a message first. We're happy to help.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" variant={ctaImg ? "secondary" : "default"} asChild>
+              <Link to="/book">Book an appointment</Link>
+            </Button>
             <Button
               size="lg"
-              variant={ctaImg ? "secondary" : "default"}
-              className="group mt-8"
+              variant="outline"
+              className={ctaImg ? "border-white/60 bg-transparent text-white hover:bg-white/10 hover:text-white" : undefined}
               asChild
             >
-              <Link to="/book">
-                Book an appointment
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              <Link to="/contact">Ask a question</Link>
             </Button>
-          </Reveal>
+          </div>
         </div>
       </section>
     </Layout>

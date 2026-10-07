@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { contactInfoApi, ContactInfoDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { formatWhatsappNumber, toWhatsappNumber } from "@/lib/whatsapp";
 
 type FieldKey =
   | "phone"
@@ -36,7 +37,7 @@ const fields: {
   hint?: string;
 }[] = [
   { key: "phone", showKey: "showPhone", label: "Phone (Call)", placeholder: "+233 20 123 4567", icon: Phone },
-  { key: "whatsapp", showKey: "showWhatsapp", label: "WhatsApp", placeholder: "+233 20 123 4567", icon: MessageCircle, hint: "Number customers will message on WhatsApp" },
+  { key: "whatsapp", showKey: "showWhatsapp", label: "WhatsApp", placeholder: "024 555 0142", icon: MessageCircle, hint: "Customers tap the WhatsApp button on your site to message this number. Write it the usual way; add + and the country code only for a number outside Ghana." },
   { key: "email", showKey: "showEmail", label: "Email", placeholder: "hello@yourstudio.com", icon: Mail },
   { key: "instagram", showKey: "showInstagram", label: "Instagram", placeholder: "@yourstudio or full URL", icon: Instagram },
   { key: "tiktok", showKey: "showTiktok", label: "TikTok", placeholder: "@yourstudio or full URL", icon: Music2 },
@@ -55,7 +56,8 @@ const AdminContact = () => {
   });
 
   useEffect(() => {
-    if (data) setForm(data);
+    // Saved numbers come back as plain digits; show them readably.
+    if (data) setForm({ ...data, whatsapp: data.whatsapp ? formatWhatsappNumber(data.whatsapp) : data.whatsapp });
   }, [data]);
 
   const mutation = useMutation({
@@ -82,9 +84,12 @@ const AdminContact = () => {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
+  // A number WhatsApp can't open would leave customers with a dead button.
+  const whatsappInvalid = Boolean(form?.whatsapp?.trim() && !toWhatsappNumber(form.whatsapp));
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (form) mutation.mutate(form);
+    if (form && !whatsappInvalid) mutation.mutate(form);
   };
 
   return (
@@ -129,16 +134,28 @@ const AdminContact = () => {
                     value={(form[key] as string) ?? ""}
                     onChange={(e) => setField(key, e.target.value)}
                     placeholder={placeholder}
+                    inputMode={key === "whatsapp" || key === "phone" ? "tel" : undefined}
+                    aria-invalid={key === "whatsapp" && whatsappInvalid}
+                    aria-describedby={hint ? `hint-${key}` : undefined}
                   />
-                  {hint && (
-                    <p className="text-xs text-muted-foreground mt-2">{hint}</p>
+                  {key === "whatsapp" && whatsappInvalid ? (
+                    <p id={`hint-${key}`} className="text-xs text-destructive mt-2">
+                      This doesn't look like a WhatsApp number. Try 024 555 0142, or
+                      +44 7700 900123 for a number outside Ghana.
+                    </p>
+                  ) : (
+                    hint && (
+                      <p id={`hint-${key}`} className="text-xs text-muted-foreground mt-2">
+                        {hint}
+                      </p>
+                    )
                   )}
                 </CardContent>
               </Card>
             ))}
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending || whatsappInvalid}>
                 {mutation.isPending && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}

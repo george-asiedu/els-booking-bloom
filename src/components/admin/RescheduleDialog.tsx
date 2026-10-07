@@ -126,7 +126,7 @@ export const RescheduleDialog = ({
               id="rs-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Shown to the customer, e.g. “Stylist unavailable”."
+              placeholder="Shown to the customer, e.g. “We’re closed that afternoon”."
               rows={2}
               maxLength={300}
             />

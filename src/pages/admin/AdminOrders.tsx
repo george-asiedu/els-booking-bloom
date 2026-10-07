@@ -24,8 +24,9 @@ import {
 import { ordersApi, OrderDTO, OrderStatus } from "@/lib/api";
 import { RefundDialog, type RefundTarget } from "@/components/admin/RefundDialog";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
+import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
 const statusColors: Record<string, string> = {
   pending_payment: "secondary",
@@ -128,7 +129,7 @@ const AdminOrders = () => {
           />
           <StatCard
             label="Profit (revenue)"
-            value={`GHS ${stats.profit.toLocaleString()}`}
+            value={formatGHS(stats.profit)}
           />
         </div>
 
@@ -158,8 +159,14 @@ const AdminOrders = () => {
               <SelectItem value="delivery">Delivery</SelectItem>
             </SelectContent>
           </Select>
-          <Input type="date" value={oFrom} onChange={(e) => setOFrom(e.target.value)} className="w-[150px]" title="From date" />
-          <Input type="date" value={oTo} onChange={(e) => setOTo(e.target.value)} className="w-[150px]" title="To date" />
+          <DateRangeField
+            from={oFrom}
+            to={oTo}
+            onChange={(f, t) => {
+              setOFrom(f);
+              setOTo(t);
+            }}
+          />
         </FilterBar>
 
         {isLoading ? (
@@ -248,7 +255,7 @@ const AdminOrders = () => {
                         )}
                     </TableCell>
                     <TableCell className="font-medium">
-                      GHS {order.total}
+                      {formatGHS(order.total)}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-2">

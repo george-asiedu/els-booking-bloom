@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { servicesApi, categoriesApi, ServiceDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
 type Service = ServiceDTO;
 
@@ -59,7 +60,7 @@ interface ServiceFormData {
 
 const emptyFormData: ServiceFormData = {
   name: "",
-  category: "nails",
+  category: "",
   description: "",
   duration: "",
   price: "",
@@ -182,7 +183,9 @@ const AdminServices = () => {
 
   const openCreateDialog = () => {
     setEditingService(null);
-    setFormData(emptyFormData);
+    // Start on the studio's first category; with none yet, the owner adds one
+    // in the dialog before saving.
+    setFormData({ ...emptyFormData, category: categories[0]?.slug ?? "" });
     setSelectedImage(null);
     setImagePreview(null);
     setIsDialogOpen(true);
@@ -210,6 +213,16 @@ const AdminServices = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // A service whose category doesn't exist is saved but never shown to
+    // customers (the storefront lists services by active category).
+    if (!categories.some((c) => c.slug === formData.category)) {
+      toast({
+        variant: "destructive",
+        title: "Choose a category",
+        description: "Pick a category for this service, or add one below.",
+      });
+      return;
+    }
     saveMutation.mutate({
       ...formData,
       image: selectedImage ?? undefined,
@@ -280,13 +293,13 @@ const AdminServices = () => {
                       {service.on_promo ? (
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground line-through text-sm">
-                            GHS {service.price}
+                            {formatGHS(service.price)}
                           </span>
-                          <span className="font-medium">GHS {service.promo_price}</span>
+                          <span className="font-medium">{formatGHS(service.promo_price)}</span>
                           <Badge className="bg-green-600 hover:bg-green-600">Promo</Badge>
                         </div>
                       ) : (
-                        <>GHS {service.price}</>
+                        <>{formatGHS(service.price)}</>
                       )}
                     </TableCell>
                     <TableCell>

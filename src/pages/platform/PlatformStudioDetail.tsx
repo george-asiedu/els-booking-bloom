@@ -37,6 +37,7 @@ import {
 } from "@/lib/platformApi";
 import { enterStudioAsAdmin } from "@/lib/impersonate";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 
 const statusVariant: Record<
   StudioStatus,
@@ -527,7 +528,7 @@ const PlatformStudioDetail = () => {
                           </Badge>
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap font-medium">
-                          {typeof amount === "number" ? `GHS ${amount.toLocaleString()}` : "—"}
+                          {typeof amount === "number" ? formatGHS(amount) : "—"}
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap">
                           {(m.channel as string) ?? "—"}

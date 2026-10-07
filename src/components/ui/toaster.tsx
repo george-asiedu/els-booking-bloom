@@ -17,6 +17,14 @@ import {
 
 const AUTO_DISMISS_MS = 5000;
 
+// The countdown bar is the clock. When its animation finishes the toast
+// closes, and anything that pauses the bar (hovering the toast, or keyboard
+// focus inside it) pauses the close too. Radix's own timer is switched off
+// (duration Infinity): it also pauses whenever the browser window loses focus,
+// e.g. a click into DevTools, and a toast that arrived while the window was
+// unfocused never started its timer at all, so the bar ran out and the toast
+// stayed.
+
 type ToastKind = "default" | "success" | "info" | "warning" | "destructive";
 
 // Icon + accent CSS variable per toast type. The surface stays on the theme;
@@ -30,10 +38,10 @@ const TYPE: Record<ToastKind, { icon: LucideIcon; varName: string }> = {
 };
 
 export function Toaster() {
-  const { toasts } = useToast();
+  const { toasts, dismiss } = useToast();
 
   return (
-    <ToastProvider duration={AUTO_DISMISS_MS}>
+    <ToastProvider duration={Infinity}>
       {toasts.map(function ({ id, title, description, action, variant, ...props }) {
         const kind = (variant ?? "default") as ToastKind;
         const { icon: Icon, varName } = TYPE[kind] ?? TYPE.default;
@@ -64,10 +72,13 @@ export function Toaster() {
             {action}
             <ToastClose />
 
-            {/* Auto-dismiss progress bar (pauses on hover, matching Radix). */}
+            {/* Auto-dismiss countdown: pauses on hover or focus, closes at the end. */}
+            {/* Reduced motion hides the bar with opacity, not display:none,
+                because a hidden element never fires animationend. */}
             <span
               aria-hidden
-              className="absolute inset-x-0 bottom-0 h-[3px] origin-left [animation:toast-progress_var(--toast-ms)_linear_forwards] group-hover:[animation-play-state:paused] motion-reduce:hidden"
+              onAnimationEnd={() => dismiss(id)}
+              className="absolute inset-x-0 bottom-0 h-[3px] origin-left [animation:toast-progress_var(--toast-ms)_linear_forwards] group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused] motion-reduce:opacity-0"
               style={
                 {
                   backgroundColor: color,

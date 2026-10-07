@@ -156,6 +156,26 @@ export interface PlatformBillingConfig {
   commissionPremiumPercent: number;
   setupFeeStandard: number;
   setupFeePremium: number;
+  // Subscription setup fee per plan (0 = none), paid at signup instead of the
+  // first period and covering the first setupFeeMonths* months.
+  subscriptionSetupFeeStandard: number;
+  subscriptionSetupFeePremium: number;
+  setupFeeMonthsMonthly: number;
+  setupFeeMonthsYearly: number;
+  // Plan prices (GHS) charged at signup and renewal.
+  priceStandardMonthly: number;
+  priceStandardYearly: number;
+  pricePremiumMonthly: number;
+  pricePremiumYearly: number;
+}
+
+// Public details on the platform pages. Null = the built-in default.
+export interface PlatformSiteSettings {
+  siteName: string | null;
+  siteHeroBadge: string | null;
+  supportEmail: string | null;
+  supportWhatsapp: string | null;
+  demoStudioSlug: string | null;
 }
 
 export interface StudioDetail {
@@ -274,11 +294,32 @@ export interface PlatformQueueStatus {
   data: {
     enabled: boolean;
     email?: { counts: PlatformQueueCounts; recentFailures: PlatformQueueFailure[] };
-    reconcilePayments?: {
-      counts: PlatformQueueCounts;
-      recentFailures: PlatformQueueFailure[];
-    };
   };
+}
+
+// A recurring background job (see ELS-Server src/scheduler). Times are ISO.
+export interface ScheduledJobDTO {
+  key: string;
+  label: string;
+  description: string;
+  schedule: string;
+  enabled: boolean;
+  running: boolean;
+  // The last run started but its process died before finishing.
+  interrupted: boolean;
+  nextRunAt: string | null;
+  lastStartedAt: string | null;
+  lastFinishedAt: string | null;
+  lastStatus: "RUNNING" | "SUCCESS" | "FAILED" | null;
+  // "schedule", or "manual:<email>" for a run started from the console.
+  lastTrigger: string | null;
+  lastResult: Record<string, unknown> | null;
+  lastError: string | null;
+  lastDurationMs: number | null;
+  runCount: number;
+  failureCount: number;
+  updatedBy: string | null;
+  updatedAt: string | null;
 }
 
 interface Envelope<T> {
@@ -344,6 +385,21 @@ export const platformApi = {
       "/billing-config",
     );
     return res.data;
+  },
+
+  async getSiteSettings(): Promise<PlatformSiteSettings> {
+    return (await platformRequest<Envelope<PlatformSiteSettings>>("/site-settings")).data;
+  },
+
+  async updateSiteSettings(
+    input: Partial<PlatformSiteSettings>,
+  ): Promise<PlatformSiteSettings> {
+    return (
+      await platformRequest<Envelope<PlatformSiteSettings>>("/site-settings", {
+        method: "PATCH",
+        body: input,
+      })
+    ).data;
   },
 
   async updateBillingConfig(
@@ -535,9 +591,31 @@ export const platformApi = {
     });
   },
 
-  // ---- Background job queues (read-only health panel) ----
+  // ---- Background work ----
 
   async queues(): Promise<PlatformQueueStatus> {
     return platformRequest<PlatformQueueStatus>("/queues");
+  },
+
+  async jobs(): Promise<ScheduledJobDTO[]> {
+    return (await platformRequest<Envelope<ScheduledJobDTO[]>>("/jobs")).data;
+  },
+
+  async setJobEnabled(key: string, enabled: boolean): Promise<ScheduledJobDTO> {
+    return (
+      await platformRequest<Envelope<ScheduledJobDTO>>(`/jobs/${encodeURIComponent(key)}`, {
+        method: "PATCH",
+        body: { enabled },
+      })
+    ).data;
+  },
+
+  async runJob(key: string): Promise<ScheduledJobDTO> {
+    return (
+      await platformRequest<Envelope<ScheduledJobDTO>>(
+        `/jobs/${encodeURIComponent(key)}/run`,
+        { method: "POST" },
+      )
+    ).data;
   },
 };

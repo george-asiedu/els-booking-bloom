@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { contactInfoApi, businessHoursApi, galleryApi, ContactInfoDTO } from "@/lib/api";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
+import { useStudioWhatsapp } from "@/hooks/useStudioWhatsapp";
 
 const dayNames = [
   "Sunday",
@@ -18,11 +19,9 @@ const dayNames = [
 ];
 
 // --- Link builders: turn stored values into working hrefs ---
-const digitsOnly = (v: string) => v.replace(/[^\d]/g, "");
 const stripAt = (v: string) => v.replace(/^@/, "").trim();
 
 const telHref = (phone: string) => `tel:${phone.replace(/\s+/g, "")}`;
-const whatsappHref = (phone: string) => `https://wa.me/${digitsOnly(phone)}`;
 const emailHref = (email: string) => `mailto:${email}`;
 const instagramHref = (v: string) =>
   v.startsWith("http") ? v : `https://instagram.com/${stripAt(v)}`;
@@ -40,12 +39,12 @@ interface ContactCard {
   href: string;
 }
 
-const buildCards = (info: ContactInfoDTO): ContactCard[] => {
+const buildCards = (info: ContactInfoDTO, whatsappHref: string | null): ContactCard[] => {
   const cards: ContactCard[] = [];
   if (info.showPhone && info.phone)
     cards.push({ icon: Phone, label: "Phone", value: info.phone, href: telHref(info.phone) });
-  if (info.showWhatsapp && info.whatsapp)
-    cards.push({ icon: WhatsappIcon, label: "WhatsApp", value: "Chat with us", href: whatsappHref(info.whatsapp) });
+  if (whatsappHref)
+    cards.push({ icon: WhatsappIcon, label: "WhatsApp", value: "Chat with us", href: whatsappHref });
   if (info.showEmail && info.email)
     cards.push({ icon: Mail, label: "Email", value: info.email, href: emailHref(info.email) });
   if (info.showInstagram && info.instagram)
@@ -81,20 +80,15 @@ const Contact = () => {
     queryFn: () => galleryApi.listActive(),
   });
 
-  const cards = info ? buildCards(info) : [];
+  const whatsapp = useStudioWhatsapp();
+  const cards = info ? buildCards(info, whatsapp?.href ?? null) : [];
 
   return (
     <Layout>
       <StudioPageHero
-        eyebrow="Get in touch"
-        title={
-          <>
-            Come say
-            <br />
-            <span className="text-primary">hello.</span>
-          </>
-        }
-        description="Have questions or want to book an appointment? Reach out through any of these channels."
+        eyebrow="Contact"
+        title="Get in touch"
+        description="Questions about a service, a price or a time? Message or call us using any of the details below."
         image={gallery.find((g) => g.media_type === "image")?.image_url ?? null}
         variant="editorial"
       />
@@ -127,7 +121,7 @@ const Contact = () => {
                       href={item.href}
                       target={item.href.startsWith("http") ? "_blank" : undefined}
                       rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                      className="group bg-card border border-border rounded-lg p-6 hover:shadow-md hover:border-primary/50 transition-all animate-fade-in"
+                      className="group bg-card border border-border rounded-lg p-6 hover:shadow-md hover:border-primary/50 transition-[box-shadow,border-color] animate-fade-in"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="flex items-start gap-4">
@@ -212,11 +206,11 @@ const Contact = () => {
               </div>
 
               {/* Quick Actions */}
-              {info && ((info.showWhatsapp && info.whatsapp) || (info.showPhone && info.phone)) && (
+              {info && (whatsapp || (info.showPhone && info.phone)) && (
                 <div className="mt-6 flex flex-col sm:flex-row gap-4">
-                  {info.showWhatsapp && info.whatsapp && (
+                  {whatsapp && (
                     <Button asChild className="flex-1">
-                      <a href={whatsappHref(info.whatsapp)} target="_blank" rel="noopener noreferrer">
+                      <a href={whatsapp.href} target="_blank" rel="noopener noreferrer">
                         <WhatsappIcon className="mr-2 h-4 w-4" />
                         WhatsApp Us
                       </a>
@@ -244,22 +238,17 @@ const Contact = () => {
             Frequently Asked Questions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Only answers the platform itself makes true for every studio.
+                Policies (cancellation fees, walk-ins) differ by business and
+                must not be invented on a studio's behalf. */}
             {[
               {
                 q: "How do I book an appointment?",
-                a: "You can book through our website's booking page, or reach out via WhatsApp or phone for immediate assistance.",
+                a: "Use the booking page to pick a service and a free time. You can also message or call using the details above.",
               },
               {
-                q: "What's your cancellation policy?",
-                a: "Please provide at least 24 hours notice for cancellations to avoid a cancellation fee.",
-              },
-              {
-                q: "How often should I get lash refills?",
-                a: "For best results, lash refills are recommended every 2-3 weeks depending on your lash growth cycle.",
-              },
-              {
-                q: "Do you accept walk-ins?",
-                a: "Walk-ins are welcome based on availability, but appointments are recommended to guarantee your preferred time.",
+                q: "Can I change my appointment?",
+                a: "Yes. Sign in, open your account and choose Reschedule on the booking. We'll confirm the new time.",
               },
             ].map((faq, index) => (
               <div

@@ -111,7 +111,7 @@ const AdminPromos = () => {
                 value={form.message}
                 onChange={(e) => setForm({ ...form, message: e.target.value })}
                 maxLength={140}
-                placeholder="🎉 20% off all gel manicures this week!"
+                placeholder="20% off every booking this week"
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

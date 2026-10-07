@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toWhatsappNumber } from "@/lib/whatsapp";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, CheckCircle, Loader2, Upload, X, MessageCircle, Plus, Minus, ShoppingBag } from "lucide-react";
+import { CalendarIcon, Loader2, Upload, X } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { Button } from "@/components/ui/button";
@@ -33,12 +34,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Switch } from "@/components/ui/switch";
 import {
   servicesApi,
   profileApi,
   appointmentsApi,
-  contactInfoApi,
   accountApi,
   paymentsApi,
   productsApi,
@@ -46,7 +45,6 @@ import {
   ordersApi,
   AppointmentDTO,
 } from "@/lib/api";
-import { whatsappLink } from "@/lib/whatsapp";
 import { setPendingBooking, takePendingBooking } from "@/lib/pendingBooking";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +52,13 @@ import { useStudio } from "@/hooks/useStudio";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { PaymentTarget } from "@/lib/api";
 import { slotIsBusy, parseDurationMinutes } from "@/lib/slots";
+import { formatGHS } from "@/lib/currency";
+import { computeBookingPricing } from "./book/pricing";
+import { useDesignImage } from "./book/useDesignImage";
+import { useAddOns } from "./book/useAddOns";
+import { AdminCannotBook, BookingSuccess } from "./book/BookingStates";
+import { AddOnPicker } from "./book/AddOnPicker";
+import { BookingSummary } from "./book/BookingSummary";
 
 const timeSlots = [
   "9:00 AM",
@@ -69,7 +74,10 @@ const timeSlots = [
 
 const bookingSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
+  // The studio confirms on WhatsApp, so it must be a number WhatsApp can open.
+  phone: z
+    .string()
+    .refine((v) => toWhatsappNumber(v) !== null, "Enter a phone number like 024 555 0142"),
   email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
   service: z.string().min(1, "Please select a service"),
   date: z.date({ required_error: "Please select a date" }),
@@ -79,25 +87,12 @@ const bookingSchema = z.object({
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
-interface Service {
-  id: string;
-  name: string;
-  price: number;
-  duration: string;
-}
-
-// Loyalty: 10 points = GHS 1 off, capped at the studio's loyalty cap %.
-const POINTS_PER_GHS = 10;
-
 const Book = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [bookedAppointment, setBookedAppointment] = useState<AppointmentDTO | null>(null);
-  const [designImage, setDesignImage] = useState<File | null>(null);
-  const [designPreview, setDesignPreview] = useState<string | null>(null);
   const [applyPoints, setApplyPoints] = useState(false);
   const [referral, setReferral] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"full" | "partial">("full");
-  const [redirecting, setRedirecting] = useState(false);
   // In-app payment dialog state.
   const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -106,9 +101,7 @@ const Book = () => {
     id: string;
     type: "FULL" | "PARTIAL";
   } | null>(null);
-  // Products added to the booking: productId -> quantity.
-  const [addOns, setAddOns] = useState<Record<string, number>>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const designImage = useDesignImage();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -127,12 +120,6 @@ const Book = () => {
     queryKey: ["user-profile", user?.id],
     queryFn: () => profileApi.getMine(),
     enabled: !!user,
-  });
-
-  // Studio contact info — used for the WhatsApp confirmation button.
-  const { data: contactInfo } = useQuery({
-    queryKey: ["contact-info"],
-    queryFn: () => contactInfoApi.get(),
   });
 
   // Loyalty balance — lets logged-in customers apply points as a discount.
@@ -175,25 +162,15 @@ const Book = () => {
     enabled: shopEnabled,
   });
 
-  const addOnItems = Object.entries(addOns)
-    .map(([id, qty]) => {
-      const p = products.find((pr) => pr.id === id);
-      return p ? { product: p, qty } : null;
-    })
-    .filter((x): x is { product: (typeof products)[number]; qty: number } => !!x);
-  const productSubtotal = addOnItems.reduce(
-    (s, i) => s + i.product.effective_price * i.qty,
-    0,
-  );
-  const hasAddOns = addOnItems.length > 0;
-
-  const setAddOnQty = (id: string, qty: number) =>
-    setAddOns((prev) => {
-      const next = { ...prev };
-      if (qty <= 0) delete next[id];
-      else next[id] = qty;
-      return next;
-    });
+  // Products added to the booking.
+  const {
+    addOns,
+    setAddOns,
+    items: addOnItems,
+    subtotal: productSubtotal,
+    hasAddOns,
+    setQty: setAddOnQty,
+  } = useAddOns(products);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -257,12 +234,8 @@ const Book = () => {
 
   // The chosen service's length decides which slots it can still fit into, so
   // changing the service re-filters the times.
-  const selectedServiceForSlots = services.find(
-    (s) => s.id === form.watch("service"),
-  );
-  const serviceMinutes = parseDurationMinutes(
-    selectedServiceForSlots?.duration,
-  );
+  const selectedService = services.find((s) => s.id === form.watch("service"));
+  const serviceMinutes = parseDurationMinutes(selectedService?.duration);
   const availableTimeSlots = timeSlots.filter(
     (t) => !slotIsBusy(t, serviceMinutes, busy),
   );
@@ -276,44 +249,18 @@ const Book = () => {
     }
   }, [busy, selectedTime, serviceMinutes, form]);
 
-  const handleDesignImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setDesignImage(file);
-      setDesignPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const clearDesignImage = () => {
-    setDesignImage(null);
-    setDesignPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  // Loyalty discount preview for the selected service.
-  const selectedService = services.find((s) => s.id === form.watch("service"));
-  const onPromo = selectedService?.on_promo ?? false;
-  const servicePrice = selectedService?.effective_price ?? 0;
-  const maxPointsByCap = Math.floor(
-    servicePrice * (loyaltyCap / 100) * POINTS_PER_GHS,
-  );
-  const pointsToUse = Math.min(availablePoints, maxPointsByCap);
-  const discount = pointsToUse / POINTS_PER_GHS;
-  // Points can't be combined with a promo price.
-  const canUsePoints = !!user && availablePoints > 0 && discount > 0 && !onPromo;
-  const effectiveApplyPoints = applyPoints && canUsePoints;
-  const amountDue = servicePrice - (effectiveApplyPoints ? discount : 0);
-
-  // Payment split preview.
-  const depositPercent = paymentSettings?.deposit_percent ?? 50;
-  const depositAmount = Math.round(amountDue * (depositPercent / 100) * 100) / 100;
-  const payNowAmount = paymentMethod === "partial" ? depositAmount : amountDue;
-  const balanceAfterDeposit = Math.max(0, amountDue - depositAmount);
-  // Combined amount charged now when products are added (service due + products).
-  const bookingPayNow =
-    Math.round(
-      ((paymentEnabled ? payNowAmount : 0) + productSubtotal) * 100,
-    ) / 100;
+  const pricing = computeBookingPricing({
+    service: selectedService,
+    signedIn: !!user,
+    availablePoints,
+    loyaltyCapPercent: loyaltyCap,
+    applyPoints,
+    paymentEnabled,
+    paymentMethod,
+    depositPercent: paymentSettings?.deposit_percent ?? 50,
+    productSubtotal,
+  });
+  const { effectiveApplyPoints, payNowAmount, bookingPayNow } = pricing;
 
   const bookingMutation = useMutation({
     mutationFn: (data: BookingFormValues) =>
@@ -325,13 +272,13 @@ const Book = () => {
         appointment_date: format(data.date, "yyyy-MM-dd"),
         appointment_time: data.time,
         notes: data.notes || null,
-        design_image: designImage,
+        design_image: designImage.file,
         apply_points: effectiveApplyPoints,
       }),
     onSuccess: async (appointment) => {
       // Points were spent and this slot is now taken — refresh both.
       queryClient.invalidateQueries({ queryKey: ["loyalty-points", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["taken-slots"] });
+      queryClient.invalidateQueries({ queryKey: ["busy-slots"] });
 
       const type = paymentMethod === "partial" ? "PARTIAL" : "FULL";
 
@@ -440,86 +387,20 @@ const Book = () => {
     setIsSubmitted(false);
     setBookedAppointment(null);
     setApplyPoints(false);
-    clearDesignImage();
+    designImage.clear();
     form.reset();
   };
 
-  // Pre-filled WhatsApp message to the studio confirming the request.
-  const studioWhatsapp =
-    contactInfo?.showWhatsapp && contactInfo.whatsapp ? contactInfo.whatsapp : null;
-  const whatsappConfirmLink =
-    studioWhatsapp && bookedAppointment
-      ? whatsappLink(
-          studioWhatsapp,
-          `Hi ${studioName}, I've just requested an appointment:\n\n` +
-            `Service: ${bookedAppointment.services?.name ?? "Service"}\n` +
-            `Name: ${bookedAppointment.full_name}\n` +
-            `Date: ${bookedAppointment.appointment_date}\n` +
-            `Time: ${bookedAppointment.appointment_time}\n` +
-            `Status: Pending confirmation\n\n` ,
-        )
-      : null;
-
   if (isSubmitted) {
     return (
-      <Layout>
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="max-w-md mx-auto text-center animate-fade-in">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="h-10 w-10 text-primary" />
-              </div>
-              <h1 className="text-3xl font-serif font-bold text-foreground mb-4">
-                Booking Request Received!
-              </h1>
-              <p className="text-muted-foreground mb-6">
-                Thank you for booking with {studioName}. Your request is
-                <span className="font-medium text-foreground"> pending confirmation</span> —
-                we'll confirm shortly. Send us a quick WhatsApp so we can keep you updated.
-              </p>
-              <div className="flex flex-col gap-3">
-                {whatsappConfirmLink && (
-                  <Button asChild className="bg-[#25D366] hover:bg-[#1da851] text-white">
-                    <a href={whatsappConfirmLink} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Confirm on WhatsApp
-                    </a>
-                  </Button>
-                )}
-                <Button variant="outline" onClick={resetBooking}>
-                  Book Another Appointment
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </Layout>
+      <BookingSuccess
+        studioName={studioName}
+        onBookAnother={resetBooking}
+      />
     );
   }
 
-  // Anyone can browse & fill the booking form; admins can't book.
-  if (user?.role === "ADMIN") {
-    return (
-      <Layout>
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="max-w-md mx-auto text-center">
-              <h1 className="text-3xl font-serif font-bold text-foreground mb-3">
-                Admins can't book appointments
-              </h1>
-              <p className="text-muted-foreground mb-6">
-                Appointment booking is for customer accounts only. Log in with a
-                customer account to make a booking.
-              </p>
-              <Button asChild>
-                <Link to="/admin">Back to dashboard</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </Layout>
-    );
-  }
+  if (user?.role === "ADMIN") return <AdminCannotBook />;
 
   return (
     <Layout>
@@ -597,7 +478,7 @@ const Book = () => {
                         <SelectContent>
                           {services.map((service) => (
                             <SelectItem key={service.id} value={service.id}>
-                              {service.name} - GHS {service.effective_price}
+                              {service.name} - {formatGHS(service.effective_price)}
                               {service.on_promo ? " (Promo)" : ""} ({service.duration})
                             </SelectItem>
                           ))}
@@ -725,10 +606,10 @@ const Book = () => {
                   <p className="text-sm text-muted-foreground">
                     Have a style in mind? Upload a photo of the look you want.
                   </p>
-                  {designPreview ? (
+                  {designImage.preview ? (
                     <div className="relative inline-block">
                       <img
-                        src={designPreview}
+                        src={designImage.preview}
                         alt="Design reference preview"
                         className="max-h-48 rounded-lg border border-border"
                       />
@@ -737,7 +618,8 @@ const Book = () => {
                         variant="destructive"
                         size="icon"
                         className="absolute -top-2 -right-2 h-7 w-7 rounded-full"
-                        onClick={clearDesignImage}
+                        aria-label="Remove design image"
+                        onClick={designImage.clear}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -745,7 +627,7 @@ const Book = () => {
                   ) : (
                     <div
                       className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => designImage.inputRef.current?.click()}
                     >
                       <div className="flex flex-col items-center text-muted-foreground">
                         <Upload className="h-8 w-8 mb-2" />
@@ -755,307 +637,60 @@ const Book = () => {
                     </div>
                   )}
                   <input
-                    ref={fileInputRef}
+                    ref={designImage.inputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    onChange={handleDesignImageChange}
+                    onChange={designImage.onChange}
                     className="hidden"
                   />
                 </div>
 
                 {/* Product add-ons */}
                 {shopEnabled && products.length > 0 && (
-                  <div className="space-y-2">
-                    <FormLabel className="flex items-center gap-2">
-                      <ShoppingBag className="h-4 w-4" />
-                      Add products (optional)
-                    </FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                      Grab products to go with your appointment — paid together
-                      and collected at the studio.
-                    </p>
-                    <div className="space-y-2">
-                      {products.map((p) => {
-                        const qty = addOns[p.id] ?? 0;
-                        return (
-                          <div
-                            key={p.id}
-                            className="flex items-center justify-between rounded-md border border-border p-3"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">
-                                {p.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                GHS {p.effective_price}
-                                {p.on_promo ? " (Promo)" : ""}
-                              </p>
-                            </div>
-                            {qty > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => setAddOnQty(p.id, qty - 1)}
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="w-6 text-center text-sm">
-                                  {qty}
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  disabled={p.track_stock && qty >= p.stock}
-                                  onClick={() => setAddOnQty(p.id, qty + 1)}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={!p.in_stock}
-                                onClick={() => setAddOnQty(p.id, 1)}
-                              >
-                                {p.in_stock ? "Add" : "Out of stock"}
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <AddOnPicker
+                    products={products}
+                    quantities={addOns}
+                    onChange={setAddOnQty}
+                  />
                 )}
 
                 {/* Loyalty points discount + order summary */}
                 {selectedService && (
-                  <div className="rounded-lg border border-border p-4 space-y-3 bg-secondary/40">
-                    {canUsePoints && (
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="font-medium text-foreground">
-                            Use my loyalty points
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            You have {availablePoints.toLocaleString()} points. Save{" "}
-                            <span className="font-medium text-foreground">
-                              GHS {discount}
-                            </span>{" "}
-                            ({pointsToUse.toLocaleString()} pts) on this booking —
-                            up to {loyaltyCap}% off.
-                          </p>
-                        </div>
-                        <Switch
-                          checked={applyPoints}
-                          onCheckedChange={setApplyPoints}
-                        />
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Service price</span>
-                      {onPromo && selectedService ? (
-                        <span className="flex items-baseline gap-2">
-                          <span className="text-muted-foreground line-through">
-                            GHS {selectedService.price}
-                          </span>
-                          <span className="text-foreground">
-                            GHS {servicePrice}
-                          </span>
-                          <span className="text-xs font-medium text-green-600">
-                            Promo
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-foreground">GHS {servicePrice}</span>
-                      )}
-                    </div>
-                    {effectiveApplyPoints && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Points discount
-                        </span>
-                        <span className="text-green-600">− GHS {discount}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between pt-2 border-t border-border">
-                      <span className="font-semibold text-foreground">
-                        {hasAddOns ? "Service" : "Amount due"}
-                      </span>
-                      <span
-                        className={
-                          hasAddOns
-                            ? "font-semibold text-foreground"
-                            : "text-xl font-bold text-primary"
-                        }
-                      >
-                        GHS {amountDue}
-                      </span>
-                    </div>
-
-                    {/* Product add-ons */}
-                    {hasAddOns && (
-                      <>
-                        {addOnItems.map((i) => (
-                          <div
-                            key={i.product.id}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span className="text-muted-foreground">
-                              {i.product.name}{" "}
-                              <span className="text-xs">x{i.qty}</span>
-                            </span>
-                            <span className="text-foreground">
-                              GHS{" "}
-                              {Math.round(
-                                i.product.effective_price * i.qty * 100,
-                              ) / 100}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between pt-2 border-t border-border">
-                          <span className="font-semibold text-foreground">
-                            Products
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            GHS {productSubtotal}
-                          </span>
-                        </div>
-                        <div className="space-y-1 pt-1">
-                          <FormLabel
-                            htmlFor="referral"
-                            className="text-xs text-muted-foreground"
-                          >
-                            Referral code (optional)
-                          </FormLabel>
-                          <Input
-                            id="referral"
-                            placeholder="Friend's code"
-                            value={referral}
-                            onChange={(e) => setReferral(e.target.value)}
-                          />
-                        </div>
-                        {!paymentEnabled && (
-                          <p className="text-xs text-muted-foreground">
-                            The service is settled at the studio; products are
-                            paid now.
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between pt-2 border-t border-border">
-                          <span className="font-semibold text-foreground">
-                            You'll pay now
-                          </span>
-                          <span className="text-xl font-bold text-primary">
-                            GHS {bookingPayNow}
-                          </span>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Payment method — only when the admin requires payment. */}
-                    {paymentEnabled && (
-                      <div className="pt-3 border-t border-border space-y-3">
-                        <p className="text-sm font-medium text-foreground">
-                          Pay to confirm your booking
-                        </p>
-                        <div className="grid gap-2">
-                          {paymentSettings?.allow_full && (
-                            <button
-                              type="button"
-                              onClick={() => setPaymentMethod("full")}
-                              className={cn(
-                                "flex items-center justify-between rounded-md border p-3 text-left transition-colors",
-                                paymentMethod === "full"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-primary/50",
-                              )}
-                            >
-                              <span className="text-sm font-medium text-foreground">
-                                Pay in full
-                              </span>
-                              <span className="text-sm font-semibold text-primary">
-                                GHS {amountDue}
-                              </span>
-                            </button>
-                          )}
-                          {paymentSettings?.allow_partial && (
-                            <button
-                              type="button"
-                              onClick={() => setPaymentMethod("partial")}
-                              className={cn(
-                                "flex items-center justify-between rounded-md border p-3 text-left transition-colors",
-                                paymentMethod === "partial"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-primary/50",
-                              )}
-                            >
-                              <span className="text-sm font-medium text-foreground">
-                                Pay {depositPercent}% deposit
-                                <span className="block text-xs text-muted-foreground">
-                                  GHS {balanceAfterDeposit} due at the studio
-                                </span>
-                              </span>
-                              <span className="text-sm font-semibold text-primary">
-                                GHS {depositAmount}
-                              </span>
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            You'll pay now
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            GHS {payNowAmount}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {!paymentEnabled && (
-                      <p className="text-xs text-muted-foreground">
-                        No payment needed to book — you'll settle at the studio.
-                      </p>
-                    )}
-                    {onPromo && (
-                      <p className="text-xs text-muted-foreground">
-                        This service is on promo — loyalty points can't be applied.
-                      </p>
-                    )}
-                    {!user && (
-                      <p className="text-xs text-muted-foreground">
-                        Log in to earn and redeem loyalty points on your bookings.
-                      </p>
-                    )}
-                  </div>
+                  <BookingSummary
+                    service={selectedService}
+                    pricing={pricing}
+                    signedIn={!!user}
+                    availablePoints={availablePoints}
+                    loyaltyCapPercent={loyaltyCap}
+                    applyPoints={applyPoints}
+                    onApplyPointsChange={setApplyPoints}
+                    addOnItems={addOnItems}
+                    productSubtotal={productSubtotal}
+                    referral={referral}
+                    onReferralChange={setReferral}
+                    paymentEnabled={paymentEnabled}
+                    paymentSettings={paymentSettings}
+                    paymentMethod={paymentMethod}
+                    onPaymentMethodChange={setPaymentMethod}
+                  />
                 )}
 
                 <Button
                   type="submit"
                   size="lg"
                   className="w-full"
-                  disabled={
-                    bookingMutation.isPending || servicesLoading || redirecting
-                  }
+                  disabled={bookingMutation.isPending || servicesLoading}
                 >
-                  {(bookingMutation.isPending || redirecting) && (
+                  {bookingMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {redirecting
-                    ? "Redirecting to payment…"
-                    : !user
-                      ? "Log in to book"
-                      : hasAddOns
-                        ? `Pay GHS ${bookingPayNow} & Book`
-                        : paymentEnabled
-                          ? `Pay GHS ${payNowAmount} & Book`
-                          : "Request Appointment"}
+                  {!user
+                    ? "Log in to book"
+                    : hasAddOns
+                      ? `Pay ${formatGHS(bookingPayNow)} & Book`
+                      : paymentEnabled
+                        ? `Pay ${formatGHS(payNowAmount)} & Book`
+                        : "Request Appointment"}
                 </Button>
               </form>
             </Form>

@@ -1,34 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
-import { format } from "date-fns";
-import {
-  Calendar,
-  Gift,
-  Star,
-  Share2,
-  Clock,
-  User,
-  ChevronRight,
-  LogOut,
-  Loader2,
-  CreditCard,
-  Receipt,
-  Download,
-  ShoppingBag,
-  Package,
-  CalendarClock,
-} from "lucide-react";
+import { Calendar, Gift, Share2, User, LogOut, Receipt, ShoppingBag, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layout } from "@/components/layout/Layout";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
-import { PaymentTarget } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
 import {
@@ -39,72 +19,18 @@ import {
   ordersApi,
   cartApi,
   commerceApi,
-  AppointmentDTO,
-  OrderDTO,
+  type AppointmentDTO,
+  type PaymentTarget,
 } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { useToast } from "@/hooks/use-toast";
-import {
-  downloadReceipt,
-  receiptFromAppointment,
-  downloadOrderReceipt,
-  downloadBookingDocument,
-} from "@/lib/receipt";
-
-const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  confirmed: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  pending_reschedule:
-    "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
-  completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-};
-
-// The raw enum reads badly to a customer ("pending_reschedule"), and this one
-// needs to say who they're waiting on.
-const statusLabels: Record<string, string> = {
-  pending: "pending",
-  confirmed: "confirmed",
-  pending_reschedule: "awaiting studio approval",
-  completed: "completed",
-  cancelled: "cancelled",
-};
-
-const orderStatusColors: Record<string, string> = {
-  pending_payment:
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  paid: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  fulfilled: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-};
-
-const orderStatusLabel: Record<string, string> = {
-  pending_payment: "Payment pending",
-  paid: "Paid",
-  fulfilled: "Fulfilled",
-  cancelled: "Cancelled",
-};
-
-// Small payment badge for an appointment's payment state.
-const PaymentBadge = ({ apt }: { apt: AppointmentDTO }) => {
-  const p = apt.payment;
-  if (!p || p.status === "pending") {
-    return <Badge variant="secondary">Payment pending</Badge>;
-  }
-  if (p.status === "paid") {
-    return (
-      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-        {p.type === "partial" ? `Deposit paid · GHS ${p.balance} due` : "Paid"}
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="destructive">
-      {p.status === "failed" ? "Payment failed" : "Refunded"}
-    </Badge>
-  );
-};
+import type { DocumentBrand } from "@/lib/receipt";
+import { splitByDay } from "./accountFormat";
+import { AppointmentsTab } from "./AppointmentsTab";
+import { OrdersTab } from "./OrdersTab";
+import { TransactionsTab } from "./TransactionsTab";
+import { RewardsTab } from "./RewardsTab";
 
 const Account = () => {
   const { user, signOut } = useAuth();
@@ -209,12 +135,14 @@ const Account = () => {
     enabled: !!user,
   });
 
-  const upcomingAppointments = appointments.filter(
-    (apt) => new Date(apt.appointment_date) >= new Date() && apt.status !== "cancelled"
-  );
-  const pastAppointments = appointments.filter(
-    (apt) => new Date(apt.appointment_date) < new Date() || apt.status === "cancelled"
-  );
+  const { upcoming: upcomingAppointments, past: pastAppointments } =
+    splitByDay(appointments);
+  // Studio branding for downloaded booking documents and receipts.
+  const documentBrand: DocumentBrand = {
+    name: studioName,
+    primaryColor: config?.branding.primaryColor,
+    accentColor: config?.branding.accentColor,
+  };
 
   // Booking transactions — any appointment that has a payment record, newest first.
   const transactions = appointments
@@ -230,9 +158,19 @@ const Account = () => {
     navigate("/");
   };
 
-  const copyReferralLink = () => {
-    if (referralCode) {
-      navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${referralCode.code}`);
+  const copyReferralLink = async () => {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/signup?ref=${referralCode.code}`,
+      );
+      toast({ title: "Referral link copied" });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Couldn't copy the link",
+        description: `Your code is ${referralCode.code}.`,
+      });
     }
   };
 
@@ -375,486 +313,52 @@ const Account = () => {
             </TabsList>
 
             <TabsContent value="appointments" className="space-y-6">
-              {/* Upcoming Appointments */}
-              <div>
-                <h2 className="text-xl font-semibold text-foreground mb-4">Upcoming Appointments</h2>
-                {appointmentsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2].map((i) => (
-                      <Skeleton key={i} className="h-24 w-full" />
-                    ))}
-                  </div>
-                ) : upcomingAppointments.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-8 text-center">
-                      <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground mb-4">No upcoming appointments</p>
-                      <Button asChild>
-                        <Link to="/book">Book Now</Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {upcomingAppointments.map((apt) => (
-                      <Card key={apt.id}>
-                        <CardContent className="py-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Calendar className="h-6 w-6 text-primary" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-foreground">
-                                  {(apt.services as any)?.name || "Service"}
-                                </h3>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <span>{format(new Date(apt.appointment_date), "MMM d, yyyy")}</span>
-                                  <span>•</span>
-                                  <span>{apt.appointment_time}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <Badge className={statusColors[apt.status]}>
-                                {statusLabels[apt.status] ?? apt.status}
-                              </Badge>
-                              <PaymentBadge apt={apt} />
-                              <Button size="sm" variant="outline" onClick={() => downloadBookingDocument(apt, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor })}>
-                                <Download className="h-4 w-4 mr-1" />
-                                Booking document
-                              </Button>
-                              {apt.status !== "cancelled" &&
-                                apt.status !== "completed" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setRescheduling(apt)}
-                                  >
-                                    <CalendarClock className="h-4 w-4 mr-1" />
-                                    {apt.status === "pending_reschedule"
-                                      ? "Change again"
-                                      : "Reschedule"}
-                                  </Button>
-                                )}
-                              {apt.payment &&
-                                apt.payment.status !== "paid" &&
-                                apt.status !== "cancelled" && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handlePay(apt)}
-                                    disabled={payingId === apt.id}
-                                  >
-                                    {payingId === apt.id ? (
-                                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                    ) : (
-                                      <CreditCard className="h-4 w-4 mr-1" />
-                                    )}
-                                    Pay now
-                                  </Button>
-                                )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-                {appointmentsQuery.hasNextPage && (
-                  <div className="mt-4 text-center">
-                    <Button variant="outline" onClick={() => appointmentsQuery.fetchNextPage()} disabled={appointmentsQuery.isFetchingNextPage}>
-                      {appointmentsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Load more appointments
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Past Appointments */}
-              {pastAppointments.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground mb-4">Past Appointments</h2>
-                  <div className="space-y-4">
-                    {pastAppointments.slice(0, 5).map((apt) => (
-                      <Card key={apt.id} className="opacity-75">
-                        <CardContent className="py-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                                <Clock className="h-6 w-6 text-muted-foreground" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-foreground">
-                                  {(apt.services as any)?.name || "Service"}
-                                </h3>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <span>{format(new Date(apt.appointment_date), "MMM d, yyyy")}</span>
-                                  <span>•</span>
-                                  <span>{apt.appointment_time}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge className={statusColors[apt.status]}>
-                                {apt.status}
-                              </Badge>
-                              <Button size="sm" variant="outline" onClick={() => downloadBookingDocument(apt, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor })}>
-                                <Download className="h-4 w-4 mr-1" />
-                                Document
-                              </Button>
-                              {features.reviews && apt.status === "completed" && (
-                                <Button variant="outline" size="sm" asChild>
-                                  <Link
-                                    to={`/review?appointment=${apt.id}${
-                                      apt.services?.id ? `&service=${apt.services.id}` : ""
-                                    }`}
-                                  >
-                                    <Star className="h-4 w-4 mr-1" />
-                                    Leave a review
-                                  </Link>
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <AppointmentsTab
+                upcoming={upcomingAppointments}
+                past={pastAppointments}
+                loading={appointmentsLoading}
+                pager={appointmentsQuery}
+                brand={documentBrand}
+                reviewsEnabled={features.reviews}
+                payingId={payingId}
+                onPay={handlePay}
+                onReschedule={setRescheduling}
+              />
             </TabsContent>
 
             {features.commerce && (
-            <TabsContent value="orders" className="space-y-6">
-              {/* Current cart */}
-              {cart && cart.items.length > 0 && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <ShoppingBag className="h-5 w-5 text-primary" />
-                      In your cart ({cart.count})
-                    </CardTitle>
-                    <Button size="sm" asChild>
-                      <Link to="/cart">Checkout</Link>
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {cart.items.map((it) => (
-                      <div
-                        key={it.product_id}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <span className="text-muted-foreground">
-                          {it.name} <span className="text-xs">x{it.quantity}</span>
-                        </span>
-                        <span className="text-foreground">GHS {it.line_total}</span>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between pt-2 border-t border-border font-semibold">
-                      <span>Subtotal</span>
-                      <span className="text-primary">GHS {cart.subtotal}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Order history */}
-              <div>
-                <h2 className="text-xl font-semibold text-foreground mb-4">
-                  My Orders
-                </h2>
-                {orders.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-8 text-center">
-                      <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground mb-4">
-                        You haven't placed any orders yet.
-                      </p>
-                      {shopEnabled && (
-                        <Button asChild>
-                          <Link to="/shop">Start shopping</Link>
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {orders.map((order: OrderDTO) => (
-                      <Card key={order.id}>
-                        <CardContent className="py-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold text-foreground">
-                                  {order.order_number}
-                                </p>
-                                <Badge className={orderStatusColors[order.status]}>
-                                  {orderStatusLabel[order.status]}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {order.items
-                                  .map((i) => `${i.name} x${i.quantity}`)
-                                  .join(", ")}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {format(new Date(order.created_at), "MMM d, yyyy")}{" "}
-                                ·{" "}
-                                {order.fulfillment === "delivery"
-                                  ? "Delivery"
-                                  : "Pickup"}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <span className="font-bold text-foreground">
-                                GHS {order.total}
-                              </span>
-                              {order.status === "pending_payment" ? (
-                                <Button size="sm" asChild>
-                                  <Link to="/cart">Pay</Link>
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => downloadOrderReceipt(order, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor })}
-                                >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  Receipt
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-                {ordersQuery.hasNextPage && (
-                  <div className="mt-4 text-center">
-                    <Button variant="outline" onClick={() => ordersQuery.fetchNextPage()} disabled={ordersQuery.isFetchingNextPage}>
-                      {ordersQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Load more orders
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+              <TabsContent value="orders" className="space-y-6">
+                <OrdersTab
+                  cart={cart}
+                  orders={orders}
+                  pager={ordersQuery}
+                  shopEnabled={shopEnabled}
+                  brand={documentBrand}
+                />
+              </TabsContent>
             )}
 
             <TabsContent value="transactions" className="space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold text-foreground mb-4">
-                  Booking Transactions
-                </h2>
-                {appointmentsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2].map((i) => (
-                      <Skeleton key={i} className="h-24 w-full" />
-                    ))}
-                  </div>
-                ) : transactions.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-8 text-center">
-                      <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground mb-4">
-                        No transactions yet. Payments you make when booking will
-                        appear here.
-                      </p>
-                      <Button asChild>
-                        <Link to="/book">Book Now</Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {transactions.map((apt) => {
-                      const p = apt.payment!;
-                      const isPaid = p.status === "paid";
-                      return (
-                        <Card key={apt.id}>
-                          <CardContent className="py-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                  <Receipt className="h-6 w-6 text-primary" />
-                                </div>
-                                <div className="min-w-0">
-                                  <h3 className="font-semibold text-foreground">
-                                    {apt.services?.name || "Service"}
-                                  </h3>
-                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
-                                    <span>
-                                      {format(
-                                        new Date(
-                                          p.paid_at || apt.created_at,
-                                        ),
-                                        "MMM d, yyyy",
-                                      )}
-                                    </span>
-                                    <span>•</span>
-                                    <span>
-                                      {p.type === "partial"
-                                        ? "Deposit"
-                                        : "Full payment"}
-                                    </span>
-                                  </div>
-                                  {p.reference && (
-                                    <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">
-                                      {p.reference}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between sm:justify-end gap-4">
-                                <div className="text-right">
-                                  <p className="font-bold text-foreground">
-                                    GHS {p.amount.toLocaleString()}
-                                  </p>
-                                  <PaymentBadge apt={apt} />
-                                </div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={!isPaid}
-                                  title={
-                                    isPaid
-                                      ? "Download receipt"
-                                      : "Receipt available after payment"
-                                  }
-                                  onClick={() => {
-                                    const data = receiptFromAppointment(apt);
-                                    if (data) downloadReceipt(data, { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor });
-                                  }}
-                                >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  Receipt
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-                {appointmentsQuery.hasNextPage && (
-                  <div className="mt-4 text-center">
-                    <Button variant="outline" onClick={() => appointmentsQuery.fetchNextPage()} disabled={appointmentsQuery.isFetchingNextPage}>
-                      {appointmentsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Load more transactions
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <TransactionsTab
+                transactions={transactions}
+                loading={appointmentsLoading}
+                pager={appointmentsQuery}
+                brand={documentBrand}
+              />
             </TabsContent>
 
             {(features.loyalty || features.referrals) && (
-            <TabsContent value="rewards" className="space-y-6">
-              {features.loyalty && (
-              <>
-              {/* Points Info */}
-              <Card className="bg-gradient-to-r from-primary/10 to-accent">
-                <CardContent className="py-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-1">Your Points Balance</h3>
-                      <div className="text-4xl font-bold text-primary">
-                        {loyaltyData?.points || 0} pts
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Earn 1 point per GHS 10 spent • use points for up to {loyaltyCap}% off any booking
-                      </p>
-                    </div>
-                    <Gift className="h-16 w-16 text-primary/20" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* How points work */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gift className="h-5 w-5 text-primary" />
-                    How your points work
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  <p>
-                    <span className="font-medium text-foreground">Earn</span> 1 point
-                    for every GHS 10 you spend, added when your appointment is
-                    completed.
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">Redeem</span> at
-                    checkout — when you book, flip on “Use my loyalty points” to take
-                    up to <span className="font-medium text-foreground">{loyaltyCap}% off</span>{" "}
-                    that service (10 points = GHS 1).
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">Refer</span> a friend
-                    and earn a 100-point bonus (GHS 10) once they complete their first
-                    visit.
-                  </p>
-                  <Button asChild className="mt-2">
-                    <Link to="/book">Book &amp; use points</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              </>
-              )}
-
-              {/* Referral Card */}
-              {features.referrals && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Share2 className="h-5 w-5 text-primary" />
-                    Refer a Friend
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Share your referral code and earn 100 bonus points (GHS 10 off) when your friend completes their first appointment!
-                  </p>
-                  <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-                    <span className="text-lg font-mono font-bold text-primary flex-1">
-                      {referralCode?.code || "Loading..."}
-                    </span>
-                    <Button onClick={copyReferralLink}>Copy Link</Button>
-                  </div>
-                </CardContent>
-              </Card>
-              )}
-
-              {/* Recent Transactions */}
-              {features.loyalty && loyaltyTransactions.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Points History</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {loyaltyTransactions.map((tx) => (
-                        <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                          <div>
-                            <p className="font-medium text-foreground">{tx.description}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(tx.created_at), "MMM d, yyyy")}
-                            </p>
-                          </div>
-                          <span className={`font-bold ${tx.points > 0 ? "text-green-600" : "text-red-600"}`}>
-                            {tx.points > 0 ? "+" : ""}{tx.points} pts
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
+              <TabsContent value="rewards" className="space-y-6">
+                <RewardsTab
+                  loyaltyEnabled={features.loyalty}
+                  referralsEnabled={features.referrals}
+                  loyaltyCapPercent={loyaltyCap}
+                  loyalty={loyaltyData}
+                  referralCode={referralCode}
+                  history={loyaltyTransactions}
+                  onCopyReferralLink={copyReferralLink}
+                />
+              </TabsContent>
             )}
           </Tabs>
 

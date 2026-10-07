@@ -9,40 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import {
-  featureRequestsApi,
-  FeatureRequestStatus,
-} from "@/lib/api";
+import { featureRequestsApi } from "@/lib/api";
+import { STATUS_META } from "@/lib/featureRequestFormat";
 import { useToast } from "@/hooks/use-toast";
-
-export const STATUS_META: Record<
-  FeatureRequestStatus,
-  { label: string; className: string }
-> = {
-  NEW: {
-    label: "New",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  },
-  PLANNED: {
-    label: "Planned",
-    className:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  },
-  IN_PROGRESS: {
-    label: "In progress",
-    className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-  },
-  DONE: {
-    label: "Done",
-    className:
-      "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  },
-  DECLINED: {
-    label: "Declined",
-    className: "bg-muted text-muted-foreground",
-  },
-};
 
 const AdminFeatureRequests = () => {
   const queryClient = useQueryClient();

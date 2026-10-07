@@ -4,7 +4,6 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  MessageCircle,
   Download,
   RefreshCw,
 } from "lucide-react";
@@ -39,8 +38,6 @@ export const PaymentResultScreen = ({
   errorMessage,
   onDownloadReceipt,
   receipts,
-  whatsappUrl,
-  whatsappLabel = "Send receipt on WhatsApp",
   onRetry,
   retryTo,
   retryLabel = "Try payment again",
@@ -55,8 +52,6 @@ export const PaymentResultScreen = ({
   // For charges that produce more than one receipt (e.g. a combined booking +
   // products payment). Takes precedence over onDownloadReceipt when set.
   receipts?: { label: string; onDownload: () => void }[];
-  whatsappUrl?: string | null;
-  whatsappLabel?: string;
   // In-place retry: re-charge the same transaction and reopen Paystack. When
   // set, it's the primary action on failure (takes precedence over retryTo).
   onRetry?: () => Promise<void> | void;
@@ -135,18 +130,6 @@ export const PaymentResultScreen = ({
                           Download receipt
                         </Button>
                       )}
-                  {whatsappUrl && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
-                    >
-                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        {whatsappLabel}
-                      </a>
-                    </Button>
-                  )}
                   <Button variant="outline" asChild>
                     <Link to={accountTo}>Go to my account</Link>
                   </Button>
