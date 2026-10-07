@@ -67,7 +67,7 @@ export const BillingMarquee = () => {
     : d !== null && d <= 0
       ? "Your plan ends today. Renew now to avoid interruption."
       : `Your plan ends in ${d} day${d === 1 ? "" : "s"}. Renew now to avoid interruption.`;
-  const item = `${message}  •  Tap to renew  •  `;
+  const item = `${message}\u00A0\u00A0•\u00A0\u00A0Tap to renew\u00A0\u00A0•\u00A0\u00A0`;
 
   return (
     <Link

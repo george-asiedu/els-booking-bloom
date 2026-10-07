@@ -355,7 +355,7 @@ const Index = () => {
                       loading="lazy"
                       className="w-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-foreground/0 opacity-0 transition-all duration-300 group-hover:bg-foreground/20 group-hover:opacity-100">
+                    <span className="absolute inset-0 flex items-center justify-center bg-foreground/0 opacity-0 transition-[background-color,opacity] duration-300 group-hover:bg-foreground/20 group-hover:opacity-100">
                       <span className="rounded-full bg-background/90 px-4 py-1.5 text-xs font-medium">
                         View
                       </span>
@@ -494,7 +494,7 @@ const Index = () => {
                 <Reveal key={product.id} delay={(i % 4) * 70}>
                   <Link
                     to={`/shop/${product.id}`}
-                    className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                    className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="aspect-square overflow-hidden bg-muted">
                       {product.image_url ? (

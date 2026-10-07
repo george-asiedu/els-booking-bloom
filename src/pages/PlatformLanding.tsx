@@ -335,7 +335,7 @@ const PlatformLanding = () => {
       {/* ---------------------------------------------------------------- Nav */}
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-50 transition-all duration-300",
+          "fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow,padding] duration-300",
           scrolled
             ? "border-b border-border bg-background/80 py-2 shadow-sm backdrop-blur-xl"
             : "border-b border-transparent bg-background/40 py-4 backdrop-blur-sm",
@@ -353,7 +353,7 @@ const PlatformLanding = () => {
                 className="group relative text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {l.label}
-                <span className="absolute -bottom-1 left-0 h-px w-0 bg-primary transition-all duration-300 group-hover:w-full" />
+                <span className="absolute -bottom-1 left-0 h-px w-0 bg-primary transition-[width] duration-300 group-hover:w-full" />
               </a>
             ))}
             <ThemeToggle />
@@ -512,7 +512,7 @@ const PlatformLanding = () => {
           {/* Asymmetric layout: a tall feature with a preview + a 2x2 grid */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Reveal className="lg:row-span-2">
-              <div className="group flex h-full flex-col justify-between rounded-3xl border border-border bg-gradient-to-b from-accent/40 to-card p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <div className="group flex h-full flex-col justify-between rounded-3xl border border-border bg-gradient-to-b from-accent/40 to-card p-7 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div>
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                     <Calendar className="h-6 w-6 text-primary" />
@@ -559,7 +559,7 @@ const PlatformLanding = () => {
               <Reveal
                 key={f.title}
                 delay={(i % 2) * 90}
-                className="group rounded-3xl border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
+                className="group rounded-3xl border border-border bg-card p-7 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
               >
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent transition-transform duration-300 group-hover:scale-110">
                   <f.icon className="h-6 w-6 text-primary" />
@@ -595,7 +595,7 @@ const PlatformLanding = () => {
                       onClick={() => setActiveStudio(i)}
                       onMouseEnter={() => setActiveStudio(i)}
                       className={cn(
-                        "flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-300",
+                        "flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-[background-color,border-color,box-shadow] duration-300",
                         activeStudio === i
                           ? "border-primary bg-card shadow-md"
                           : "border-border bg-card/50 hover:bg-card",
@@ -617,7 +617,7 @@ const PlatformLanding = () => {
                       </span>
                       <ArrowRight
                         className={cn(
-                          "ml-auto h-4 w-4 shrink-0 transition-all",
+                          "ml-auto h-4 w-4 shrink-0 transition-[opacity,color]",
                           activeStudio === i
                             ? "text-primary opacity-100"
                             : "opacity-0",
@@ -663,7 +663,7 @@ const PlatformLanding = () => {
                 <Reveal
                   key={step.n}
                   delay={i * 90}
-                  className="relative flex items-start gap-5 rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                  className="relative flex items-start gap-5 rounded-2xl border border-border bg-card p-5 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <span className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary font-serif text-lg font-bold text-primary-foreground shadow-lg shadow-primary/20">
                     {step.n}
@@ -1047,7 +1047,7 @@ const PlatformLanding = () => {
                 key={plan.id}
                 delay={i * 100}
                 className={cn(
-                  "relative rounded-3xl border bg-card p-8 transition-all duration-300 hover:-translate-y-1",
+                  "relative rounded-3xl border bg-card p-8 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1",
                   plan.featured
                     ? "border-primary shadow-lg ring-1 ring-primary/20"
                     : "border-border hover:shadow-lg",

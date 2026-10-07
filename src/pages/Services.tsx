@@ -127,7 +127,7 @@ const Services = () => {
                       <Reveal
                         key={s.id}
                         delay={i * 100}
-                        className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-br from-accent/40 to-card p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                        className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-br from-accent/40 to-card p-7 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:shadow-lg"
                       >
                         <div>
                           <h3 className="font-serif text-xl font-semibold">{s.name}</h3>

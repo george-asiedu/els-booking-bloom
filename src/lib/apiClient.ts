@@ -234,8 +234,8 @@ export async function apiRequest<T>(
   }
 
   if (!res.ok) {
-    // An expired/invalid token on an authenticated request: the refresh flow
-    // couldn't renew it, so clear the dead session and let the app redirect to
+    // An expired/invalid token on an authenticated request. There is no
+    // silent refresh, so clear the dead session and let the app redirect to
     // login. Guarded on `token` so failed logins (no token) don't trigger it.
     if (res.status === 401 && auth && token) {
       tokenStore.clear();

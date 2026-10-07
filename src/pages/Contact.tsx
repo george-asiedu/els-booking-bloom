@@ -127,7 +127,7 @@ const Contact = () => {
                       href={item.href}
                       target={item.href.startsWith("http") ? "_blank" : undefined}
                       rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                      className="group bg-card border border-border rounded-lg p-6 hover:shadow-md hover:border-primary/50 transition-all animate-fade-in"
+                      className="group bg-card border border-border rounded-lg p-6 hover:shadow-md hover:border-primary/50 transition-[box-shadow,border-color] animate-fade-in"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="flex items-start gap-4">

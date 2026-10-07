@@ -76,7 +76,7 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        "fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color,box-shadow] duration-300",
         transparent
           ? "border-b border-transparent bg-transparent"
           : "border-b border-border bg-background/80 shadow-sm backdrop-blur-md",
@@ -84,7 +84,7 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
     >
       <nav
         className={cn(
-          "container mx-auto px-4 transition-all duration-300",
+          "container mx-auto px-4 transition-[padding] duration-300",
           scrolled ? "py-2.5" : "py-4",
         )}
       >
