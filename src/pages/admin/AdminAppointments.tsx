@@ -15,7 +15,6 @@ import {
   Image as ImageIcon,
   Trash2,
   CalendarClock,
-  Undo2,
   Replace,
   MoreHorizontal,
 } from "lucide-react";
@@ -46,7 +45,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
-import { RefundDialog, type RefundTarget } from "@/components/admin/RefundDialog";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
 import { ChangeServiceDialog } from "@/components/admin/ChangeServiceDialog";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
@@ -149,7 +147,6 @@ const AdminAppointments = () => {
   );
   const [pendingReschedule, setPendingReschedule] =
     useState<AppointmentDTO | null>(null);
-  const [pendingRefund, setPendingRefund] = useState<RefundTarget | null>(null);
   const [changingService, setChangingService] =
     useState<AppointmentDTO | null>(null);
   const [aSearch, setASearch] = useState("");
@@ -375,11 +372,6 @@ const AdminAppointments = () => {
                   const messages = customerMessages(appointment, studioName);
                   const canChange =
                     appointment.status !== "cancelled" && appointment.status !== "completed";
-                  const canRefund = Boolean(
-                    appointment.payment?.id &&
-                      (appointment.payment.status === "paid" ||
-                        appointment.payment.status === "partially_refunded"),
-                  );
                   return (
                     <TableRow key={appointment.id} onOpen={() => setDetails(appointment)}>
                       <TableCell>
@@ -540,7 +532,7 @@ const AdminAppointments = () => {
                                   </a>
                                 </DropdownMenuItem>
                               ))}
-                              {messages.length > 0 && (canChange || canRefund) && (
+                              {messages.length > 0 && canChange && (
                                 <DropdownMenuSeparator />
                               )}
                               {canChange && (
@@ -555,23 +547,7 @@ const AdminAppointments = () => {
                                     </DropdownMenuItem>
                                   </>
                                 )}
-                              {canRefund && (
-                                  <DropdownMenuItem
-                                    onSelect={() =>
-                                      setPendingRefund({
-                                        kind: "payment",
-                                        id: appointment.payment!.id!,
-                                        paid: appointment.payment!.amount,
-                                        alreadyRefunded: appointment.payment!.refunded_amount ?? 0,
-                                        label: `${appointment.full_name} — ${appointment.services?.name ?? "booking"}`,
-                                      })
-                                    }
-                                  >
-                                    <Undo2 className="mr-2 h-4 w-4" />
-                                    Refund
-                                  </DropdownMenuItem>
-                                )}
-                              {(messages.length > 0 || canChange || canRefund) && (
+                              {(messages.length > 0 || canChange) && (
                                 <DropdownMenuSeparator />
                               )}
                               <DropdownMenuItem
@@ -609,11 +585,6 @@ const AdminAppointments = () => {
       <ChangeServiceDialog
         appointment={changingService}
         onOpenChange={(o) => !o && setChangingService(null)}
-      />
-      <RefundDialog
-        target={pendingRefund}
-        onOpenChange={(o) => !o && setPendingRefund(null)}
-        invalidateKeys={["admin-appointments", "admin-ledger"]}
       />
 
       <AlertDialog

@@ -144,10 +144,10 @@ export const ChangeServiceDialog = ({
               </dl>
               <p className="mt-2 text-xs text-muted-foreground">
                 {netPaid > chosen.price
-                  ? `${formatGHS(netPaid - chosen.price)} will be refunded to the customer.`
+                  ? `The customer has paid ${formatGHS(netPaid - chosen.price)} more than this costs. Refunds aren't available in the app, so settle the difference with them directly.`
                   : netPaid < chosen.price
                     ? `${formatGHS(chosen.price - netPaid)} will be left to pay.`
-                    : "Nothing further to pay or refund."}
+                    : "Nothing further to pay."}
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
                 The appointment keeps its time. If the new service runs longer

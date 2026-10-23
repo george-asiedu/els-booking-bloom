@@ -2,7 +2,7 @@ import { useState } from "react";
 import { OrderDetails } from "@/components/admin/RowDetails";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Package, Loader2, Truck, Store, Undo2 } from "lucide-react";
+import { Package, Loader2, Truck, Store } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ordersApi, OrderDTO, OrderStatus } from "@/lib/api";
-import { RefundDialog, type RefundTarget } from "@/components/admin/RefundDialog";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
@@ -46,7 +45,6 @@ const AdminOrders = () => {
   // The row whose details drawer is open.
   const [details, setDetails] = useState<OrderDTO | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [pendingRefund, setPendingRefund] = useState<RefundTarget | null>(null);
   const [oSearch, setOSearch] = useState("");
   const [oFulfil, setOFulfil] = useState("all");
   const [oFrom, setOFrom] = useState("");
@@ -294,26 +292,6 @@ const AdminOrders = () => {
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
-                        {order.status === "paid" ||
-                        order.status === "fulfilled" ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 w-40"
-                            onClick={() =>
-                              setPendingRefund({
-                                kind: "order",
-                                id: order.id,
-                                paid: order.total,
-                                alreadyRefunded: order.refunded_amount ?? 0,
-                                label: `Order ${order.order_number}`,
-                              })
-                            }
-                          >
-                            <Undo2 className="mr-1 h-4 w-4" />
-                            Refund
-                          </Button>
-                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -331,12 +309,6 @@ const AdminOrders = () => {
           </div>
         )}
       </div>
-
-      <RefundDialog
-        target={pendingRefund}
-        onOpenChange={(o) => !o && setPendingRefund(null)}
-        invalidateKeys={["admin-orders", "admin-ledger"]}
-      />
 
       <OrderDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
