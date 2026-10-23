@@ -1,19 +1,19 @@
 import { cn } from "@/lib/utils";
+import { PLATFORM } from "@/config/platform";
 
 /**
  * Zuri brand marks, from the logo files in /public.
- * - Default: the mark (/zuri-mark.png, cut from the logo) with the name set
- *   beside it, for headers where the stacked logo would be too small to read.
+ * - Default: the mark (/zuri-mark.png, cut from the logo) with the platform
+ *   name ("Zuri Studios") beside it, for headers where the stacked logo would
+ *   be too small to read.
  * - `stacked`: the full logo as designed (/zuri-lockup.png), for footers and
  *   other places with room for it.
  */
 export const BrandLogo = ({
-  full = false,
   stacked = false,
   className,
   iconClassName,
 }: {
-  full?: boolean;
   stacked?: boolean;
   className?: string;
   iconClassName?: string;
@@ -36,8 +36,7 @@ export const BrandLogo = ({
         height={24}
       />
       <span className="font-serif text-xl font-semibold tracking-tight text-foreground">
-        Zuri
-        {full && <span className="font-normal text-muted-foreground"> Studios</span>}
+        {PLATFORM.name}
       </span>
     </span>
   );

@@ -23,7 +23,7 @@ export const LegalPage = ({
     <header className="border-b border-border">
       <div className="container mx-auto flex items-center justify-between px-4 py-4">
         <Link to="/" className="flex items-center gap-2">
-          <BrandLogo full />
+          <BrandLogo />
         </Link>
         <Link to="/" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Home

@@ -229,7 +229,7 @@ const Onboarding = () => {
       <header className="border-b border-border bg-background">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <BrandLogo full />
+            <BrandLogo />
           </Link>
           <Link to="/admin/login" className="text-sm text-muted-foreground hover:text-foreground">
             Studio login
