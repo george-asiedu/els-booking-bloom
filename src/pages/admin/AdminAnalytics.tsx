@@ -269,7 +269,7 @@ const AdminAnalytics = () => {
                 </DialogContent>
               </Dialog>
 
-              <Link to="/admin" className="block">
+              <Link to="/admin/appointments" className="block">
                 <Card className="h-full cursor-pointer transition-colors hover:border-primary/50">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Bookings</CardTitle>

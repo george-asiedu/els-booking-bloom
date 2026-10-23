@@ -20,7 +20,10 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 340 20% 15%;
 
-    --primary: 340 45% 55%;
+    /* Zuri cranberry pink (#C23B65) for buttons and links: 5.1:1 with white
+       text, 4.9:1 on the page. The logo's own
+       pink (#FF3175, --rose) is for things without text. */
+    --primary: 341 53% 50%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 340 20% 95%;
@@ -29,18 +32,18 @@ All colors MUST be HSL.
     --muted: 340 15% 93%;
     --muted-foreground: 340 10% 45%;
 
-    --accent: 340 35% 90%;
-    --accent-foreground: 340 45% 35%;
+    --accent: 340 100% 94%;
+    --accent-foreground: 340 85% 38%;
 
     --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 340 20% 88%;
     --input: 340 20% 88%;
-    --ring: 340 45% 55%;
+    --ring: 340 100% 60%;
 
-    --rose: 340 45% 55%;
-    --rose-light: 340 45% 95%;
+    --rose: 340 100% 60%;
+    --rose-light: 340 100% 96%;
     --gold: 38 70% 50%;
 
     /* Toast type accents (left border + icon tint). Backgrounds stay on the
@@ -117,7 +120,7 @@ All colors MUST be HSL.
     --popover: 340 20% 12%;
     --popover-foreground: 340 10% 95%;
 
-    --primary: 340 50% 60%;
+    --primary: 340 100% 62%;
     --primary-foreground: 340 20% 8%;
 
     --secondary: 340 15% 18%;
@@ -127,16 +130,16 @@ All colors MUST be HSL.
     --muted-foreground: 340 10% 60%;
 
     --accent: 340 25% 22%;
-    --accent-foreground: 340 50% 70%;
+    --accent-foreground: 340 100% 76%;
 
     --destructive: 0 55% 45%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 340 15% 20%;
     --input: 340 15% 22%;
-    --ring: 340 50% 60%;
+    --ring: 340 100% 62%;
 
-    --rose: 340 50% 60%;
+    --rose: 340 100% 62%;
     --rose-light: 340 30% 20%;
     --gold: 38 60% 55%;
     /* Slightly brighter accents for dark surfaces. */

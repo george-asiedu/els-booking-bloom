@@ -6,6 +6,14 @@
 
 import { ApiError } from "./apiClient";
 import {
+  directoryQuery,
+  toDirectoryPage,
+  type DirectoryPage,
+  type DirectoryQuery,
+  type DirectoryUserDetail,
+  type RawDirectoryPage,
+} from "./api/users";
+import {
   ledgerQuery,
   type LedgerFilters,
   type LedgerEntryDTO,
@@ -136,7 +144,13 @@ export interface StudioSummary {
   ownerEmail: string | null;
   userCount: number;
   appointmentCount: number;
+  // What customers paid this studio, after refunds: all time and this month.
   revenue: number;
+  revenueThisMonth: number;
+  // What this studio has paid the platform (setup fee, renewals, commission).
+  paidToPlatform: number;
+  billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  platformFeePercent: number;
   settings: StudioFeatureSettings | null;
   createdAt: string;
 }
@@ -148,6 +162,33 @@ export interface PlatformAnalytics {
   trialStudios: number;
   totalUsers: number;
   totalRevenue: number;
+  studios: {
+    total: number;
+    active: number;
+    suspended: number;
+    trial: number;
+    subscription: number;
+    revenueShare: number;
+    newThisMonth: number;
+  };
+  users: { customers: number; studioAdmins: number; newThisMonth: number };
+  // Money customers paid studios (after refunds).
+  customerPayments: {
+    allTime: number;
+    thisMonth: number;
+    lastMonth: number;
+    bookingsAllTime: number;
+    ordersAllTime: number;
+  };
+  // Money studios paid the platform.
+  platformEarnings: {
+    allTime: number;
+    thisMonth: number;
+    lastMonth: number;
+    setupFeesAllTime: number;
+    renewalsAllTime: number;
+    commissionsAllTime: number;
+  };
 }
 
 export interface PlatformBillingConfig {
@@ -204,6 +245,52 @@ export interface StudioDetail {
     serviceCount: number;
     orderCount: number;
   };
+  billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  billing: StudioBillingSummary;
+}
+
+export type EarningPurpose = "SETUP_FEE" | "ACTIVATION_FEE" | "RENEWAL" | "PLAN_CHANGE" | "COMMISSION";
+
+/** One payment the platform earned (or, for commission, an estimate). */
+export interface EarningEntry {
+  id: string;
+  date: string;
+  studio: { id: string; name: string; slug: string } | null;
+  purpose: EarningPurpose;
+  description: string;
+  amount: number;
+  reference: string | null;
+  plan: "STANDARD" | "PREMIUM" | null;
+  cadence: "MONTHLY" | "YEARLY" | null;
+  estimated: boolean;
+  detail: { coverageMonths?: number | null; month?: string; customerPayments?: number; ratePercent?: number };
+}
+
+export interface EarningsPage {
+  items: EarningEntry[];
+  summary: {
+    total: number;
+    byPurpose: Partial<Record<EarningPurpose, number>>;
+    byStudio: { studio: EarningEntry["studio"]; amount: number; payments: number }[];
+  };
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface StudioBillingSummary {
+  mode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  plan: "STANDARD" | "PREMIUM";
+  cadence: "MONTHLY" | "YEARLY";
+  status: "active" | "lapsed" | "revenue_share";
+  commissionPercent: number | null;
+  currentPeriodEnd: string | null;
+  currentPeriodStart: string | null;
+  daysLeft: number | null;
+  signup: { reference: string; amount: number; coverageMonths: number | null; date: string } | null;
+  lastPayment: EarningEntry | null;
+  totalPaid: number;
+  payments: EarningEntry[];
 }
 
 export interface ProvisionStudioInput {
@@ -373,6 +460,46 @@ export const platformApi = {
 
   async listStudios(): Promise<StudioSummary[]> {
     return platformRequest<StudioSummary[]>("/studios");
+  },
+
+  // ---- Users (every studio) ----
+  async listUsers(q: DirectoryQuery): Promise<DirectoryPage> {
+    return toDirectoryPage(await platformRequest<RawDirectoryPage>(`/users?${directoryQuery(q)}`));
+  },
+  async getUser(id: string): Promise<DirectoryUserDetail> {
+    return (await platformRequest<{ data: DirectoryUserDetail }>(`/users/${id}`)).data;
+  },
+  async updateUser(
+    id: string,
+    input: { fullName?: string | null; phone?: string | null; location?: string | null; email?: string },
+  ): Promise<DirectoryUserDetail> {
+    return (await platformRequest<{ data: DirectoryUserDetail }>(`/users/${id}`, { method: "PATCH", body: input })).data;
+  },
+  async deleteUser(id: string): Promise<void> {
+    await platformRequest(`/users/${id}`, { method: "DELETE" });
+  },
+
+  async listEarnings(q: {
+    studioId?: string;
+    purpose?: EarningPurpose | "";
+    from?: string;
+    to?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<EarningsPage> {
+    const p = new URLSearchParams();
+    if (q.studioId) p.set("studioId", q.studioId);
+    if (q.purpose) p.set("purpose", q.purpose);
+    if (q.from) p.set("from", q.from);
+    if (q.to) p.set("to", q.to);
+    p.set("page", String(q.page ?? 1));
+    p.set("pageSize", String(q.pageSize ?? 20));
+    const res = await platformRequest<{
+      data: EarningEntry[];
+      summary: EarningsPage["summary"];
+      pagination: { page: number; pageSize: number; total: number };
+    }>(`/earnings?${p.toString()}`);
+    return { items: res.data, summary: res.summary, ...res.pagination };
   },
 
   async getAnalytics(): Promise<PlatformAnalytics> {

@@ -1,4 +1,5 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery } from "@tanstack/react-query";
 import PaystackPop from "@paystack/inline-js";
 import { paymentsApi } from "@/lib/api";
@@ -19,6 +20,7 @@ const PaymentCallback = () => {
   const { name: studioName, config } = useStudio();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const processing = useProcessing();
 
   const { data: receipt, isLoading, isError, error } = useQuery({
     queryKey: ["verify-payment", reference],
@@ -61,10 +63,12 @@ const PaymentCallback = () => {
   const retryPayment = async () => {
     if (!appointmentId) return;
     try {
+      processing.show(PROCESSING.preparing);
       const init = await paymentsApi.initialize(
         appointmentId,
         receipt?.type === "partial" ? "PARTIAL" : "FULL",
       );
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(init.access_code, {
         onSuccess: () => {
@@ -78,6 +82,7 @@ const PaymentCallback = () => {
           toast({ variant: "destructive", title: "Payment failed", description: e?.message }),
       });
     } catch (err) {
+      processing.hide();
       toast({
         variant: "destructive",
         title: "Couldn't reopen payment",

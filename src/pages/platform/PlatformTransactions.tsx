@@ -22,7 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { platformApi } from "@/lib/platformApi";
-import type { LedgerEntryType, LedgerStatus } from "@/lib/api";
+import type { LedgerEntryDTO, LedgerEntryType, LedgerStatus } from "@/lib/api";
+import { LedgerEntryDetails } from "@/components/admin/RowDetails";
 import {
   StatusBadge,
   AmountCell,
@@ -39,6 +40,7 @@ import { DateRangeField } from "@/components/admin/DateRangeFilter";
 const PAGE_SIZE = 50;
 
 const PlatformTransactions = () => {
+  const [details, setDetails] = useState<LedgerEntryDTO | null>(null);
   const [params, setParams] = useSearchParams();
   // The studio filter lives in the URL so a link from a studio's detail page
   // lands here already scoped, and the view is shareable.
@@ -232,7 +234,7 @@ const PlatformTransactions = () => {
                     </TableRow>
                   ) : (
                     entries.map((e) => (
-                      <TableRow key={e.id}>
+                      <TableRow key={e.id} onOpen={() => setDetails(e)}>
                         <TableCell className="whitespace-nowrap text-sm">
                           {entryDate(e.occurredAt)}
                         </TableCell>
@@ -296,6 +298,7 @@ const PlatformTransactions = () => {
           for when it last ran.
         </p>
       </div>
+      <LedgerEntryDetails item={details} onClose={() => setDetails(null)} />
     </PlatformLayout>
   );
 };

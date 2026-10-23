@@ -3,9 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/zuri-icon.png" />
-    <link rel="apple-touch-icon" href="/zuri-icon.png" />
-    <title>Zuri Studios — Beauty businesses, booked.</title>
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" href="/zuri-mark-square.png" sizes="512x512" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Zuri Studios — Where beauty meets artistry.</title>
     <meta
       name="description"
       content="Zuri Studios is the all-in-one platform for beauty businesses to take online bookings, sell products, accept Mobile Money & card payments, and run loyalty — each on their own branded site."
@@ -20,7 +21,10 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Zuri Studios" />
     <meta property="og:url" content="https://zuristudios.com/" />
-    <meta property="og:image" content="https://zuristudios.com/og-image.jpg" />
+    <meta property="og:image" content="https://zuristudios.com/zuri-og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Zuri Studios logo" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Zuri Studios — Beauty businesses, booked." />
@@ -28,7 +32,19 @@
       name="twitter:description"
       content="The all-in-one platform for beauty businesses to take bookings, sell products, accept payments and run loyalty — each on their own branded site."
     />
-    <meta name="twitter:image" content="https://zuristudios.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://zuristudios.com/zuri-og.jpg" />
+    <meta name="twitter:image:alt" content="The Zuri Studios logo" />
+    <!-- Lets search engines show the Zuri logo beside results. A data block,
+         not a script, so the CSP doesn't block it. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Zuri Studios",
+        "url": "https://zuristudios.com/",
+        "logo": "https://zuristudios.com/zuri-logo.png"
+      }
+    </script>
     <!-- Loading screen. Plain HTML/CSS so it paints before any JavaScript has
          downloaded; src/lib/splash.ts fades it out once the page is ready. -->
     <style>
@@ -36,7 +52,7 @@
         --splash-bg: hsl(20 33% 98%);
         --splash-fg: hsl(340 20% 15%);
         --splash-muted: hsl(340 10% 45% / 0.25);
-        --splash-accent: hsl(340 45% 55%);
+        --splash-accent: hsl(340 100% 60%);
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -53,7 +69,7 @@
         --splash-bg: hsl(340 20% 8%);
         --splash-fg: hsl(340 10% 95%);
         --splash-muted: hsl(340 10% 95% / 0.15);
-        --splash-accent: hsl(340 50% 60%);
+        --splash-accent: hsl(340 100% 62%);
       }
       #splash.splash-hide {
         opacity: 0;

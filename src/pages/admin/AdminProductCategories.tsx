@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { CategoryDetails } from "@/components/admin/RowDetails";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePagedList } from "@/hooks/usePagedList";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Loader2, Trash2, Tag, Check, X, Pencil } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -29,6 +32,8 @@ import { productCategoriesApi, CategoryDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminProductCategories = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<CategoryDTO | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newName, setNewName] = useState("");
@@ -40,6 +45,7 @@ const AdminProductCategories = () => {
     queryKey: ["admin-product-categories"],
     queryFn: () => productCategoriesApi.listAll(),
   });
+  const paged = usePagedList(categories);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-product-categories"] });
@@ -157,8 +163,8 @@ const AdminProductCategories = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categories.map((c) => (
-                  <TableRow key={c.id}>
+                {paged.rows.map((c) => (
+                  <TableRow key={c.id} onOpen={() => setDetails(c)}>
                     <TableCell>
                       {editingId === c.id ? (
                         <div className="flex items-center gap-2">
@@ -229,6 +235,13 @@ const AdminProductCategories = () => {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              page={paged.page}
+              pageSize={paged.pageSize}
+              total={paged.total}
+              onPageChange={paged.setPage}
+              noun="categories"
+            />
           </Card>
         )}
       </div>
@@ -258,6 +271,7 @@ const AdminProductCategories = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <CategoryDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

@@ -210,3 +210,26 @@ export interface StudioPayoutDTO {
   providers: { name: string; code: string }[];
   banks: { name: string; code: string }[];
 }
+
+// ---- Admin: the studio's money (what customers paid, what Paystack paid out) ----
+
+export interface StudioMoneyDTO {
+  received: { thisMonth: number; lastMonthSoFar: number; allTime: number; refunded: number };
+  payoutAccount: { type: string | null; provider: string | null; name: string | null; number: string | null } | null;
+  payouts: {
+    paidOut: number;
+    onTheWay: number;
+    last: { amount: number; date: string | null } | null;
+    next: { amount: number; date: string | null } | null;
+    recent: { id: number; amount: number; fees: number; status: string; date: string | null }[];
+  } | null;
+  payoutsError: string | null;
+  commissionPercent: number | null;
+}
+
+export const studioMoneyApi = {
+  async get(): Promise<StudioMoneyDTO> {
+    const res = await apiRequest<Envelope<StudioMoneyDTO>>("/studio/money", { auth: true });
+    return res.data;
+  },
+};

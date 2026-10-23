@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -29,6 +30,7 @@ const GHS = formatGHS;
 const Cart = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const processing = useProcessing();
   const queryClient = useQueryClient();
 
   const [fulfillment, setFulfillment] = useState<"PICKUP" | "DELIVERY">("PICKUP");
@@ -89,12 +91,14 @@ const Cart = () => {
     }
     try {
       setRedirecting(true);
+      processing.show(PROCESSING.preparing);
       const result = await ordersApi.checkout({
         fulfillment,
         deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
         deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
       });
       setRedirecting(false);
+      processing.hide();
       setPaymentTarget({
         reference: result.reference,
         amount: result.total,
@@ -106,6 +110,7 @@ const Cart = () => {
       setPaymentOpen(true);
     } catch (error) {
       setRedirecting(false);
+      processing.hide();
       onError(error);
     }
   };

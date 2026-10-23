@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { ProcessingProvider } from "@/components/ProcessingOverlay";
 import { AuthProvider } from "@/hooks/useAuth";
 import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
@@ -42,6 +43,7 @@ const Account = lazy(() => import("./pages/account/Account"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
 const AdminGallery = lazy(() => import("./pages/admin/AdminGallery"));
 const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
@@ -78,8 +80,12 @@ const PlatformTransactions = lazy(
 );
 const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
 const PlatformJobs = lazy(() => import("./pages/platform/PlatformJobs"));
+const PlatformUsers = lazy(() => import("./pages/platform/PlatformUsers"));
+const PlatformEarnings = lazy(() => import("./pages/platform/PlatformEarnings"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
+const StudioLogin = lazy(() => import("./pages/StudioLogin"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
@@ -166,6 +172,7 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
    <StudioProvider>
+    <ProcessingProvider>
     <AuthProvider>
       <ThemeProvider>
         <TooltipProvider>
@@ -240,8 +247,11 @@ const App = () => (
               
               {/* Admin Routes — one guard + persistent sidebar for all */}
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/studio-login" element={<StudioLogin />} />
               <Route path="/admin" element={<AdminOutlet />}>
-                <Route index element={<AdminAppointments />} />
+                <Route index element={<AdminDashboard />} />
+                <Route path="appointments" element={<AdminAppointments />} />
+                <Route path="users" element={<AdminCustomers />} />
                 <Route path="services" element={<AdminServices />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="gallery" element={<AdminGallery />} />
@@ -280,6 +290,8 @@ const App = () => (
                   <Route index element={<PlatformDashboard />} />
                   <Route path="studios/new" element={<PlatformStudioNew />} />
                   <Route path="studios/:id" element={<PlatformStudioDetail />} />
+                  <Route path="users" element={<PlatformUsers />} />
+                  <Route path="earnings" element={<PlatformEarnings />} />
                   <Route path="requests" element={<PlatformRequests />} />
                 <Route path="reviews" element={<PlatformReviews />} />
                 <Route path="transactions" element={<PlatformTransactions />} />
@@ -299,6 +311,7 @@ const App = () => (
         </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
+    </ProcessingProvider>
    </StudioProvider>
   </QueryClientProvider>
 );

@@ -1,4 +1,13 @@
 import { useEffect, useState } from "react";
+import { format, parseISO } from "date-fns";
+import { DetailsSheet } from "@/components/ui/details-sheet";
+import { EarningDetails, PurposeBadge } from "@/components/platform/EarningDetails";
+import { StudioBillingCard as BillingCard } from "@/components/platform/StudioBillingCard";
+import { UserDirectory, type DirectorySource } from "@/components/users/UserDirectory";
+import type { EarningEntry } from "@/lib/platformApi";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePagedList } from "@/hooks/usePagedList";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -74,6 +83,15 @@ const Stat = ({ label, value }: { label: string; value: number }) => (
   </div>
 );
 
+// The super admin can edit and delete members from a studio's page too.
+const memberSource: DirectorySource = {
+  key: "platform-users",
+  list: (q) => platformApi.listUsers(q),
+  detail: (id) => platformApi.getUser(id),
+  update: (id, input) => platformApi.updateUser(id, input),
+  remove: (id) => platformApi.deleteUser(id),
+};
+
 const PlatformStudioDetail = () => {
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -99,6 +117,10 @@ const PlatformStudioDetail = () => {
       }),
     enabled: Boolean(id),
   });
+  const pagedPayments = usePagedList(payments, 15);
+  const [openEvent, setOpenEvent] = useState<(typeof payments)[number] | null>(null);
+  const [openEarning, setOpenEarning] = useState<EarningEntry | null>(null);
+  const pagedEarnings = usePagedList(studio?.billing?.payments ?? [], 10);
 
   // Local editable fields, seeded from the loaded studio.
   const [name, setName] = useState("");
@@ -321,6 +343,8 @@ const PlatformStudioDetail = () => {
         <Stat label="Orders" value={studio.counts.orderCount} />
       </div>
 
+      <BillingCard billing={studio.billing} onOpenPayment={setOpenEarning} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
@@ -482,6 +506,72 @@ const PlatformStudioDetail = () => {
         </Card>
       </div>
 
+      {/* What this studio has paid the platform */}
+      <Card className="mt-6 overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-base">Payments to you</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Setup fee, renewals, plan changes and commission from this studio · total{" "}
+            <span className="font-medium text-foreground">{formatGHS(studio.billing.totalPaid)}</span>
+          </p>
+        </CardHeader>
+        {studio.billing.payments.length === 0 ? (
+          <CardContent>
+            <p className="py-4 text-center text-sm text-muted-foreground">No payments from this studio yet.</p>
+          </CardContent>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>What for</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagedEarnings.rows.map((e) => (
+                  <TableRow key={e.id} onOpen={() => setOpenEarning(e)}>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {e.purpose === "COMMISSION" ? e.detail.month : format(parseISO(e.date), "d MMM yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <PurposeBadge purpose={e.purpose} />
+                    </TableCell>
+                    <TableCell className="max-w-[360px] truncate text-muted-foreground">{e.description}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {formatGHS(e.amount)}
+                      {e.estimated && <span className="ml-1 text-xs font-normal text-muted-foreground">est.</span>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <TablePagination
+              page={pagedEarnings.page}
+              pageSize={pagedEarnings.pageSize}
+              total={pagedEarnings.total}
+              onPageChange={pagedEarnings.setPage}
+              noun="payments"
+            />
+          </>
+        )}
+      </Card>
+
+      {/* Members */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Members</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            This studio's admins and customers. Open someone to see, edit or delete their account.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <UserDirectory source={memberSource} studioId={studio.id} showStudio={false} noun="members" />
+        </CardContent>
+      </Card>
+
       {/* Payment transactions audit log (per studio) */}
       <Card className="mt-6">
         <CardHeader>
@@ -500,53 +590,60 @@ const PlatformStudioDetail = () => {
               No payment transactions recorded yet.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">When</th>
-                    <th className="py-2 pr-3 font-medium">Event</th>
-                    <th className="py-2 pr-3 font-medium">Amount</th>
-                    <th className="py-2 pr-3 font-medium">Channel</th>
-                    <th className="py-2 pr-3 font-medium">Customer</th>
-                    <th className="py-2 pr-3 font-medium">Reference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((p) => {
+            <div className="overflow-hidden rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>When</TableHead>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Channel</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Reference</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedPayments.rows.map((p) => {
                     const m = (p.metadata ?? {}) as Record<string, unknown>;
                     const amount = m.amount as number | undefined;
                     const failed = p.action.endsWith(".failed");
                     return (
-                      <tr key={p.id} className="border-b last:border-0 align-top">
-                        <td className="py-2 pr-3 whitespace-nowrap text-muted-foreground">
-                          {new Date(p.createdAt).toLocaleString()}
-                        </td>
-                        <td className="py-2 pr-3">
+                      <TableRow key={p.id} onOpen={() => setOpenEvent(p)}>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {format(parseISO(p.createdAt), "d MMM yyyy, h:mm a")}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={failed ? "destructive" : "secondary"}>
                             {paymentEventLabel(p.action)}
                           </Badge>
-                        </td>
-                        <td className="py-2 pr-3 whitespace-nowrap font-medium">
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap font-medium">
                           {typeof amount === "number" ? formatGHS(amount) : "—"}
-                        </td>
-                        <td className="py-2 pr-3 whitespace-nowrap">
-                          {(m.channel as string) ?? "—"}
-                        </td>
-                        <td className="py-2 pr-3">
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {m.channel === "mobile_money" ? "Mobile Money" : m.channel === "card" ? "Card" : ((m.channel as string) ?? "—")}
+                        </TableCell>
+                        <TableCell>
                           {(m.customerName as string) ||
                             (m.customerEmail as string) ||
                             (m.ownerEmail as string) ||
                             "—"}
-                        </td>
-                        <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
                           {(m.reference as string) ?? "—"}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
+              <TablePagination
+                page={pagedPayments.page}
+                pageSize={pagedPayments.pageSize}
+                total={pagedPayments.total}
+                onPageChange={pagedPayments.setPage}
+                noun="transactions"
+              />
             </div>
           )}
         </CardContent>
@@ -597,6 +694,34 @@ const PlatformStudioDetail = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <EarningDetails entry={openEarning} onClose={() => setOpenEarning(null)} />
+      <DetailsSheet
+        open={Boolean(openEvent)}
+        onClose={() => setOpenEvent(null)}
+        title={openEvent ? paymentEventLabel(openEvent.action) : ""}
+        subtitle={openEvent ? new Date(openEvent.createdAt).toLocaleString() : undefined}
+        sections={
+          openEvent
+            ? [
+                {
+                  items: Object.entries((openEvent.metadata ?? {}) as Record<string, unknown>)
+                    .filter(([, v]) => v !== null && v !== undefined && typeof v !== "object")
+                    .map(([k, v]) => ({
+                      label: k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()),
+                      value: k.toLowerCase().includes("amount") && typeof v === "number" ? formatGHS(v) : String(v),
+                      mono: /reference|id$/i.test(k),
+                    })),
+                },
+                {
+                  items: [
+                    { label: "Event", value: openEvent.action, mono: true },
+                    { label: "By", value: openEvent.actorEmail },
+                  ],
+                },
+              ]
+            : []
+        }
+      />
     </PlatformLayout>
   );
 };

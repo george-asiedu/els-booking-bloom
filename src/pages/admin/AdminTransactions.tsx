@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { RefundDetails } from "@/components/admin/RowDetails";
+import type { RefundDTO } from "@/lib/api";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Loader2, Receipt, ExternalLink } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -57,6 +59,7 @@ const AdminTransactions = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [openRefund, setOpenRefund] = useState<RefundDTO | null>(null);
 
   // "all" is the UI's idle value; the API expects the parameter to be absent.
   const filters = {
@@ -236,7 +239,7 @@ const AdminTransactions = () => {
                     </TableRow>
                   ) : (
                     entries.map((e) => (
-                      <TableRow key={e.id}>
+                      <TableRow key={e.id} onOpen={() => setOpenId(e.id)}>
                         <TableCell className="whitespace-nowrap text-sm">
                           {entryDate(e.occurredAt)}
                         </TableCell>
@@ -304,7 +307,7 @@ const AdminTransactions = () => {
                   </TableHeader>
                   <TableBody>
                     {refundsQuery.data!.map((r) => (
-                      <TableRow key={r.id}>
+                      <TableRow key={r.id} onOpen={() => setOpenRefund(r)}>
                         <TableCell className="whitespace-nowrap text-sm">
                           {entryDate(r.processedAt ?? r.createdAt)}
                         </TableCell>
@@ -453,7 +456,7 @@ const AdminTransactions = () => {
 
               {detailQuery.data.entry.appointmentId ? (
                 <a
-                  href="/admin"
+                  href="/admin/appointments"
                   className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                 >
                   View bookings <ExternalLink className="h-3 w-3" aria-hidden />
@@ -474,6 +477,7 @@ const AdminTransactions = () => {
           )}
         </DialogContent>
       </Dialog>
+      <RefundDetails item={openRefund} onClose={() => setOpenRefund(null)} />
     </AdminLayout>
   );
 };

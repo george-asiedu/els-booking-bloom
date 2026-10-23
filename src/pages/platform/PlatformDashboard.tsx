@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePagedList } from "@/hooks/usePagedList";
+import { cn } from "@/lib/utils";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -40,28 +43,77 @@ const StatusBadge = ({ status }: { status: StudioStatus }) => (
   <Badge variant={statusVariant[status]}>{status.toLowerCase()}</Badge>
 );
 
+/** "+12% vs last month" (or a plain note when last month was zero). */
+const VsLastMonth = ({ now, before }: { now: number; before: number }) => {
+  if (before === 0) {
+    return <span>{now === 0 ? "Nothing yet this month or last" : "Nothing last month"}</span>;
+  }
+  const pct = Math.round(((now - before) / before) * 100);
+  return (
+    <span>
+      <span className={pct >= 0 ? "font-medium text-emerald-700 dark:text-emerald-400" : "font-medium text-rose-700 dark:text-rose-400"}>
+        {pct >= 0 ? "+" : ""}
+        {pct}%
+      </span>{" "}
+      vs {formatGHS(before)} last month
+    </span>
+  );
+};
+
+/**
+ * One headline figure: what it is, the number, its comparison, and the
+ * breakdown behind it, so nothing on the card needs guessing.
+ */
 const Stat = ({
-  label,
+  title,
+  hint,
   value,
-  sub,
+  period,
+  compare,
+  breakdown,
+  to,
 }: {
-  label: string;
+  title: string;
+  hint: string;
   value: string;
-  sub?: string;
-}) => (
-  <Card>
-    <CardContent className="py-4">
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-xs text-muted-foreground">
-        {label}
-        {sub ? ` · ${sub}` : ""}
-      </div>
-    </CardContent>
-  </Card>
-);
+  period?: string;
+  compare?: React.ReactNode;
+  breakdown: { label: string; value: string }[];
+  to?: string;
+}) => {
+  const body = (
+    <Card className={cn("h-full", to && "transition-colors hover:border-primary/40")}>
+      <CardContent className="flex h-full flex-col gap-1 p-5">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">
+          {value}
+          {period && <span className="ml-1.5 text-sm font-normal text-muted-foreground">{period}</span>}
+        </p>
+        {compare && <p className="text-xs text-muted-foreground">{compare}</p>}
+        <dl className="mt-auto space-y-1 border-t pt-3 text-xs">
+          {breakdown.map((b) => (
+            <div key={b.label} className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">{b.label}</dt>
+              <dd className="font-medium tabular-nums">{b.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </CardContent>
+    </Card>
+  );
+  return to ? (
+    <Link to={to} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
+};
 
 const PlatformDashboard = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -79,6 +131,7 @@ const PlatformDashboard = () => {
   const studios = allStudios?.filter(
     (s) => filter === "ALL" || s.status === filter,
   );
+  const paged = usePagedList(studios ?? [], 15);
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: StudioStatus }) =>
@@ -120,7 +173,9 @@ const PlatformDashboard = () => {
         <div>
           <h1 className="font-serif text-2xl font-semibold">Studios</h1>
           <p className="text-sm text-muted-foreground">
-            {studios ? `${studios.length} studio(s) on your platform` : " "}
+            {allStudios
+              ? `${allStudios.length} ${allStudios.length === 1 ? "studio" : "studios"} on your platform`
+              : " "}
           </p>
         </div>
         <Button asChild>
@@ -131,20 +186,59 @@ const PlatformDashboard = () => {
         </Button>
       </div>
 
-      {/* Platform analytics */}
+      {/* Platform figures. Two kinds of money, kept apart and labelled:
+          what studios paid the platform, and what customers paid studios. */}
       {analytics && (
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Total revenue" value={formatGHS(analytics.totalRevenue)} />
-          <Stat label="Total users" value={analytics.totalUsers.toLocaleString()} />
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Stat
-            label="Active studios"
-            value={`${analytics.activeStudios}`}
-            sub={`of ${analytics.totalStudios}`}
+            title="Your earnings"
+            hint="What studios have paid Zuri Studios"
+            value={formatGHS(analytics.platformEarnings.thisMonth)}
+            period="this month"
+            compare={<VsLastMonth now={analytics.platformEarnings.thisMonth} before={analytics.platformEarnings.lastMonth} />}
+            breakdown={[
+              { label: "All time", value: formatGHS(analytics.platformEarnings.allTime) },
+              { label: "Setup fees", value: formatGHS(analytics.platformEarnings.setupFeesAllTime) },
+              { label: "Renewals and plan changes", value: formatGHS(analytics.platformEarnings.renewalsAllTime) },
+              { label: "Commission (estimated)", value: formatGHS(analytics.platformEarnings.commissionsAllTime) },
+            ]}
+            to="/platform/earnings"
           />
           <Stat
-            label="Suspended"
-            value={`${analytics.suspendedStudios}`}
-            sub={analytics.trialStudios ? `${analytics.trialStudios} trial` : undefined}
+            title="Customer payments"
+            hint="What customers paid studios, after refunds"
+            value={formatGHS(analytics.customerPayments.thisMonth)}
+            period="this month"
+            compare={<VsLastMonth now={analytics.customerPayments.thisMonth} before={analytics.customerPayments.lastMonth} />}
+            breakdown={[
+              { label: "All time", value: formatGHS(analytics.customerPayments.allTime) },
+              { label: "Bookings", value: formatGHS(analytics.customerPayments.bookingsAllTime) },
+              { label: "Shop orders", value: formatGHS(analytics.customerPayments.ordersAllTime) },
+            ]}
+            to="/platform/transactions"
+          />
+          <Stat
+            title="Studios"
+            hint="Businesses on the platform"
+            value={String(analytics.studios.total)}
+            compare={`${analytics.studios.newThisMonth} new this month`}
+            breakdown={[
+              { label: "Active", value: String(analytics.studios.active) },
+              { label: "Suspended", value: String(analytics.studios.suspended) },
+              { label: "On a subscription", value: String(analytics.studios.subscription) },
+              { label: "Pay as you earn", value: String(analytics.studios.revenueShare) },
+            ]}
+          />
+          <Stat
+            title="Users"
+            hint="Studio customers and admins (not you)"
+            value={String(analytics.users.customers + analytics.users.studioAdmins)}
+            compare={`${analytics.users.newThisMonth} joined this month`}
+            breakdown={[
+              { label: "Customers", value: String(analytics.users.customers) },
+              { label: "Studio admins", value: String(analytics.users.studioAdmins) },
+            ]}
+            to="/platform/users"
           />
         </div>
       )}
@@ -195,20 +289,21 @@ const PlatformDashboard = () => {
                   <TableHead>Studio</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Plan</TableHead>
-                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead className="text-right">Customer payments</TableHead>
+                  <TableHead className="text-right">Paid to you</TableHead>
                   <TableHead className="text-right">Members</TableHead>
                   <TableHead className="text-right">Bookings</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {studios?.map((s) => {
+                {paged.rows.map((s) => {
                   const busy =
                     busyId === s.id ||
                     (statusMutation.isPending &&
                       statusMutation.variables?.id === s.id);
                   return (
-                    <TableRow key={s.id}>
+                    <TableRow key={s.id} onOpen={() => navigate(`/platform/studios/${s.id}`)}>
                       <TableCell>
                         <Link
                           to={`/platform/studios/${s.id}`}
@@ -227,10 +322,21 @@ const PlatformDashboard = () => {
                         <Badge variant={s.plan === "PREMIUM" ? "default" : "secondary"}>
                           {s.plan === "PREMIUM" ? "Premium" : "Standard"}
                         </Badge>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {s.billingMode === "REVENUE_SHARE"
+                            ? `Pay as you earn · ${s.platformFeePercent}%`
+                            : s.billingCadence === "YEARLY"
+                              ? "Yearly"
+                              : "Monthly"}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right text-sm">
-                        {formatGHS(s.revenue)}
+                      <TableCell className="text-right">
+                        <div className="tabular-nums">{formatGHS(s.revenue)}</div>
+                        <div className="text-xs text-muted-foreground tabular-nums">
+                          {formatGHS(s.revenueThisMonth)} this month
+                        </div>
                       </TableCell>
+                      <TableCell className="text-right tabular-nums">{formatGHS(s.paidToPlatform)}</TableCell>
                       <TableCell className="text-right">{s.userCount}</TableCell>
                       <TableCell className="text-right">
                         {s.appointmentCount}
@@ -301,6 +407,13 @@ const PlatformDashboard = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            page={paged.page}
+            pageSize={paged.pageSize}
+            total={paged.total}
+            onPageChange={paged.setPage}
+            noun="studios"
+          />
         </Card>
       )}
     </PlatformLayout>

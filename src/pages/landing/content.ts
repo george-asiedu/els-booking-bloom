@@ -14,7 +14,7 @@ export interface DemoStudio {
   key: string;
   name: string;
   slug: string;
-  accent: string; // raw HSL channels, e.g. "340 45% 55%"
+  accent: string; // raw HSL channels, e.g. "341 53% 50%"
   tags: string[];
   featured: { name: string; price: number; duration: string };
   gallery: string[];
@@ -25,7 +25,7 @@ export const STUDIOS: DemoStudio[] = [
     key: "els",
     name: "El's Beauty Studio",
     slug: "elsbeautystudio",
-    accent: "340 45% 55%",
+    accent: "341 53% 50%",
     tags: ["Nails", "Lashes", "Braids", "Facials"],
     featured: { name: "Gel Extensions", price: 180, duration: "60 min" },
     gallery: [nails1, lashes1, nails2],

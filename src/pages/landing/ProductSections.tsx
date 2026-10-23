@@ -254,7 +254,7 @@ export const LoyaltyReviewsSection = () => {
             <div className="rounded-xl border border-border bg-card p-7 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 font-serif text-lg font-semibold">
-                  <Gift className="h-5 w-5 text-primary" /> Zuri Rewards
+                  <Gift className="h-5 w-5 text-primary" /> Zuri Studios Rewards
                 </span>
                 <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   Gold

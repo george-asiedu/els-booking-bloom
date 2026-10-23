@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -262,7 +263,14 @@ const Book = () => {
   });
   const { effectiveApplyPoints, payNowAmount, bookingPayNow } = pricing;
 
+  const processing = useProcessing();
   const bookingMutation = useMutation({
+    // Saving the booking and setting up its payment: cover the screen so the
+    // customer doesn't tap twice or leave mid-way.
+    onMutate: () => {
+      if (hasAddOns || paymentEnabled) processing.show(PROCESSING.booking);
+    },
+    onSettled: () => processing.hide(),
     mutationFn: (data: BookingFormValues) =>
       appointmentsApi.create({
         full_name: data.fullName,

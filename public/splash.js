@@ -14,14 +14,25 @@
   var splash = document.getElementById("splash");
   var mark = document.getElementById("splash-mark");
   var nameEl = document.getElementById("splash-name");
+  // The platform's own pages (console, landing, signup, studio sign-in,
+  // legal) are always Zuri's, even when a studio was last opened on this
+  // address (locally, or after "Enter dashboard" from the console).
+  var platformPage = /^\/(platform|welcome|onboarding|studio-login|privacy|terms)(\/|$)/.test(
+    location.pathname,
+  );
   var studio = null;
-  try {
-    studio = JSON.parse(localStorage.getItem("zuri_splash:" + location.host) || "null");
-  } catch (e) {}
+  if (!platformPage) {
+    try {
+      studio = JSON.parse(localStorage.getItem("zuri_splash:" + location.host) || "null");
+    } catch (e) {}
+  }
 
   var labels = location.hostname.split(".");
   var looksLikePlatform =
-    location.hostname === "localhost" || labels.length <= 2 || labels[0] === "www";
+    platformPage ||
+    location.hostname === "localhost" ||
+    labels.length <= 2 ||
+    labels[0] === "www";
 
   if (studio && studio.name) {
     nameEl.textContent = studio.name;
@@ -32,13 +43,12 @@
       img.src = studio.logoUrl;
       img.alt = "";
       mark.appendChild(img);
-    } else {
-      mark.textContent = studio.name.trim().charAt(0).toUpperCase();
     }
+    // No logo: show just the name, never a made-up mark.
   } else if (looksLikePlatform) {
     mark.className += " splash-plain";
     var zuri = document.createElement("img");
-    zuri.src = "/zuri-icon.png";
+    zuri.src = "/zuri-mark.png";
     zuri.alt = "";
     mark.appendChild(zuri);
     nameEl.textContent = "Zuri Studios";

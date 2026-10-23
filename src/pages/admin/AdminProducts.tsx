@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ProductDetails } from "@/components/admin/RowDetails";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, ShoppingBag, ImageOff } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -79,6 +80,8 @@ const emptyForm: ProductFormData = {
 };
 
 const AdminProducts = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<ProductDTO | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ProductDTO | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -317,7 +320,7 @@ const AdminProducts = () => {
                   </TableRow>
                 )}
                 {filtered.map((p) => (
-                  <TableRow key={p.id}>
+                  <TableRow key={p.id} onOpen={() => setDetails(p)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded bg-secondary overflow-hidden flex items-center justify-center shrink-0">
@@ -564,6 +567,7 @@ const AdminProducts = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ProductDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

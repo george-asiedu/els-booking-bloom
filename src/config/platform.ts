@@ -25,7 +25,7 @@ export const SITE_DEFAULTS = {
 export const PLATFORM = {
   ...SITE_DEFAULTS,
   description:
-    "Zuri gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
+    "Zuri Studios gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
   // Platform root domain (studios live at <slug>.<rootDomain> in production).
   // Normalised to a bare host: strips any scheme, path, port and stray dots so a
   // misconfigured value (e.g. an API URL) can't produce a broken storefront URL.

@@ -27,6 +27,7 @@ export * from "./auth";
 export * from "./studio";
 export * from "./platformReviews";
 export * from "./billing";
+export * from "./users";
 export * from "./promo";
 export * from "./featureRequests";
 export * from "./services";
