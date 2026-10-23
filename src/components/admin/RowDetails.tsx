@@ -19,7 +19,9 @@ import { formatGHS } from "@/lib/currency";
 const when = (iso: string | null | undefined, withTime = true) =>
   iso ? format(parseISO(iso), withTime ? "d MMM yyyy, h:mm a" : "d MMM yyyy") : null;
 const yesNo = (v: boolean) => (v ? "Yes" : "No");
-const words = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+// "PARTIALLY_REFUNDED" / "pending_reschedule" → "Partially Refunded".
+const words = (s: string) =>
+  s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 const channel = (c: string | null | undefined) =>
   c ? (c === "mobile_money" ? "Mobile Money" : c === "card" ? "Card" : words(c)) : null;
 

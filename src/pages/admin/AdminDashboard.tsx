@@ -29,6 +29,7 @@ import {
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
+import { YourMoneyCard } from "@/components/admin/YourMoneyCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +43,7 @@ import {
   productsApi,
   reviewsApi,
   transactionsApi,
+  studioMoneyApi,
   type AppointmentDTO,
 } from "@/lib/api";
 
@@ -160,14 +162,11 @@ const AdminDashboard = () => {
     queryKey: ["admin-analytics-appointments"],
     queryFn: () => appointmentsApi.listAllForAnalytics(),
   });
-  const moneyNow = useQuery({
-    queryKey: ["dashboard-money", "month", format(monthStart, "yyyy-MM")],
-    queryFn: () => transactionsApi.summary({ from: monthStart.toISOString(), to: now.toISOString() }),
-  });
-  const moneyBefore = useQuery({
-    queryKey: ["dashboard-money", "prev", format(now, "yyyy-MM-dd")],
-    queryFn: () =>
-      transactionsApi.summary({ from: prevStart.toISOString(), to: endOfDay(prevEnd).toISOString() }),
+  // Same query (and cache) as the Your money card, so the two always agree.
+  const money = useQuery({
+    queryKey: ["studio-money"],
+    queryFn: () => studioMoneyApi.get(),
+    staleTime: 60_000,
   });
   const recentPayments = useQuery({
     queryKey: ["dashboard-recent-payments"],
@@ -310,11 +309,11 @@ const AdminDashboard = () => {
               </Stat>
               <Stat
                 label="Money received this month"
-                value={moneyNow.data ? formatGHS(moneyNow.data.net) : "—"}
+                value={money.data ? formatGHS(money.data.received.thisMonth) : "—"}
                 to="/admin/transactions"
               >
-                {moneyNow.data && moneyBefore.data ? (
-                  <Change now={moneyNow.data.net} before={moneyBefore.data.net} money />
+                {money.data ? (
+                  <Change now={money.data.received.thisMonth} before={money.data.received.lastMonthSoFar} money />
                 ) : (
                   <p className="text-xs text-muted-foreground">Payments in, minus refunds</p>
                 )}
@@ -340,6 +339,66 @@ const AdminDashboard = () => {
                 </p>
               </Stat>
             </div>
+
+            {/* Money first: where it stands, then the latest payments. */}
+            <YourMoneyCard />
+
+            {/* Recent payments */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-base">Recent payments</CardTitle>
+                <Link
+                  to="/admin/transactions"
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  All transactions <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {recentPayments.isLoading ? (
+                  <Loader2 className="mx-auto my-6 h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (recentPayments.data?.entries.length ?? 0) === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Payments from bookings and orders will show here.
+                  </p>
+                ) : (
+                  <ul className="divide-y">
+                    {recentPayments.data!.entries.map((e) => {
+                      const out = e.direction === "DEBIT" || e.type === "REFUND";
+                      const ok = e.status === "SUCCESS";
+                      return (
+                        <li key={e.id} className="flex items-center gap-4 py-2.5">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">
+                              {e.customerName || e.description}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {e.customerName ? `${e.description} · ` : ""}
+                              {formatDistanceToNowStrict(parseISO(e.occurredAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                          {!ok && (
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {e.status === "PENDING" ? "Pending" : "Didn't go through"}
+                            </span>
+                          )}
+                          <span
+                            className={cn(
+                              "shrink-0 text-sm font-medium tabular-nums",
+                              !ok && "text-muted-foreground line-through",
+                              ok && !out && "text-emerald-700 dark:text-emerald-400",
+                            )}
+                          >
+                            {out ? "−" : "+"}
+                            {formatGHS(e.amount)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
 
             <div className="grid gap-6 lg:grid-cols-3">
               {/* Coming up */}
@@ -481,62 +540,6 @@ const AdminDashboard = () => {
 
             <DashboardCharts appointments={appointments} />
 
-            {/* Recent payments */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">Recent payments</CardTitle>
-                <Link
-                  to="/admin/transactions"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  All transactions <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                </Link>
-              </CardHeader>
-              <CardContent>
-                {recentPayments.isLoading ? (
-                  <Loader2 className="mx-auto my-6 h-5 w-5 animate-spin text-muted-foreground" />
-                ) : (recentPayments.data?.entries.length ?? 0) === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    Payments from bookings and orders will show here.
-                  </p>
-                ) : (
-                  <ul className="divide-y">
-                    {recentPayments.data!.entries.map((e) => {
-                      const out = e.direction === "DEBIT" || e.type === "REFUND";
-                      const ok = e.status === "SUCCESS";
-                      return (
-                        <li key={e.id} className="flex items-center gap-4 py-2.5">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">
-                              {e.customerName || e.description}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {e.customerName ? `${e.description} · ` : ""}
-                              {formatDistanceToNowStrict(parseISO(e.occurredAt), { addSuffix: true })}
-                            </p>
-                          </div>
-                          {!ok && (
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              {e.status === "PENDING" ? "Pending" : "Didn't go through"}
-                            </span>
-                          )}
-                          <span
-                            className={cn(
-                              "shrink-0 text-sm font-medium tabular-nums",
-                              !ok && "text-muted-foreground line-through",
-                              ok && !out && "text-emerald-700 dark:text-emerald-400",
-                            )}
-                          >
-                            {out ? "−" : "+"}
-                            {formatGHS(e.amount)}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
           </>
         )}
       </div>

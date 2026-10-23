@@ -610,7 +610,7 @@ const PlatformStudioDetail = () => {
                     return (
                       <TableRow key={p.id} onOpen={() => setOpenEvent(p)}>
                         <TableCell className="whitespace-nowrap text-muted-foreground">
-                          {new Date(p.createdAt).toLocaleString()}
+                          {format(parseISO(p.createdAt), "d MMM yyyy, h:mm a")}
                         </TableCell>
                         <TableCell>
                           <Badge variant={failed ? "destructive" : "secondary"}>
@@ -621,7 +621,7 @@ const PlatformStudioDetail = () => {
                           {typeof amount === "number" ? formatGHS(amount) : "—"}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {(m.channel as string) ?? "—"}
+                          {m.channel === "mobile_money" ? "Mobile Money" : m.channel === "card" ? "Card" : ((m.channel as string) ?? "—")}
                         </TableCell>
                         <TableCell>
                           {(m.customerName as string) ||
