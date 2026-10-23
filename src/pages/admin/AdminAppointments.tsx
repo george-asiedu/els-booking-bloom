@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppointmentDetails } from "@/components/admin/RowDetails";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -136,6 +137,8 @@ const statusConfig = {
 };
 
 const AdminAppointments = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<AppointmentDTO | null>(null);
   // The dashboard links here with ?status=pending etc.
   const [searchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<string>(
@@ -378,7 +381,7 @@ const AdminAppointments = () => {
                         appointment.payment.status === "partially_refunded"),
                   );
                   return (
-                    <TableRow key={appointment.id}>
+                    <TableRow key={appointment.id} onOpen={() => setDetails(appointment)}>
                       <TableCell>
                         <div>
                           <p className="font-medium">{appointment.full_name}</p>
@@ -651,6 +654,7 @@ const AdminAppointments = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AppointmentDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

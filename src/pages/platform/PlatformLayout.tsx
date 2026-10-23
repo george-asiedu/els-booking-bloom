@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Users, LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard, Activity, Receipt, Timer, Settings } from "lucide-react";
+import { Users, Wallet, LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard, Activity, Receipt, Timer, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
@@ -8,6 +8,7 @@ import { usePlatformAuth } from "@/hooks/usePlatformAuth";
 const navItems = [
   { name: "Studios", path: "/platform", icon: Building2 },
   { name: "Users", path: "/platform/users", icon: Users },
+  { name: "Earnings", path: "/platform/earnings", icon: Wallet },
   { name: "Requests", path: "/platform/requests", icon: Lightbulb },
   { name: "Testimonials", path: "/platform/reviews", icon: Quote },
   { name: "Transactions", path: "/platform/transactions", icon: Receipt },
@@ -53,7 +54,8 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
             </Button>
           </div>
         </div>
-        <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 pb-2">
+        {/* One line; scrolls sideways when the window is too narrow. */}
+        <nav aria-label="Console" className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]">
           {navItems.map((item) => {
             const active =
               item.path === "/platform"
@@ -64,7 +66,7 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   active
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -75,7 +77,7 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
               </Link>
             );
           })}
-        </div>
+        </nav>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
     </div>

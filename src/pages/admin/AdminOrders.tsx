@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { OrderDetails } from "@/components/admin/RowDetails";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Package, Loader2, Truck, Store, Undo2 } from "lucide-react";
@@ -42,6 +43,8 @@ const statusLabel: Record<string, string> = {
 };
 
 const AdminOrders = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<OrderDTO | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [pendingRefund, setPendingRefund] = useState<RefundTarget | null>(null);
   const [oSearch, setOSearch] = useState("");
@@ -195,7 +198,7 @@ const AdminOrders = () => {
               </TableHeader>
               <TableBody>
                 {filtered?.map((order: OrderDTO) => (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.id} onOpen={() => setDetails(order)}>
                     <TableCell>
                       <p className="font-medium">{order.order_number}</p>
                       <p className="text-xs text-muted-foreground">
@@ -335,6 +338,7 @@ const AdminOrders = () => {
         invalidateKeys={["admin-orders", "admin-ledger"]}
       />
 
+      <OrderDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

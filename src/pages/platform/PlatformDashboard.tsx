@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePagedList } from "@/hooks/usePagedList";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -113,6 +113,7 @@ const Stat = ({
 
 const PlatformDashboard = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -201,7 +202,7 @@ const PlatformDashboard = () => {
               { label: "Renewals and plan changes", value: formatGHS(analytics.platformEarnings.renewalsAllTime) },
               { label: "Commission (estimated)", value: formatGHS(analytics.platformEarnings.commissionsAllTime) },
             ]}
-            to="/platform/billing"
+            to="/platform/earnings"
           />
           <Stat
             title="Customer payments"
@@ -302,7 +303,7 @@ const PlatformDashboard = () => {
                     (statusMutation.isPending &&
                       statusMutation.variables?.id === s.id);
                   return (
-                    <TableRow key={s.id}>
+                    <TableRow key={s.id} onOpen={() => navigate(`/platform/studios/${s.id}`)}>
                       <TableCell>
                         <Link
                           to={`/platform/studios/${s.id}`}

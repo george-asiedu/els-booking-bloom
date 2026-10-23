@@ -9,18 +9,18 @@ const source: DirectorySource = {
   detail: (id) => studioUsersApi.detail(id),
 };
 
-/** The studio's customers (and admins), with their bookings and spend. */
+/** Everyone with an account at the studio: customers and admins. */
 const AdminCustomers = () => (
   <AdminLayout>
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Customers</h1>
+        <h1 className="text-2xl font-bold text-foreground">Users</h1>
         <p className="text-muted-foreground">
-          Everyone with an account at your studio. Open someone to see their bookings, orders
-          and loyalty points.
+          Your customers and the admins who run your studio. Open someone to see their
+          bookings, orders and loyalty points.
         </p>
       </div>
-      <UserDirectory source={source} showStudio={false} noun="customers" />
+      <UserDirectory source={source} showStudio={false} noun="users" />
     </div>
   </AdminLayout>
 );

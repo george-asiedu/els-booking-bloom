@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ServiceDetails } from "@/components/admin/RowDetails";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Scissors } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -69,6 +70,8 @@ const emptyFormData: ServiceFormData = {
 };
 
 const AdminServices = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<ServiceDTO | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -274,7 +277,7 @@ const AdminServices = () => {
               </TableHeader>
               <TableBody>
                 {services?.map((service) => (
-                  <TableRow key={service.id}>
+                  <TableRow key={service.id} onOpen={() => setDetails(service)}>
                     <TableCell>
                       <div>
                         <p className="font-medium">{service.name}</p>
@@ -528,6 +531,7 @@ const AdminServices = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ServiceDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

@@ -48,7 +48,7 @@ const navItems = [
   { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { name: "Setup", path: "/admin/onboarding", icon: Rocket },
   { name: "Appointments", path: "/admin/appointments", icon: Calendar },
-  { name: "Customers", path: "/admin/customers", icon: Users },
+  { name: "Users", path: "/admin/users", icon: Users },
   { name: "Services", path: "/admin/services", icon: Scissors },
   { name: "Categories", path: "/admin/categories", icon: Tag },
   { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },

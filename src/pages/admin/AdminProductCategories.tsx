@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CategoryDetails } from "@/components/admin/RowDetails";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePagedList } from "@/hooks/usePagedList";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +32,8 @@ import { productCategoriesApi, CategoryDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminProductCategories = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<CategoryDTO | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newName, setNewName] = useState("");
@@ -161,7 +164,7 @@ const AdminProductCategories = () => {
               </TableHeader>
               <TableBody>
                 {paged.rows.map((c) => (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} onOpen={() => setDetails(c)}>
                     <TableCell>
                       {editingId === c.id ? (
                         <div className="flex items-center gap-2">
@@ -268,6 +271,7 @@ const AdminProductCategories = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <CategoryDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

@@ -245,6 +245,52 @@ export interface StudioDetail {
     serviceCount: number;
     orderCount: number;
   };
+  billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  billing: StudioBillingSummary;
+}
+
+export type EarningPurpose = "SETUP_FEE" | "ACTIVATION_FEE" | "RENEWAL" | "PLAN_CHANGE" | "COMMISSION";
+
+/** One payment the platform earned (or, for commission, an estimate). */
+export interface EarningEntry {
+  id: string;
+  date: string;
+  studio: { id: string; name: string; slug: string } | null;
+  purpose: EarningPurpose;
+  description: string;
+  amount: number;
+  reference: string | null;
+  plan: "STANDARD" | "PREMIUM" | null;
+  cadence: "MONTHLY" | "YEARLY" | null;
+  estimated: boolean;
+  detail: { coverageMonths?: number | null; month?: string; customerPayments?: number; ratePercent?: number };
+}
+
+export interface EarningsPage {
+  items: EarningEntry[];
+  summary: {
+    total: number;
+    byPurpose: Partial<Record<EarningPurpose, number>>;
+    byStudio: { studio: EarningEntry["studio"]; amount: number; payments: number }[];
+  };
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface StudioBillingSummary {
+  mode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  plan: "STANDARD" | "PREMIUM";
+  cadence: "MONTHLY" | "YEARLY";
+  status: "active" | "lapsed" | "revenue_share";
+  commissionPercent: number | null;
+  currentPeriodEnd: string | null;
+  currentPeriodStart: string | null;
+  daysLeft: number | null;
+  signup: { reference: string; amount: number; coverageMonths: number | null; date: string } | null;
+  lastPayment: EarningEntry | null;
+  totalPaid: number;
+  payments: EarningEntry[];
 }
 
 export interface ProvisionStudioInput {
@@ -431,6 +477,29 @@ export const platformApi = {
   },
   async deleteUser(id: string): Promise<void> {
     await platformRequest(`/users/${id}`, { method: "DELETE" });
+  },
+
+  async listEarnings(q: {
+    studioId?: string;
+    purpose?: EarningPurpose | "";
+    from?: string;
+    to?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<EarningsPage> {
+    const p = new URLSearchParams();
+    if (q.studioId) p.set("studioId", q.studioId);
+    if (q.purpose) p.set("purpose", q.purpose);
+    if (q.from) p.set("from", q.from);
+    if (q.to) p.set("to", q.to);
+    p.set("page", String(q.page ?? 1));
+    p.set("pageSize", String(q.pageSize ?? 20));
+    const res = await platformRequest<{
+      data: EarningEntry[];
+      summary: EarningsPage["summary"];
+      pagination: { page: number; pageSize: number; total: number };
+    }>(`/earnings?${p.toString()}`);
+    return { items: res.data, summary: res.summary, ...res.pagination };
   },
 
   async getAnalytics(): Promise<PlatformAnalytics> {

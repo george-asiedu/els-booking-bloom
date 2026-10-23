@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ReviewDetails } from "@/components/admin/RowDetails";
 import { format } from "date-fns";
 import { Check, X, Star, Trash2, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -30,6 +32,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 type Review = ReviewDTO;
 
 const AdminReviews = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<ReviewDTO | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -119,7 +123,7 @@ const AdminReviews = () => {
               </TableHeader>
               <TableBody>
                 {reviews.map((review) => (
-                  <TableRow key={review.id}>
+                  <TableRow key={review.id} onOpen={() => setDetails(review)}>
                     <TableCell>
                       <div>
                         <p className="font-medium">{review.profiles?.full_name}</p>
@@ -213,6 +217,7 @@ const AdminReviews = () => {
           </div>
         )}
       </div>
+      <ReviewDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

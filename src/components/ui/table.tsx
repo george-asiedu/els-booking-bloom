@@ -42,15 +42,40 @@ const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
 );
 TableFooter.displayName = "TableFooter";
 
-const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
-  ({ className, ...props }, ref) => (
-    <tr
-      ref={ref}
-      className={cn("border-b transition-colors data-[state=selected]:bg-muted hover:!bg-accent/50", className)}
-      {...props}
-    />
-  ),
-);
+// Clicks on the row's own controls (buttons, menus, switches, links, fields)
+// do their own thing and don't open the row.
+const INTERACTIVE =
+  "button, a, input, select, textarea, label, [role=switch], [role=combobox], [role=menuitem], [role=checkbox], [data-row-ignore]";
+
+const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.HTMLAttributes<HTMLTableRowElement> & {
+    /** Makes the row open its details: click, or Enter/Space when focused. */
+    onOpen?: () => void;
+  }
+>(({ className, onOpen, onClick, onKeyDown, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn(
+      "border-b transition-colors data-[state=selected]:bg-muted hover:!bg-accent/50",
+      onOpen && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+      className,
+    )}
+    {...(onOpen ? { tabIndex: 0 } : {})}
+    onClick={(e) => {
+      onClick?.(e);
+      if (onOpen && !(e.target as HTMLElement).closest(INTERACTIVE)) onOpen();
+    }}
+    onKeyDown={(e) => {
+      onKeyDown?.(e);
+      if (onOpen && e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        onOpen();
+      }
+    }}
+    {...props}
+  />
+));
 TableRow.displayName = "TableRow";
 
 const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement>>(

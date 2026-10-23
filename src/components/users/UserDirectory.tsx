@@ -45,7 +45,7 @@ const PAGE_SIZE = 20;
 const ROLE_FILTERS: { value: DirectoryRole | ""; label: string }[] = [
   { value: "", label: "All" },
   { value: "CUSTOMER", label: "Customers" },
-  { value: "ADMIN", label: "Studio admins" },
+  { value: "ADMIN", label: "Admins" },
 ];
 
 const RoleBadge = ({ role, isOwner }: { role: DirectoryRole; isOwner: boolean }) =>
@@ -78,13 +78,24 @@ export const UserDirectory = ({
   source,
   showStudio,
   noun = "users",
+  fixedRole,
+  studioId,
+  showStudioCustomers = false,
 }: {
   source: DirectorySource;
   showStudio: boolean;
   noun?: string;
+  // Only this role, with no role filter shown (e.g. the super admin's list
+  // of studio admins).
+  fixedRole?: DirectoryRole;
+  // Only this studio's users (super admin, on a studio's page).
+  studioId?: string;
+  // In an admin's drawer, list their studio's customers (super admin).
+  showStudioCustomers?: boolean;
 }) => {
   const [search, setSearch] = useState("");
-  const [role, setRole] = useState<DirectoryRole | "">("");
+  const [pickedRole, setRole] = useState<DirectoryRole | "">("");
+  const role = fixedRole ?? pickedRole;
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
   const q = useDebounced(search);
@@ -92,12 +103,14 @@ export const UserDirectory = ({
   useEffect(() => setPage(1), [q, role]);
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: [source.key, "list", q, role, page],
-    queryFn: () => source.list({ search: q, role, page, pageSize: PAGE_SIZE }),
+    queryKey: [source.key, "list", studioId ?? "", q, role, page],
+    queryFn: () => source.list({ search: q, role, page, pageSize: PAGE_SIZE, ...(studioId ? { studioId } : {}) }),
     placeholderData: keepPreviousData,
   });
 
-  const cols = showStudio ? 6 : 5;
+  // Bookings and spend mean nothing for admin accounts.
+  const showActivity = fixedRole !== "ADMIN";
+  const cols = 3 + (showStudio ? 1 : 0) + (showActivity ? 2 : 0);
 
   return (
     <div className="space-y-4">
@@ -112,6 +125,7 @@ export const UserDirectory = ({
             aria-label={`Search ${noun}`}
           />
         </div>
+        {!fixedRole && (
         <div role="tablist" aria-label="Filter by role" className="inline-flex rounded-lg border bg-muted/40 p-1">
           {ROLE_FILTERS.map((f) => (
             <button
@@ -128,6 +142,7 @@ export const UserDirectory = ({
             </button>
           ))}
         </div>
+        )}
       </div>
 
       <Card className="overflow-hidden">
@@ -137,8 +152,8 @@ export const UserDirectory = ({
               <TableHead>Name</TableHead>
               {showStudio && <TableHead>Studio</TableHead>}
               <TableHead>Role</TableHead>
-              <TableHead className="text-right">Bookings</TableHead>
-              <TableHead className="text-right">Total spent</TableHead>
+              {showActivity && <TableHead className="text-right">Bookings</TableHead>}
+              {showActivity && <TableHead className="text-right">Total spent</TableHead>}
               <TableHead>Joined</TableHead>
             </TableRow>
           </TableHeader>
@@ -184,8 +199,10 @@ export const UserDirectory = ({
                   <TableCell>
                     <RoleBadge role={u.role} isOwner={u.isOwner} />
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{u.bookings}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatGHS(u.totalSpent)}</TableCell>
+                  {showActivity && <TableCell className="text-right tabular-nums">{u.bookings}</TableCell>}
+                  {showActivity && (
+                    <TableCell className="text-right tabular-nums">{formatGHS(u.totalSpent)}</TableCell>
+                  )}
                   <TableCell className="whitespace-nowrap text-muted-foreground">
                     {format(parseISO(u.createdAt), "d MMM yyyy")}
                   </TableCell>
@@ -205,7 +222,13 @@ export const UserDirectory = ({
         )}
       </Card>
 
-      <UserSheet source={source} id={openId} showStudio={showStudio} onClose={() => setOpenId(null)} />
+      <UserSheet
+        source={source}
+        id={openId}
+        showStudio={showStudio}
+        showStudioCustomers={showStudioCustomers}
+        onClose={() => setOpenId(null)}
+      />
     </div>
   );
 };
@@ -219,17 +242,81 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
+/** One admin's studio customers, inside that admin's drawer. */
+const StudioCustomers = ({
+  source,
+  studio,
+  onOpen,
+}: {
+  source: DirectorySource;
+  studio: { id: string; name: string };
+  onOpen: (id: string) => void;
+}) => {
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useQuery({
+    queryKey: [source.key, "studio-customers", studio.id, page],
+    queryFn: () => source.list({ studioId: studio.id, role: "CUSTOMER", page, pageSize: 8 }),
+    placeholderData: keepPreviousData,
+  });
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-semibold">
+        Customers at {studio.name}
+        {data ? <span className="font-normal text-muted-foreground"> · {data.total}</span> : null}
+      </h3>
+      {isLoading ? (
+        <Loader2 className="mx-auto my-4 h-5 w-5 animate-spin text-muted-foreground" />
+      ) : !data?.items.length ? (
+        <p className="rounded-md border px-3 py-4 text-center text-sm text-muted-foreground">
+          No customers yet.
+        </p>
+      ) : (
+        <div className="overflow-hidden rounded-md border">
+          <ul className="divide-y text-sm">
+            {data.items.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(c.id)}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-accent/50"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{c.fullName || "No name"}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
+                  </span>
+                  <span className="shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                    {c.bookings} {c.bookings === 1 ? "booking" : "bookings"}
+                    <br />
+                    {formatGHS(c.totalSpent)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <TablePagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} noun="customers" />
+        </div>
+      )}
+    </section>
+  );
+};
+
 const UserSheet = ({
   source,
-  id,
+  id: rootId,
   showStudio,
+  showStudioCustomers,
   onClose,
 }: {
   source: DirectorySource;
   id: string | null;
   showStudio: boolean;
+  showStudioCustomers: boolean;
   onClose: () => void;
 }) => {
+  // Opening a customer from an admin's drawer stacks on top; Back returns.
+  const [stack, setStack] = useState<string[]>([]);
+  useEffect(() => setStack([]), [rootId]);
+  const id = stack.length ? stack[stack.length - 1] : rootId;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const editable = Boolean(source.update);
@@ -304,6 +391,15 @@ const UserSheet = ({
           ) : (
             <>
               <SheetHeader className="border-b px-6 py-5 text-left">
+                {stack.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStack((st) => st.slice(0, -1))}
+                    className="mb-2 self-start text-sm text-primary hover:underline"
+                  >
+                    ← Back
+                  </button>
+                )}
                 <div className="flex items-center gap-3">
                   {user.avatar ? (
                     <img src={user.avatar} alt="" className="h-12 w-12 rounded-full object-cover" />
@@ -324,7 +420,8 @@ const UserSheet = ({
               </SheetHeader>
 
               <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-                {/* At a glance */}
+                {/* At a glance (customers only: admins don't book or buy) */}
+                {user.role === "CUSTOMER" && (
                 <div className="grid grid-cols-3 gap-3 text-center">
                   {[
                     ["Bookings", String(user.bookings)],
@@ -337,6 +434,7 @@ const UserSheet = ({
                     </div>
                   ))}
                 </div>
+                )}
 
                 {/* Details: editable for the super admin */}
                 {editable ? (
@@ -431,10 +529,18 @@ const UserSheet = ({
                   </section>
                 )}
 
-                {!editable && (
+                {showStudioCustomers && user.role === "ADMIN" && user.studio && (
+                  <StudioCustomers
+                    source={source}
+                    studio={user.studio}
+                    onOpen={(cid) => setStack((st) => [...st, cid])}
+                  />
+                )}
+
+                {!editable && user.role === "CUSTOMER" && (
                   <p className="rounded-md bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
-                    Customers manage their own details from their account. To change or remove an
-                    account, contact Zuri Studios support.
+                    Customers update their own name and phone number from their account on your
+                    site. To remove a customer's account, contact Zuri Studios support.
                   </p>
                 )}
               </div>

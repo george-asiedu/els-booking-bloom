@@ -10,18 +10,18 @@ const source: DirectorySource = {
   remove: (id) => platformApi.deleteUser(id),
 };
 
-/** Every studio's customers and admins, with edit and delete. */
+/** Every studio's admins; each opens to their details and their customers. */
 const PlatformUsers = () => (
   <PlatformLayout>
     <div className="space-y-6">
       <div>
         <h1 className="font-serif text-2xl font-semibold">Users</h1>
         <p className="text-muted-foreground">
-          Customers and studio admins across every studio. Open someone to see their details,
-          edit them, or delete their account.
+          The admins who run each studio. Open one to see their details and their studio's
+          customers, and to edit or delete accounts.
         </p>
       </div>
-      <UserDirectory source={source} showStudio noun="users" />
+      <UserDirectory source={source} showStudio fixedRole="ADMIN" showStudioCustomers noun="studio admins" />
     </div>
   </PlatformLayout>
 );
