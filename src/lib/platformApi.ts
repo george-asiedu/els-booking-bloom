@@ -6,6 +6,14 @@
 
 import { ApiError } from "./apiClient";
 import {
+  directoryQuery,
+  toDirectoryPage,
+  type DirectoryPage,
+  type DirectoryQuery,
+  type DirectoryUserDetail,
+  type RawDirectoryPage,
+} from "./api/users";
+import {
   ledgerQuery,
   type LedgerFilters,
   type LedgerEntryDTO,
@@ -136,7 +144,13 @@ export interface StudioSummary {
   ownerEmail: string | null;
   userCount: number;
   appointmentCount: number;
+  // What customers paid this studio, after refunds: all time and this month.
   revenue: number;
+  revenueThisMonth: number;
+  // What this studio has paid the platform (setup fee, renewals, commission).
+  paidToPlatform: number;
+  billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  platformFeePercent: number;
   settings: StudioFeatureSettings | null;
   createdAt: string;
 }
@@ -148,6 +162,33 @@ export interface PlatformAnalytics {
   trialStudios: number;
   totalUsers: number;
   totalRevenue: number;
+  studios: {
+    total: number;
+    active: number;
+    suspended: number;
+    trial: number;
+    subscription: number;
+    revenueShare: number;
+    newThisMonth: number;
+  };
+  users: { customers: number; studioAdmins: number; newThisMonth: number };
+  // Money customers paid studios (after refunds).
+  customerPayments: {
+    allTime: number;
+    thisMonth: number;
+    lastMonth: number;
+    bookingsAllTime: number;
+    ordersAllTime: number;
+  };
+  // Money studios paid the platform.
+  platformEarnings: {
+    allTime: number;
+    thisMonth: number;
+    lastMonth: number;
+    setupFeesAllTime: number;
+    renewalsAllTime: number;
+    commissionsAllTime: number;
+  };
 }
 
 export interface PlatformBillingConfig {
@@ -373,6 +414,23 @@ export const platformApi = {
 
   async listStudios(): Promise<StudioSummary[]> {
     return platformRequest<StudioSummary[]>("/studios");
+  },
+
+  // ---- Users (every studio) ----
+  async listUsers(q: DirectoryQuery): Promise<DirectoryPage> {
+    return toDirectoryPage(await platformRequest<RawDirectoryPage>(`/users?${directoryQuery(q)}`));
+  },
+  async getUser(id: string): Promise<DirectoryUserDetail> {
+    return (await platformRequest<{ data: DirectoryUserDetail }>(`/users/${id}`)).data;
+  },
+  async updateUser(
+    id: string,
+    input: { fullName?: string | null; phone?: string | null; location?: string | null; email?: string },
+  ): Promise<DirectoryUserDetail> {
+    return (await platformRequest<{ data: DirectoryUserDetail }>(`/users/${id}`, { method: "PATCH", body: input })).data;
+  },
+  async deleteUser(id: string): Promise<void> {
+    await platformRequest(`/users/${id}`, { method: "DELETE" });
   },
 
   async getAnalytics(): Promise<PlatformAnalytics> {

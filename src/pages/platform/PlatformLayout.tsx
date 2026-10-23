@@ -1,12 +1,13 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard, Activity, Receipt, Timer, Settings } from "lucide-react";
+import { Users, LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard, Activity, Receipt, Timer, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
 
 const navItems = [
   { name: "Studios", path: "/platform", icon: Building2 },
+  { name: "Users", path: "/platform/users", icon: Users },
   { name: "Requests", path: "/platform/requests", icon: Lightbulb },
   { name: "Testimonials", path: "/platform/reviews", icon: Quote },
   { name: "Transactions", path: "/platform/transactions", icon: Receipt },

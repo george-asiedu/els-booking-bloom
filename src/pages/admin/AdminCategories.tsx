@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePagedList } from "@/hooks/usePagedList";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Loader2, Trash2, Tag, Check, X, Pencil } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -40,6 +42,7 @@ const AdminCategories = () => {
     queryKey: ["admin-categories"],
     queryFn: () => categoriesApi.listAll(),
   });
+  const paged = usePagedList(categories);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
@@ -154,7 +157,7 @@ const AdminCategories = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categories.map((c) => (
+                {paged.rows.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell>
                       {editingId === c.id ? (
@@ -223,6 +226,13 @@ const AdminCategories = () => {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              page={paged.page}
+              pageSize={paged.pageSize}
+              total={paged.total}
+              onPageChange={paged.setPage}
+              noun="categories"
+            />
           </Card>
         )}
       </div>

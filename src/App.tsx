@@ -80,6 +80,8 @@ const PlatformTransactions = lazy(
 );
 const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
 const PlatformJobs = lazy(() => import("./pages/platform/PlatformJobs"));
+const PlatformUsers = lazy(() => import("./pages/platform/PlatformUsers"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 const StudioLogin = lazy(() => import("./pages/StudioLogin"));
@@ -248,6 +250,7 @@ const App = () => (
               <Route path="/admin" element={<AdminOutlet />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="appointments" element={<AdminAppointments />} />
+                <Route path="customers" element={<AdminCustomers />} />
                 <Route path="services" element={<AdminServices />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="gallery" element={<AdminGallery />} />
@@ -286,6 +289,7 @@ const App = () => (
                   <Route index element={<PlatformDashboard />} />
                   <Route path="studios/new" element={<PlatformStudioNew />} />
                   <Route path="studios/:id" element={<PlatformStudioDetail />} />
+                  <Route path="users" element={<PlatformUsers />} />
                   <Route path="requests" element={<PlatformRequests />} />
                 <Route path="reviews" element={<PlatformReviews />} />
                 <Route path="transactions" element={<PlatformTransactions />} />

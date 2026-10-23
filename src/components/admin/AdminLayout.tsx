@@ -25,6 +25,7 @@ import {
   Globe,
   Receipt,
   LayoutDashboard,
+  Users,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ const navItems = [
   { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { name: "Setup", path: "/admin/onboarding", icon: Rocket },
   { name: "Appointments", path: "/admin/appointments", icon: Calendar },
+  { name: "Customers", path: "/admin/customers", icon: Users },
   { name: "Services", path: "/admin/services", icon: Scissors },
   { name: "Categories", path: "/admin/categories", icon: Tag },
   { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },

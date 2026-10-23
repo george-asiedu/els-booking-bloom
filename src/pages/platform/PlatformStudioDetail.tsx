@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePagedList } from "@/hooks/usePagedList";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -99,6 +102,7 @@ const PlatformStudioDetail = () => {
       }),
     enabled: Boolean(id),
   });
+  const pagedPayments = usePagedList(payments, 15);
 
   // Local editable fields, seeded from the loaded studio.
   const [name, setName] = useState("");
@@ -500,53 +504,60 @@ const PlatformStudioDetail = () => {
               No payment transactions recorded yet.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">When</th>
-                    <th className="py-2 pr-3 font-medium">Event</th>
-                    <th className="py-2 pr-3 font-medium">Amount</th>
-                    <th className="py-2 pr-3 font-medium">Channel</th>
-                    <th className="py-2 pr-3 font-medium">Customer</th>
-                    <th className="py-2 pr-3 font-medium">Reference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((p) => {
+            <div className="overflow-hidden rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>When</TableHead>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Channel</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Reference</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedPayments.rows.map((p) => {
                     const m = (p.metadata ?? {}) as Record<string, unknown>;
                     const amount = m.amount as number | undefined;
                     const failed = p.action.endsWith(".failed");
                     return (
-                      <tr key={p.id} className="border-b last:border-0 align-top">
-                        <td className="py-2 pr-3 whitespace-nowrap text-muted-foreground">
+                      <TableRow key={p.id}>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
                           {new Date(p.createdAt).toLocaleString()}
-                        </td>
-                        <td className="py-2 pr-3">
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={failed ? "destructive" : "secondary"}>
                             {paymentEventLabel(p.action)}
                           </Badge>
-                        </td>
-                        <td className="py-2 pr-3 whitespace-nowrap font-medium">
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap font-medium">
                           {typeof amount === "number" ? formatGHS(amount) : "—"}
-                        </td>
-                        <td className="py-2 pr-3 whitespace-nowrap">
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {(m.channel as string) ?? "—"}
-                        </td>
-                        <td className="py-2 pr-3">
+                        </TableCell>
+                        <TableCell>
                           {(m.customerName as string) ||
                             (m.customerEmail as string) ||
                             (m.ownerEmail as string) ||
                             "—"}
-                        </td>
-                        <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
                           {(m.reference as string) ?? "—"}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
+              <TablePagination
+                page={pagedPayments.page}
+                pageSize={pagedPayments.pageSize}
+                total={pagedPayments.total}
+                onPageChange={pagedPayments.setPage}
+                noun="transactions"
+              />
             </div>
           )}
         </CardContent>
