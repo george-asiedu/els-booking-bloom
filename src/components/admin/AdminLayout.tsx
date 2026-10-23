@@ -6,7 +6,6 @@ import {
   ImageIcon, 
   Clock, 
   LogOut, 
-  Sparkles,
   Menu,
   X,
   Star,
@@ -23,7 +22,10 @@ import {
   Rocket,
   Megaphone,
   Quote,
-  Globe
+  Globe,
+  Receipt,
+  LayoutDashboard,
+  Users,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,7 @@ import { studioUrl } from "@/config/platform";
 import { profileApi } from "@/lib/api";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { StudioMark } from "@/components/StudioMark";
 import { BillingBadge, BillingMarquee } from "@/components/admin/BillingReminder";
 import { useState } from "react";
 
@@ -42,8 +45,10 @@ interface AdminLayoutProps {
 }
 
 const navItems = [
+  { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { name: "Setup", path: "/admin/onboarding", icon: Rocket },
-  { name: "Appointments", path: "/admin", icon: Calendar },
+  { name: "Appointments", path: "/admin/appointments", icon: Calendar },
+  { name: "Users", path: "/admin/users", icon: Users },
   { name: "Services", path: "/admin/services", icon: Scissors },
   { name: "Categories", path: "/admin/categories", icon: Tag },
   { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },
@@ -58,6 +63,7 @@ const navItems = [
   { name: "Product Categories", path: "/admin/product-categories", icon: Tag },
   { name: "Orders", path: "/admin/orders", icon: Package },
   { name: "Shop Settings", path: "/admin/commerce", icon: Store },
+  { name: "Transactions", path: "/admin/transactions", icon: Receipt },
   { name: "Payments", path: "/admin/payments", icon: CreditCard },
   { name: "Billing & plan", path: "/admin/billing", icon: CreditCard },
   { name: "Share your story", path: "/admin/testimonial", icon: Quote },
@@ -89,8 +95,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Header */}
       <header className="shrink-0 z-50 bg-background border-b border-border">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-2 px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
@@ -99,17 +105,17 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
-            <Link to="/admin" className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="text-lg font-serif font-semibold hidden sm:inline">
+            <Link to="/admin" className="flex min-w-0 items-center gap-2">
+              <StudioMark logoUrl={config?.branding.logoUrl} />
+              <span className="truncate text-lg font-serif font-semibold">
                 {studioName}
               </span>
-              <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
+              <span className="shrink-0 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
                 Admin
               </span>
             </Link>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <BillingBadge />
             {user && (
               <ProfileEditDialog
@@ -211,7 +217,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         )}
 
         {/* Main Content: the only vertical scroll area */}
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+        {/* relative: absolutely positioned bits inside (screen-reader-only
+            text, chart tooltips) position against this scrolling area and are
+            clipped by it, instead of stretching the whole page past the end. */}
+        <main className="relative min-w-0 flex-1 p-4 md:p-6 overflow-y-auto">
           {children}
         </main>
       </div>

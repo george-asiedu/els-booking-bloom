@@ -1,8 +1,31 @@
 import { useState } from "react";
+import { AppointmentDetails } from "@/components/admin/RowDetails";
+import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { Calendar, Phone, Mail, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Image as ImageIcon } from "lucide-react";
+import {
+  Calendar,
+  Phone,
+  Mail,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Loader2,
+  Image as ImageIcon,
+  Trash2,
+  CalendarClock,
+  Replace,
+  MoreHorizontal,
+} from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,59 +45,110 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appointmentsApi, AppointmentDTO } from "@/lib/api";
+import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
+import { ChangeServiceDialog } from "@/components/admin/ChangeServiceDialog";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { Input } from "@/components/ui/input";
 import { whatsappLink } from "@/lib/whatsapp";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useStudio } from "@/hooks/useStudio";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { formatGHS } from "@/lib/currency";
+import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
 type AppointmentStatus = AppointmentDTO["status"];
 type Appointment = AppointmentDTO;
 
-// Status-aware WhatsApp message the admin sends to the customer.
-const buildWhatsappMessage = (a: Appointment, brand: string): string => {
-  const svc = a.services?.name ?? "your service";
-  const when = `${a.appointment_date} at ${a.appointment_time}`;
-  switch (a.status) {
-    case "confirmed":
-      return `Hi ${a.full_name}, great news! Your ${svc} appointment on ${when} is confirmed. See you soon at ${brand}`;
-    case "completed":
-      return `Hi ${a.full_name}, thank you for visiting ${brand}. We'd love your feedback — leave us a review when you get a moment!`;
-    case "cancelled":
-      return `Hi ${a.full_name}, your ${svc} appointment on ${when} has been cancelled. Reach out anytime to reschedule.`;
-    default:
-      return `Hi ${a.full_name}, we've received your ${svc} request for ${when}. We'll confirm shortly — thank you for booking with ${brand}!`;
+// WhatsApp messages from the studio to the customer. The studio only messages
+// at two points: when it confirms a booking and when the visit is done. Each
+// opens WhatsApp with the text filled in; the admin still presses send.
+const firstName = (a: Appointment) => a.full_name.trim().split(/\s+/)[0] || a.full_name;
+const visitDate = (a: Appointment) =>
+  `${format(parseISO(a.appointment_date), "EEEE d MMMM")} at ${a.appointment_time}`;
+
+const confirmationMessage = (a: Appointment, brand: string) => {
+  const balance =
+    a.payment && a.payment.balance > 0
+      ? `\n\nBalance to pay at the studio: ${formatGHS(a.payment.balance)}.`
+      : "";
+  return (
+    `Hi ${firstName(a)}, your ${a.services?.name ?? "appointment"} at ${brand} is confirmed ` +
+    `for ${visitDate(a)}.${balance}\n\nSee you then!`
+  );
+};
+
+const thankYouMessage = (a: Appointment, brand: string) =>
+  `Hi ${firstName(a)}, thank you for visiting ${brand}. We hope you love your ` +
+  `${a.services?.name ?? "new look"}. We'd be glad to hear how it went, and to see you again soon.`;
+
+const receiptMessage = (a: Appointment, brand: string) => {
+  const p = a.payment!;
+  return (
+    `Hi ${firstName(a)}, here's your payment receipt from ${brand}:\n\n` +
+    `Service: ${a.services?.name ?? "Appointment"}\n` +
+    `Date: ${visitDate(a)}\n` +
+    `${p.type === "partial" ? "Deposit paid" : "Amount paid"}: ${formatGHS(p.amount)}\n` +
+    (p.balance > 0 ? `Balance due at the studio: ${formatGHS(p.balance)}\n` : "") +
+    `Reference: ${p.reference ?? "-"}\n\nThank you!`
+  );
+};
+
+/**
+ * The WhatsApp messages the studio can send for this booking right now: none
+ * until it's confirmed, and none if the customer's number can't be reached on
+ * WhatsApp.
+ */
+const customerMessages = (a: Appointment, brand: string) => {
+  if (a.status !== "confirmed" && a.status !== "completed") return [];
+  const main =
+    a.status === "confirmed"
+      ? { label: "Send confirmation", text: confirmationMessage(a, brand) }
+      : { label: "Send thank-you", text: thankYouMessage(a, brand) };
+  const mainHref = whatsappLink(a.phone, main.text);
+  if (!mainHref) return [];
+  const out = [{ label: main.label, href: mainHref }];
+  if (a.payment?.status === "paid") {
+    out.push({ label: "Send receipt", href: whatsappLink(a.phone, receiptMessage(a, brand))! });
   }
+  return out;
 };
 
 const statusConfig = {
   pending: { label: "Pending", variant: "secondary" as const, icon: AlertCircle },
+  // A customer moved the booking and the studio hasn't approved the new time.
+  // Missing before, so the page crashed on the first such booking.
+  pending_reschedule: { label: "New time requested", variant: "secondary" as const, icon: CalendarClock },
   confirmed: { label: "Confirmed", variant: "default" as const, icon: CheckCircle },
   completed: { label: "Completed", variant: "outline" as const, icon: CheckCircle },
   cancelled: { label: "Cancelled", variant: "destructive" as const, icon: XCircle },
 };
 
-// Receipt message the admin sends to the customer on WhatsApp.
-const buildReceiptMessage = (a: Appointment, brand: string): string => {
-  const p = a.payment;
-  if (!p) return "";
-  const label = p.type === "partial" ? "Deposit paid" : "Amount paid";
-  const balanceLine = p.balance > 0 ? `Balance due at studio: GHS ${p.balance}\n` : "";
-  return (
-    `Hi ${a.full_name}, here's your payment receipt from ${brand}:\n\n` +
-    `Service: ${a.services?.name ?? "your service"}\n` +
-    `Date: ${a.appointment_date} at ${a.appointment_time}\n` +
-    `${label}: GHS ${p.amount}\n` +
-    balanceLine +
-    `Reference: ${p.reference ?? "—"}\n\n` +
-    `Thank you!`
-  );
-};
-
 const AdminAppointments = () => {
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<AppointmentDTO | null>(null);
+  // The dashboard links here with ?status=pending etc.
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<string>(
+    () => searchParams.get("status") ?? "all",
+  );
+  const [pendingDelete, setPendingDelete] = useState<AppointmentDTO | null>(
+    null,
+  );
+  const [pendingReschedule, setPendingReschedule] =
+    useState<AppointmentDTO | null>(null);
+  const [changingService, setChangingService] =
+    useState<AppointmentDTO | null>(null);
   const [aSearch, setASearch] = useState("");
   const [aPayment, setAPayment] = useState("all");
   const [aFrom, setAFrom] = useState("");
@@ -96,17 +170,54 @@ const AdminAppointments = () => {
     mutationFn: async ({ id, status }: { id: string; status: AppointmentStatus }) => {
       await appointmentsApi.updateStatus(id, status);
     },
-    onSuccess: () => {
+    onSuccess: (_, { id, status }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
+      // Confirming or completing is when the customer should hear from the
+      // studio, so offer the message right here.
+      const updated = appointments?.find((a) => a.id === id);
+      const message = updated
+        ? customerMessages({ ...updated, status }, studioName)[0]
+        : undefined;
       toast({
-        title: "Status updated",
-        description: "The appointment status has been updated.",
+        title: `Marked as ${statusConfig[status].label.toLowerCase()}`,
+        description: message
+          ? `Let ${updated!.full_name} know on WhatsApp.`
+          : "The appointment status has been updated.",
+        action: message ? (
+          <ToastAction altText={`${message.label} on WhatsApp`} asChild>
+            <a href={message.href} target="_blank" rel="noopener noreferrer">
+              <WhatsappIcon className="mr-1.5 h-4 w-4 text-[#1da851]" />
+              {message.label}
+            </a>
+          </ToastAction>
+        ) : undefined,
       });
     },
     onError: (error) => {
       toast({
         variant: "destructive",
         title: "Error",
+        description: error.message,
+      });
+    },
+  });
+
+  // Hard delete, distinct from setting status to "cancelled": this removes the
+  // booking record entirely, so it's behind a confirmation.
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => appointmentsApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
+      setPendingDelete(null);
+      toast({
+        title: "Booking deleted",
+        description: "The booking has been permanently removed.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Couldn't delete the booking",
         description: error.message,
       });
     },
@@ -204,6 +315,7 @@ const AdminAppointments = () => {
             <SelectContent>
               <SelectItem value="all">Any status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="pending_reschedule">New time requested</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -219,8 +331,14 @@ const AdminAppointments = () => {
               <SelectItem value="unpaid">No payment</SelectItem>
             </SelectContent>
           </Select>
-          <Input type="date" value={aFrom} onChange={(e) => setAFrom(e.target.value)} className="w-[150px]" title="From date" />
-          <Input type="date" value={aTo} onChange={(e) => setATo(e.target.value)} className="w-[150px]" title="To date" />
+          <DateRangeField
+            from={aFrom}
+            to={aTo}
+            onChange={(f, t) => {
+              setAFrom(f);
+              setATo(t);
+            }}
+          />
         </FilterBar>
 
         {/* Appointments Table */}
@@ -245,14 +363,17 @@ const AdminAppointments = () => {
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAppointments?.map((appointment) => {
                   const StatusIcon = statusConfig[appointment.status].icon;
+                  const messages = customerMessages(appointment, studioName);
+                  const canChange =
+                    appointment.status !== "cancelled" && appointment.status !== "completed";
                   return (
-                    <TableRow key={appointment.id}>
+                    <TableRow key={appointment.id} onOpen={() => setDetails(appointment)}>
                       <TableCell>
                         <div>
                           <p className="font-medium">{appointment.full_name}</p>
@@ -293,18 +414,18 @@ const AdminAppointments = () => {
                             {appointment.discount_amount > 0 ? (
                               <div className="text-sm">
                                 <span className="text-muted-foreground line-through">
-                                  GHS {appointment.total_price}
+                                  {formatGHS(appointment.total_price)}
                                 </span>
                                 <span className="ml-2 font-medium text-foreground">
-                                  GHS {appointment.amount_due}
+                                  {formatGHS(appointment.amount_due)}
                                 </span>
                                 <span className="ml-1 text-xs text-green-600">
-                                  (-GHS {appointment.discount_amount} • {appointment.points_redeemed} pts)
+                                  (−{formatGHS(appointment.discount_amount)} • {appointment.points_redeemed} pts)
                                 </span>
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground">
-                                GHS {appointment.total_price}
+                                {formatGHS(appointment.total_price)}
                               </p>
                             )}
                             {appointment.notes && (
@@ -351,8 +472,8 @@ const AdminAppointments = () => {
                                   {p.type === "partial" ? "Deposit paid" : "Paid"}
                                 </Badge>
                                 <p className="text-xs text-muted-foreground">
-                                  GHS {p.amount}
-                                  {p.balance > 0 && ` · GHS ${p.balance} due`}
+                                  {formatGHS(p.amount)}
+                                  {p.balance > 0 && ` · ${formatGHS(p.balance)} due`}
                                 </p>
                               </div>
                             );
@@ -365,7 +486,9 @@ const AdminAppointments = () => {
                         })()}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-2">
+                        {/* Status stays one click away; everything else lives in
+                            the menu, so every row is the same height. */}
+                        <div className="flex items-center justify-end gap-2">
                           <Select
                             value={appointment.status}
                             onValueChange={(value) =>
@@ -375,54 +498,67 @@ const AdminAppointments = () => {
                               })
                             }
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger
+                              className="h-9 w-[150px]"
+                              aria-label={`Status for ${appointment.full_name}`}
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="pending_reschedule">New time requested</SelectItem>
                               <SelectItem value="confirmed">Confirmed</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
                               <SelectItem value="cancelled">Cancelled</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="w-32 border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
-                          >
-                            <a
-                              href={whatsappLink(
-                                appointment.phone,
-                                buildWhatsappMessage(appointment, studioName),
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <WhatsappIcon className="h-4 w-4 mr-1" />
-                              Notify
-                            </a>
-                          </Button>
-                          {appointment.payment?.status === "paid" && (
-                            <Button
-                              asChild
-                              size="sm"
-                              variant="outline"
-                              className="w-32 border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
-                            >
-                              <a
-                                href={whatsappLink(
-                                  appointment.phone,
-                                  buildReceiptMessage(appointment, studioName),
-                                )}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 shrink-0"
+                                aria-label={`More actions for ${appointment.full_name}`}
                               >
-                                <WhatsappIcon className="h-4 w-4 mr-1" />
-                                Send receipt
-                              </a>
-                            </Button>
-                          )}
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              {messages.map((m) => (
+                                <DropdownMenuItem key={m.label} asChild>
+                                  <a href={m.href} target="_blank" rel="noopener noreferrer">
+                                    <WhatsappIcon className="mr-2 h-4 w-4 text-[#1da851]" />
+                                    {m.label} on WhatsApp
+                                  </a>
+                                </DropdownMenuItem>
+                              ))}
+                              {messages.length > 0 && canChange && (
+                                <DropdownMenuSeparator />
+                              )}
+                              {canChange && (
+                                  <>
+                                    <DropdownMenuItem onSelect={() => setPendingReschedule(appointment)}>
+                                      <CalendarClock className="mr-2 h-4 w-4" />
+                                      Reschedule
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setChangingService(appointment)}>
+                                      <Replace className="mr-2 h-4 w-4" />
+                                      Change service
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              {(messages.length > 0 || canChange) && (
+                                <DropdownMenuSeparator />
+                              )}
+                              <DropdownMenuItem
+                                onSelect={() => setPendingDelete(appointment)}
+                                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete booking
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -441,6 +577,55 @@ const AdminAppointments = () => {
           </div>
         )}
       </div>
+
+      <RescheduleDialog
+        appointment={pendingReschedule}
+        onOpenChange={(o) => !o && setPendingReschedule(null)}
+      />
+      <ChangeServiceDialog
+        appointment={changingService}
+        onOpenChange={(o) => !o && setChangingService(null)}
+      />
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this booking?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `${pendingDelete.full_name}'s booking will be permanently removed. This can't be undone — if you only want to call it off, set the status to "cancelled" instead so the record is kept.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              Keep booking
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingDelete) deleteMutation.mutate(pendingDelete.id);
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete booking"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AppointmentDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

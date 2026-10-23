@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { OrderDetails } from "@/components/admin/RowDetails";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Package, Loader2, Truck, Store } from "lucide-react";
@@ -23,8 +24,9 @@ import {
 } from "@/components/ui/table";
 import { ordersApi, OrderDTO, OrderStatus } from "@/lib/api";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
+import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
 const statusColors: Record<string, string> = {
   pending_payment: "secondary",
@@ -40,6 +42,8 @@ const statusLabel: Record<string, string> = {
 };
 
 const AdminOrders = () => {
+  // The row whose details drawer is open.
+  const [details, setDetails] = useState<OrderDTO | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [oSearch, setOSearch] = useState("");
   const [oFulfil, setOFulfil] = useState("all");
@@ -126,7 +130,7 @@ const AdminOrders = () => {
           />
           <StatCard
             label="Profit (revenue)"
-            value={`GHS ${stats.profit.toLocaleString()}`}
+            value={formatGHS(stats.profit)}
           />
         </div>
 
@@ -156,8 +160,14 @@ const AdminOrders = () => {
               <SelectItem value="delivery">Delivery</SelectItem>
             </SelectContent>
           </Select>
-          <Input type="date" value={oFrom} onChange={(e) => setOFrom(e.target.value)} className="w-[150px]" title="From date" />
-          <Input type="date" value={oTo} onChange={(e) => setOTo(e.target.value)} className="w-[150px]" title="To date" />
+          <DateRangeField
+            from={oFrom}
+            to={oTo}
+            onChange={(f, t) => {
+              setOFrom(f);
+              setOTo(t);
+            }}
+          />
         </FilterBar>
 
         {isLoading ? (
@@ -186,7 +196,7 @@ const AdminOrders = () => {
               </TableHeader>
               <TableBody>
                 {filtered?.map((order: OrderDTO) => (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.id} onOpen={() => setDetails(order)}>
                     <TableCell>
                       <p className="font-medium">{order.order_number}</p>
                       <p className="text-xs text-muted-foreground">
@@ -246,7 +256,7 @@ const AdminOrders = () => {
                         )}
                     </TableCell>
                     <TableCell className="font-medium">
-                      GHS {order.total}
+                      {formatGHS(order.total)}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-2">
@@ -299,6 +309,8 @@ const AdminOrders = () => {
           </div>
         )}
       </div>
+
+      <OrderDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>
   );
 };

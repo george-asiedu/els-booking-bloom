@@ -5,6 +5,20 @@
 // normal els_token/els_user — doesn't sign the super admin out of /platform.
 
 import { ApiError } from "./apiClient";
+import {
+  directoryQuery,
+  toDirectoryPage,
+  type DirectoryPage,
+  type DirectoryQuery,
+  type DirectoryUserDetail,
+  type RawDirectoryPage,
+} from "./api/users";
+import {
+  ledgerQuery,
+  type LedgerFilters,
+  type LedgerEntryDTO,
+  type LedgerSummaryDTO,
+} from "./api";
 import { FeatureRequestDTO, FeatureRequestStatus } from "./api";
 import { getDeviceId } from "./deviceIdentity";
 
@@ -130,7 +144,13 @@ export interface StudioSummary {
   ownerEmail: string | null;
   userCount: number;
   appointmentCount: number;
+  // What customers paid this studio, after refunds: all time and this month.
   revenue: number;
+  revenueThisMonth: number;
+  // What this studio has paid the platform (setup fee, renewals, commission).
+  paidToPlatform: number;
+  billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  platformFeePercent: number;
   settings: StudioFeatureSettings | null;
   createdAt: string;
 }
@@ -142,6 +162,33 @@ export interface PlatformAnalytics {
   trialStudios: number;
   totalUsers: number;
   totalRevenue: number;
+  studios: {
+    total: number;
+    active: number;
+    suspended: number;
+    trial: number;
+    subscription: number;
+    revenueShare: number;
+    newThisMonth: number;
+  };
+  users: { customers: number; studioAdmins: number; newThisMonth: number };
+  // Money customers paid studios (after refunds).
+  customerPayments: {
+    allTime: number;
+    thisMonth: number;
+    lastMonth: number;
+    bookingsAllTime: number;
+    ordersAllTime: number;
+  };
+  // Money studios paid the platform.
+  platformEarnings: {
+    allTime: number;
+    thisMonth: number;
+    lastMonth: number;
+    setupFeesAllTime: number;
+    renewalsAllTime: number;
+    commissionsAllTime: number;
+  };
 }
 
 export interface PlatformBillingConfig {
@@ -150,6 +197,26 @@ export interface PlatformBillingConfig {
   commissionPremiumPercent: number;
   setupFeeStandard: number;
   setupFeePremium: number;
+  // Subscription setup fee per plan (0 = none), paid at signup instead of the
+  // first period and covering the first setupFeeMonths* months.
+  subscriptionSetupFeeStandard: number;
+  subscriptionSetupFeePremium: number;
+  setupFeeMonthsMonthly: number;
+  setupFeeMonthsYearly: number;
+  // Plan prices (GHS) charged at signup and renewal.
+  priceStandardMonthly: number;
+  priceStandardYearly: number;
+  pricePremiumMonthly: number;
+  pricePremiumYearly: number;
+}
+
+// Public details on the platform pages. Null = the built-in default.
+export interface PlatformSiteSettings {
+  siteName: string | null;
+  siteHeroBadge: string | null;
+  supportEmail: string | null;
+  supportWhatsapp: string | null;
+  demoStudioSlug: string | null;
 }
 
 export interface StudioDetail {
@@ -178,6 +245,52 @@ export interface StudioDetail {
     serviceCount: number;
     orderCount: number;
   };
+  billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  billing: StudioBillingSummary;
+}
+
+export type EarningPurpose = "SETUP_FEE" | "ACTIVATION_FEE" | "RENEWAL" | "PLAN_CHANGE" | "COMMISSION";
+
+/** One payment the platform earned (or, for commission, an estimate). */
+export interface EarningEntry {
+  id: string;
+  date: string;
+  studio: { id: string; name: string; slug: string } | null;
+  purpose: EarningPurpose;
+  description: string;
+  amount: number;
+  reference: string | null;
+  plan: "STANDARD" | "PREMIUM" | null;
+  cadence: "MONTHLY" | "YEARLY" | null;
+  estimated: boolean;
+  detail: { coverageMonths?: number | null; month?: string; customerPayments?: number; ratePercent?: number };
+}
+
+export interface EarningsPage {
+  items: EarningEntry[];
+  summary: {
+    total: number;
+    byPurpose: Partial<Record<EarningPurpose, number>>;
+    byStudio: { studio: EarningEntry["studio"]; amount: number; payments: number }[];
+  };
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface StudioBillingSummary {
+  mode: "SUBSCRIPTION" | "REVENUE_SHARE";
+  plan: "STANDARD" | "PREMIUM";
+  cadence: "MONTHLY" | "YEARLY";
+  status: "active" | "lapsed" | "revenue_share";
+  commissionPercent: number | null;
+  currentPeriodEnd: string | null;
+  currentPeriodStart: string | null;
+  daysLeft: number | null;
+  signup: { reference: string; amount: number; coverageMonths: number | null; date: string } | null;
+  lastPayment: EarningEntry | null;
+  totalPaid: number;
+  payments: EarningEntry[];
 }
 
 export interface ProvisionStudioInput {
@@ -244,6 +357,58 @@ export interface ImpersonateResult {
   user: { id: string; email: string; role: string };
 }
 
+export interface PlatformQueueCounts {
+  active?: number;
+  completed?: number;
+  delayed?: number;
+  failed?: number;
+  waiting?: number;
+  paused?: number;
+  [k: string]: number | undefined;
+}
+
+export interface PlatformQueueFailure {
+  id?: string;
+  failedReason?: string;
+  attemptsMade?: number;
+  data?: unknown;
+}
+
+// `enabled: false` when REDIS_URL isn't configured — the other fields are then
+// absent, so the UI must handle that case rather than assume counts exist.
+export interface PlatformQueueStatus {
+  message: string;
+  data: {
+    enabled: boolean;
+    email?: { counts: PlatformQueueCounts; recentFailures: PlatformQueueFailure[] };
+  };
+}
+
+// A recurring background job (see ELS-Server src/scheduler). Times are ISO.
+export interface ScheduledJobDTO {
+  key: string;
+  label: string;
+  description: string;
+  schedule: string;
+  enabled: boolean;
+  running: boolean;
+  // The last run started but its process died before finishing.
+  interrupted: boolean;
+  nextRunAt: string | null;
+  lastStartedAt: string | null;
+  lastFinishedAt: string | null;
+  lastStatus: "RUNNING" | "SUCCESS" | "FAILED" | null;
+  // "schedule", or "manual:<email>" for a run started from the console.
+  lastTrigger: string | null;
+  lastResult: Record<string, unknown> | null;
+  lastError: string | null;
+  lastDurationMs: number | null;
+  runCount: number;
+  failureCount: number;
+  updatedBy: string | null;
+  updatedAt: string | null;
+}
+
 interface Envelope<T> {
   message: string;
   data: T;
@@ -297,6 +462,46 @@ export const platformApi = {
     return platformRequest<StudioSummary[]>("/studios");
   },
 
+  // ---- Users (every studio) ----
+  async listUsers(q: DirectoryQuery): Promise<DirectoryPage> {
+    return toDirectoryPage(await platformRequest<RawDirectoryPage>(`/users?${directoryQuery(q)}`));
+  },
+  async getUser(id: string): Promise<DirectoryUserDetail> {
+    return (await platformRequest<{ data: DirectoryUserDetail }>(`/users/${id}`)).data;
+  },
+  async updateUser(
+    id: string,
+    input: { fullName?: string | null; phone?: string | null; location?: string | null; email?: string },
+  ): Promise<DirectoryUserDetail> {
+    return (await platformRequest<{ data: DirectoryUserDetail }>(`/users/${id}`, { method: "PATCH", body: input })).data;
+  },
+  async deleteUser(id: string): Promise<void> {
+    await platformRequest(`/users/${id}`, { method: "DELETE" });
+  },
+
+  async listEarnings(q: {
+    studioId?: string;
+    purpose?: EarningPurpose | "";
+    from?: string;
+    to?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<EarningsPage> {
+    const p = new URLSearchParams();
+    if (q.studioId) p.set("studioId", q.studioId);
+    if (q.purpose) p.set("purpose", q.purpose);
+    if (q.from) p.set("from", q.from);
+    if (q.to) p.set("to", q.to);
+    p.set("page", String(q.page ?? 1));
+    p.set("pageSize", String(q.pageSize ?? 20));
+    const res = await platformRequest<{
+      data: EarningEntry[];
+      summary: EarningsPage["summary"];
+      pagination: { page: number; pageSize: number; total: number };
+    }>(`/earnings?${p.toString()}`);
+    return { items: res.data, summary: res.summary, ...res.pagination };
+  },
+
   async getAnalytics(): Promise<PlatformAnalytics> {
     const res = await platformRequest<Envelope<PlatformAnalytics>>("/analytics");
     return res.data;
@@ -307,6 +512,21 @@ export const platformApi = {
       "/billing-config",
     );
     return res.data;
+  },
+
+  async getSiteSettings(): Promise<PlatformSiteSettings> {
+    return (await platformRequest<Envelope<PlatformSiteSettings>>("/site-settings")).data;
+  },
+
+  async updateSiteSettings(
+    input: Partial<PlatformSiteSettings>,
+  ): Promise<PlatformSiteSettings> {
+    return (
+      await platformRequest<Envelope<PlatformSiteSettings>>("/site-settings", {
+        method: "PATCH",
+        body: input,
+      })
+    ).data;
   },
 
   async updateBillingConfig(
@@ -446,5 +666,83 @@ export const platformApi = {
     if (params.statusCode) qs.set("statusCode", String(params.statusCode));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return platformRequest<PlatformActivityLogPage>(`/activity-logs${suffix}`);
+  },
+
+  // ---- Transaction ledger (any studio, or platform-wide) ----
+
+  async listTransactions(
+    params: { studioId?: string } & LedgerFilters = {},
+  ): Promise<{ entries: LedgerEntryDTO[]; nextCursor: string | null }> {
+    const qs = new URLSearchParams(ledgerQuery(params));
+    if (params.studioId) qs.set("studioId", params.studioId);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await platformRequest<{
+      message: string;
+      entries: LedgerEntryDTO[];
+      nextCursor: string | null;
+    }>(`/transactions${suffix}`);
+    return { entries: res.entries ?? [], nextCursor: res.nextCursor ?? null };
+  },
+
+  async transactionSummary(
+    params: { studioId?: string; from?: string; to?: string } = {},
+  ): Promise<LedgerSummaryDTO> {
+    const qs = new URLSearchParams();
+    if (params.studioId) qs.set("studioId", params.studioId);
+    if (params.from) qs.set("from", params.from);
+    if (params.to) qs.set("to", params.to);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await platformRequest<Envelope<LedgerSummaryDTO>>(
+      `/transactions/summary${suffix}`,
+    );
+    return res.data;
+  },
+
+  // ---- Studio admin account recovery ----
+
+  /**
+   * Email a studio admin a password-reset link. There is no endpoint that
+   * reveals an existing password: they are bcrypt hashes and cannot be read
+   * back, so a reset is the only way to get a locked-out admin back in.
+   */
+  async sendStudioPasswordReset(
+    studioId: string,
+    userId?: string,
+  ): Promise<{ message: string; data: { email: string; expiresAt: string } }> {
+    return platformRequest<{
+      message: string;
+      data: { email: string; expiresAt: string };
+    }>(`/studios/${studioId}/send-password-reset`, {
+      method: "POST",
+      body: userId ? { userId } : {},
+    });
+  },
+
+  // ---- Background work ----
+
+  async queues(): Promise<PlatformQueueStatus> {
+    return platformRequest<PlatformQueueStatus>("/queues");
+  },
+
+  async jobs(): Promise<ScheduledJobDTO[]> {
+    return (await platformRequest<Envelope<ScheduledJobDTO[]>>("/jobs")).data;
+  },
+
+  async setJobEnabled(key: string, enabled: boolean): Promise<ScheduledJobDTO> {
+    return (
+      await platformRequest<Envelope<ScheduledJobDTO>>(`/jobs/${encodeURIComponent(key)}`, {
+        method: "PATCH",
+        body: { enabled },
+      })
+    ).data;
+  },
+
+  async runJob(key: string): Promise<ScheduledJobDTO> {
+    return (
+      await platformRequest<Envelope<ScheduledJobDTO>>(
+        `/jobs/${encodeURIComponent(key)}/run`,
+        { method: "POST" },
+      )
+    ).data;
   },
 };

@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 
 /**
  * Bridges the API client's 401 signal to the router. When an authenticated
- * request fails because the access token expired (and couldn't be refreshed),
+ * request fails because the access token expired (there is no silent refresh),
  * we sign the user out and send them to the login screen, remembering the page
  * they were on so they land right back there after re-authenticating and can
  * finish the action they were attempting.

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -19,6 +19,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useStudio } from "@/hooks/useStudio";
+import { StudioMark } from "@/components/StudioMark";
+import { studioStore } from "@/lib/apiClient";
+import { PLATFORM } from "@/config/platform";
+
+// Back to the platform's studio picker. On a studio's subdomain or own domain
+// that means going to the platform's address. Locally, or on the platform's
+// own address, the studio was picked in this browser, so forget it instead.
+const LOCAL_HOST = /^(localhost|127\.|\d{1,3}(\.\d{1,3}){3}$)|\.local$/;
+const chooseAnotherStudio = () => {
+  const host = window.location.hostname;
+  const onPlatform =
+    !PLATFORM.rootDomain ||
+    LOCAL_HOST.test(host) ||
+    host === PLATFORM.rootDomain ||
+    host === `www.${PLATFORM.rootDomain}`;
+  if (onPlatform) {
+    studioStore.clear();
+    window.location.href = "/studio-login";
+  } else {
+    window.location.href = `${window.location.protocol}//${PLATFORM.rootDomain}/studio-login`;
+  }
+};
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -32,7 +54,7 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const { signIn, signOut } = useAuth();
   const { toast } = useToast();
-  const { name: studioName } = useStudio();
+  const { name: studioName, config, isLoading: studioLoading } = useStudio();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -74,18 +96,30 @@ const AdminLogin = () => {
     navigate("/admin");
   };
 
+  // Admin accounts belong to one studio. With none chosen (the platform's own
+  // address), ask which one rather than signing in to a default studio.
+  if (!studioStore.getSlug()) return <Navigate to="/studio-login" replace />;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-serif font-semibold">{studioName}</span>
+            {studioLoading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <StudioMark
+                  name={studioName}
+                  logoUrl={config?.branding.logoUrl}
+                  className="h-9 w-9 text-base"
+                />
+                <span className="text-2xl font-serif font-semibold">{studioName}</span>
+              </>
+            )}
           </div>
           <CardTitle>Admin Login</CardTitle>
-          <CardDescription>
-            Sign in to manage your beauty studio
-          </CardDescription>
+          <CardDescription>Sign in to manage {studioName}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -130,6 +164,16 @@ const AdminLogin = () => {
               </Button>
             </form>
           </Form>
+          <p className="mt-6 border-t pt-4 text-center text-sm text-muted-foreground">
+            Not your studio?{" "}
+            <button
+              type="button"
+              onClick={chooseAnotherStudio}
+              className="text-primary hover:underline"
+            >
+              Choose a different studio
+            </button>
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -3,7 +3,8 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 3;
-const TOAST_REMOVE_DELAY = 1000000;
+// How long a closed toast stays mounted so its exit animation can play.
+const TOAST_REMOVE_DELAY = 1000;
 
 type ToasterToast = ToastProps & {
   id: string;

@@ -14,7 +14,7 @@ import {
 import { PlatformLayout } from "./PlatformLayout";
 import { platformApi } from "@/lib/platformApi";
 import { FeatureRequestStatus } from "@/lib/api";
-import { STATUS_META } from "@/pages/admin/AdminFeatureRequests";
+import { STATUS_META } from "@/lib/featureRequestFormat";
 import { useToast } from "@/hooks/use-toast";
 
 const STATUSES: FeatureRequestStatus[] = [

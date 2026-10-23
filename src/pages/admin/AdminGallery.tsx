@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Loader2, ImageIcon, Upload } from "lucide-react";
+import { Plus, Loader2, ImageIcon, Upload, EyeOff } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,14 +32,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { galleryApi, categoriesApi, GalleryImageDTO } from "@/lib/api";
-import { videoEmbedUrl } from "@/lib/video";
+import { Switch } from "@/components/ui/switch";
+import { GalleryItemSheet, GalleryMedia } from "@/components/admin/GalleryItemSheet";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-type GalleryImage = GalleryImageDTO;
+type Visibility = "all" | "shown" | "hidden";
 
 const AdminGallery = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<Visibility>("all");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -97,6 +101,47 @@ const AdminGallery = () => {
     },
   });
 
+  // Edits from the drawer and the show/hide switches on each tile. The
+  // switch flips at once and rolls back if the save fails.
+  const updateMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { title?: string; category?: string; active?: boolean } }) =>
+      galleryApi.update(id, patch),
+    onMutate: async ({ id, patch }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-gallery"] });
+      const previous = queryClient.getQueryData(["admin-gallery", "cursor-pages"]);
+      queryClient.setQueryData<typeof imagesQuery.data>(["admin-gallery", "cursor-pages"], (data) =>
+        data && {
+          ...data,
+          pages: data.pages.map((pg) => ({
+            ...pg,
+            items: pg.items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
+          })),
+        },
+      );
+      return { previous };
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(["admin-gallery", "cursor-pages"], ctx.previous);
+      toast({ variant: "destructive", title: "Couldn't save", description: error.message });
+    },
+    onSuccess: (_saved, { patch }) => {
+      const keys = Object.keys(patch);
+      toast({
+        title:
+          keys.length === 1 && keys[0] === "active"
+            ? patch.active
+              ? "Shown on your site"
+              : "Hidden from your site"
+            : "Changes saved",
+      });
+      if (keys.some((k) => k !== "active")) setOpenId(null);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-gallery"] });
+      queryClient.invalidateQueries({ queryKey: ["gallery"] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await galleryApi.remove(id);
@@ -104,6 +149,7 @@ const AdminGallery = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-gallery"] });
       setDeleteId(null);
+      setOpenId(null);
       toast({
         title: "Image deleted",
         description: "The image has been removed from your gallery.",
@@ -147,6 +193,14 @@ const AdminGallery = () => {
     setPreviewUrl(URL.createObjectURL(file));
   };
 
+  const categoryBySlug = new Map(categories.map((c) => [c.slug, c]));
+  const shownCount = images?.filter((i) => i.active).length ?? 0;
+  const hiddenCount = (images?.length ?? 0) - shownCount;
+  const visible = images?.filter((i) =>
+    visibility === "all" ? true : visibility === "shown" ? i.active : !i.active,
+  );
+  const openItem = images?.find((i) => i.id === openId) ?? null;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     uploadMutation.mutate();
@@ -158,7 +212,9 @@ const AdminGallery = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Gallery</h1>
-            <p className="text-muted-foreground">Manage your portfolio images</p>
+            <p className="text-muted-foreground">
+              Your portfolio. Switch an item off to hide it from your site without deleting it.
+            </p>
           </div>
           <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -181,52 +237,93 @@ const AdminGallery = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {images?.map((image) => (
-              <Card key={image.id} className="overflow-hidden group">
-                <div className="relative aspect-square">
-                  {image.media_type === "video" && image.external_video ? (
-                    <iframe src={videoEmbedUrl(image.image_url) ?? undefined} title={image.title || "Gallery video"} className="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen loading="lazy" />
-                  ) : image.media_type === "video" ? (
-                    <video
-                      src={image.image_url}
-                      className="w-full h-full object-cover"
-                      muted
-                      playsInline
-                      controls
-                    />
-                  ) : (
-                    <img
-                      src={image.image_url}
-                      alt={image.title}
-                      className="w-full h-full object-cover"
-                    />
+          <>
+            <div role="tablist" aria-label="Filter by visibility" className="inline-flex rounded-lg border bg-muted/40 p-1">
+              {([
+                ["all", "All", images?.length ?? 0],
+                ["shown", "Shown", shownCount],
+                ["hidden", "Hidden", hiddenCount],
+              ] as const).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  role="tab"
+                  aria-selected={visibility === value}
+                  onClick={() => setVisibility(value)}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm transition-colors",
+                    visibility === value
+                      ? "bg-background font-medium text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
-                  {image.media_type === "video" && (
-                    <span className="absolute top-2 left-2 text-[10px] font-medium bg-foreground/70 text-background px-1.5 py-0.5 rounded">
-                      VIDEO
-                    </span>
-                  )}
-                  <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors flex items-start justify-end p-2 pointer-events-none">
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
-                      onClick={() => setDeleteId(image.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <CardContent className="p-3">
-                  <p className="font-medium text-sm truncate">{image.title}</p>
-                  <Badge variant="secondary" className="mt-1 capitalize">
-                    {image.category}
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                >
+                  {label} <span className="tabular-nums text-muted-foreground">{count}</span>
+                </button>
+              ))}
+            </div>
+
+            {visible?.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {visibility === "hidden" ? "Nothing is hidden. Everything here shows on your site." : "Nothing is shown on your site right now."}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {visible?.map((image) => {
+                  const cat = categoryBySlug.get(image.category);
+                  const catHidden = cat?.active === false;
+                  return (
+                    <Card key={image.id} className="overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setOpenId(image.id)}
+                        className="relative block aspect-square w-full overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                        aria-label={`Open ${image.title || "gallery item"}`}
+                      >
+                        <GalleryMedia
+                          item={image}
+                          className={cn(
+                            "h-full w-full object-cover transition-[opacity,transform] duration-200 hover:scale-[1.02]",
+                            !image.active && "opacity-40 grayscale",
+                          )}
+                        />
+                        {image.media_type === "video" && (
+                          <span className="absolute left-2 top-2 rounded bg-foreground/70 px-1.5 py-0.5 text-[10px] font-medium text-background">
+                            Video
+                          </span>
+                        )}
+                        {!image.active && (
+                          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[11px] font-medium">
+                            <EyeOff className="h-3 w-3" aria-hidden /> Hidden
+                          </span>
+                        )}
+                      </button>
+                      <CardContent className="space-y-2 p-3">
+                        <button
+                          type="button"
+                          onClick={() => setOpenId(image.id)}
+                          className="block w-full truncate text-left text-sm font-medium hover:underline"
+                        >
+                          {image.title || "Untitled"}
+                        </button>
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="secondary" className="truncate font-normal">
+                            {cat?.name ?? image.category}
+                          </Badge>
+                          <Switch
+                            checked={image.active}
+                            onCheckedChange={(active) => updateMutation.mutate({ id: image.id, patch: { active } })}
+                            aria-label={`${image.active ? "Hide" : "Show"} ${image.title || "this item"} on your site`}
+                          />
+                        </div>
+                        {image.active && catHidden && (
+                          <p className="text-xs text-muted-foreground">Category hidden, so not on your site</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
         {imagesQuery.hasNextPage && (
           <div className="mt-6 text-center">
@@ -327,13 +424,22 @@ const AdminGallery = () => {
         </DialogContent>
       </Dialog>
 
+      <GalleryItemSheet
+        item={openItem}
+        categories={categories}
+        saving={updateMutation.isPending}
+        onClose={() => setOpenId(null)}
+        onSave={(id, patch) => updateMutation.mutate({ id, patch })}
+        onDelete={(id) => setDeleteId(id)}
+      />
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Image</AlertDialogTitle>
+            <AlertDialogTitle>Delete from your gallery?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this image? This action cannot be undone.
+              This removes it for good. To take it off your site but keep it, switch it off instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

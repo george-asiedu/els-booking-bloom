@@ -15,6 +15,16 @@ export interface OnboardingConfig {
   commissionPremiumPercent: number;
   setupFeeStandard: number;
   setupFeePremium: number;
+  // Subscription setup fee per plan (0 = none), paid at signup instead of the
+  // first period and covering the first setupFeeMonths* months.
+  subscriptionSetupFeeStandard: number;
+  subscriptionSetupFeePremium: number;
+  setupFeeMonthsMonthly: number;
+  setupFeeMonthsYearly: number;
+  priceStandardMonthly: number;
+  priceStandardYearly: number;
+  pricePremiumMonthly: number;
+  pricePremiumYearly: number;
 }
 
 export interface OnboardingStartInput {
@@ -37,6 +47,25 @@ export interface OnboardingStartResult {
   // Set when a free (no-setup-fee) revenue-share signup provisions immediately.
   provisioned?: boolean;
   slug?: string;
+}
+
+// What the "your studio is live" screen shows; sent once the studio exists.
+export interface SignupSummary {
+  reference: string;
+  studioName: string;
+  slug: string;
+  websiteUrl: string;
+  dashboardUrl: string;
+  plan: Plan;
+  cadence: Cadence;
+  billingMode: BillingMode;
+  amountPaid: number | null;
+  currency: string;
+  paidAt: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  coverageMonths: number | null;
+  commissionPercent: number | null;
 }
 
 export const onboardingApi = {
@@ -64,8 +93,10 @@ export const onboardingApi = {
 
   async status(
     reference: string,
-  ): Promise<{ status: string; slug?: string }> {
-    const res = await apiRequest<Envelope<{ status: string; slug?: string }>>(
+  ): Promise<{ status: string; slug?: string; summary?: SignupSummary | null }> {
+    const res = await apiRequest<
+      Envelope<{ status: string; slug?: string; summary?: SignupSummary | null }>
+    >(
       `/onboarding/status?reference=${encodeURIComponent(reference)}`,
     );
     return res.data;

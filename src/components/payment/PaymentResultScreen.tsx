@@ -4,13 +4,13 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  MessageCircle,
   Download,
   RefreshCw,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { celebrate } from "@/lib/confetti";
+import { PROCESSING, ProcessingPanel } from "@/components/ProcessingOverlay";
 
 export type PaymentResultStatus =
   | "verifying"
@@ -39,8 +39,6 @@ export const PaymentResultScreen = ({
   errorMessage,
   onDownloadReceipt,
   receipts,
-  whatsappUrl,
-  whatsappLabel = "Send receipt on WhatsApp",
   onRetry,
   retryTo,
   retryLabel = "Try payment again",
@@ -55,8 +53,6 @@ export const PaymentResultScreen = ({
   // For charges that produce more than one receipt (e.g. a combined booking +
   // products payment). Takes precedence over onDownloadReceipt when set.
   receipts?: { label: string; onDownload: () => void }[];
-  whatsappUrl?: string | null;
-  whatsappLabel?: string;
   // In-place retry: re-charge the same transaction and reopen Paystack. When
   // set, it's the primary action on failure (takes precedence over retryTo).
   onRetry?: () => Promise<void> | void;
@@ -87,15 +83,9 @@ export const PaymentResultScreen = ({
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-md animate-fade-in text-center">
             {status === "verifying" ? (
-              <>
-                <Loader2 className="mx-auto mb-6 h-10 w-10 animate-spin text-primary" />
-                <h1 className="mb-2 font-serif text-2xl font-bold text-foreground">
-                  Confirming your payment…
-                </h1>
-                <p className="text-muted-foreground">
-                  Please wait while we verify your transaction.
-                </p>
-              </>
+              <div role="status" aria-live="polite" className="flex min-h-[60vh] items-center justify-center">
+                <ProcessingPanel {...PROCESSING.confirming} />
+              </div>
             ) : status === "success" ? (
               <>
                 <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
@@ -135,18 +125,6 @@ export const PaymentResultScreen = ({
                           Download receipt
                         </Button>
                       )}
-                  {whatsappUrl && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="border-[#25D366] text-[#1da851] hover:bg-[#25D366]/10"
-                    >
-                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        {whatsappLabel}
-                      </a>
-                    </Button>
-                  )}
                   <Button variant="outline" asChild>
                     <Link to={accountTo}>Go to my account</Link>
                   </Button>

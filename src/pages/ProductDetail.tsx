@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -25,12 +26,14 @@ import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
+import { formatGHS } from "@/lib/currency";
 
 const ProductDetail = () => {
   const { id = "" } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const processing = useProcessing();
   const queryClient = useQueryClient();
 
   const [qty, setQty] = useState(1);
@@ -128,6 +131,8 @@ const ProductDetail = () => {
     }
     try {
       setRedirecting(true);
+      // Stays up until the browser leaves for Paystack's checkout page.
+      processing.show(PROCESSING.preparing);
       const res = await ordersApi.guestCheckout({
         items: [{ productId: id, quantity: qty }],
         name: guest.name.trim(),
@@ -141,6 +146,7 @@ const ProductDetail = () => {
       window.location.href = res.authorization_url;
     } catch (e) {
       setRedirecting(false);
+      processing.hide();
       toast({
         variant: "destructive",
         title: "Couldn't start checkout",
@@ -215,15 +221,15 @@ const ProductDetail = () => {
                 {product.on_promo ? (
                   <span className="flex items-baseline gap-2">
                     <span className="text-muted-foreground line-through">
-                      GHS {product.price}
+                      {formatGHS(product.price)}
                     </span>
                     <span className="text-2xl font-bold text-primary">
-                      GHS {product.effective_price}
+                      {formatGHS(product.effective_price)}
                     </span>
                   </span>
                 ) : (
                   <span className="text-2xl font-bold text-primary">
-                    GHS {product.price}
+                    {formatGHS(product.price)}
                   </span>
                 )}
               </div>
@@ -348,7 +354,7 @@ const ProductDetail = () => {
                     >
                       <Truck className="h-4 w-4 text-primary" /> Delivery
                       <span className="ml-auto text-muted-foreground">
-                        {deliveryFee > 0 ? `GHS ${deliveryFee}` : "Free"}
+                        {deliveryFee > 0 ? formatGHS(deliveryFee) : "Free"}
                       </span>
                     </button>
                   )}
@@ -377,11 +383,9 @@ const ProductDetail = () => {
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <span className="text-sm text-muted-foreground">You'll pay</span>
                   <span className="text-lg font-bold text-primary">
-                    GHS{" "}
-                    {Math.round(
-                      (lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0)) *
-                        100,
-                    ) / 100}
+                    {formatGHS(
+                      lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0),
+                    )}
                   </span>
                 </div>
 

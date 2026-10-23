@@ -352,12 +352,20 @@ const AdminPayments = () => {
 
                 {/* Settlement type toggle: switches which option list shows. */}
                 <div className="space-y-2">
-                  <Label>Account type</Label>
-                  <div className="inline-flex rounded-md border border-border p-1">
+                  <Label id="payout-account-type">Account type</Label>
+                  {/* flex (not inline-flex) so it sits on its own line under the
+                      label, like every other field here. */}
+                  <div
+                    role="radiogroup"
+                    aria-labelledby="payout-account-type"
+                    className="flex w-fit rounded-md border border-border p-1"
+                  >
                     {(["momo", "bank"] as const).map((t) => (
                       <button
                         key={t}
                         type="button"
+                        role="radio"
+                        aria-checked={payType === t}
                         onClick={() => {
                           if (t === payType) return;
                           setPayType(t);

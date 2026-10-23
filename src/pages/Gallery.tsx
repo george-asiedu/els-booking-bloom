@@ -35,24 +35,29 @@ const Gallery = () => {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });
-  const apiImages = galleryQuery.data?.pages.flatMap((page) => page.items);
+  const pages = galleryQuery.data?.pages;
   const isLoading = galleryQuery.isLoading;
   const { data: categoriesData } = useQuery({
     queryKey: ["public-categories"],
     queryFn: () => categoriesApi.listActive(),
   });
 
-  const hasReal = !!apiImages && apiImages.length > 0;
-  const items: GalleryItem[] = hasReal
-    ? apiImages!.map((img) => ({
-        id: img.id,
-        src: img.image_url,
-        alt: img.title || titleize(img.category),
-        category: img.category,
-        type: img.media_type,
-        external: img.external_video,
-      }))
-    : [];
+  // Memoised on the query's pages so `items` (and `filtered` below) keep their
+  // identity between renders instead of being rebuilt every time.
+  const items = useMemo<GalleryItem[]>(
+    () =>
+      (pages ?? [])
+        .flatMap((page) => page.items)
+        .map((img) => ({
+          id: img.id,
+          src: img.image_url,
+          alt: img.title || titleize(img.category),
+          category: img.category,
+          type: img.media_type,
+          external: img.external_video,
+        })),
+    [pages],
+  );
 
   const nameBySlug = new Map((categoriesData ?? []).map((c) => [c.slug, c.name]));
   const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
@@ -76,20 +81,14 @@ const Gallery = () => {
   }));
 
   const heroImg = items[0]?.src ?? null;
-  const noContent = !isLoading && hasReal === false && apiImages !== undefined && apiImages.length === 0;
+  const noContent = !isLoading && pages !== undefined && items.length === 0;
 
   return (
     <Layout>
       <StudioPageHero
-        eyebrow="Our work"
-        title={
-          <>
-            A little inspiration
-            <br />
-            <span className="text-primary">for your next look.</span>
-          </>
-        }
-        description="Explore some of our latest work, styles and transformations."
+        eyebrow="Gallery"
+        title="Our recent work"
+        description="Photos of real appointments. Tap any picture to see it larger, and bring one along if you'd like something similar."
         image={heroImg}
         variant="editorial"
       />
@@ -179,7 +178,7 @@ const Gallery = () => {
                       )}
                       <span className="absolute inset-0 flex items-end bg-gradient-to-t from-foreground/70 via-transparent to-transparent p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                         <span className="text-sm font-medium text-background">
-                          View â†’
+                          View →
                         </span>
                       </span>
                     </button>
@@ -189,7 +188,7 @@ const Gallery = () => {
               {galleryQuery.hasNextPage && (
                 <div className="mt-10 text-center">
                   <Button variant="outline" onClick={() => galleryQuery.fetchNextPage()} disabled={galleryQuery.isFetchingNextPage}>
-                    {galleryQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loadingâ€¦</> : "Load more work"}
+                    {galleryQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading…</> : "Load more work"}
                   </Button>
                 </div>
               )}

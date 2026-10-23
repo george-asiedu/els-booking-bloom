@@ -1,11 +1,12 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { ProcessingProvider } from "@/components/ProcessingOverlay";
 import { AuthProvider } from "@/hooks/useAuth";
 import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
@@ -15,10 +16,11 @@ import { SessionGuard } from "@/components/SessionGuard";
 import { StudioTheme } from "@/components/StudioTheme";
 import { FeatureRoute } from "@/components/FeatureRoute";
 import { Analytics } from "@vercel/analytics/react";
-import { studioStore } from "@/lib/apiClient";
+import { ApiError, studioStore } from "@/lib/apiClient";
 import { PlatformAuthProvider } from "@/hooks/usePlatformAuth";
 import { PlatformProtectedRoute } from "./pages/platform/PlatformProtectedRoute";
 import { PlatformLayout } from "./pages/platform/PlatformLayout";
+import { hideSplash } from "@/lib/splash";
 
 // Route components are code-split so each page loads on demand — the initial
 // bundle stays small and the admin/platform areas never ship to customers.
@@ -41,6 +43,7 @@ const Account = lazy(() => import("./pages/account/Account"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
 const AdminGallery = lazy(() => import("./pages/admin/AdminGallery"));
 const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
@@ -59,6 +62,7 @@ const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminProductCategories = lazy(() => import("./pages/admin/AdminProductCategories"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions"));
 const AdminCommerce = lazy(() => import("./pages/admin/AdminCommerce"));
 const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 const PlatformLogin = lazy(() => import("./pages/platform/PlatformLogin"));
@@ -71,8 +75,17 @@ const PlatformRequests = lazy(() => import("./pages/platform/PlatformRequests"))
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit"));
 const PlatformActivity = lazy(() => import("./pages/platform/PlatformActivity"));
 const PlatformReviews = lazy(() => import("./pages/platform/PlatformReviews"));
+const PlatformTransactions = lazy(
+  () => import("./pages/platform/PlatformTransactions"),
+);
 const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
+const PlatformJobs = lazy(() => import("./pages/platform/PlatformJobs"));
+const PlatformUsers = lazy(() => import("./pages/platform/PlatformUsers"));
+const PlatformEarnings = lazy(() => import("./pages/platform/PlatformEarnings"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
+const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
+const StudioLogin = lazy(() => import("./pages/StudioLogin"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
@@ -83,6 +96,18 @@ const PageLoader = () => (
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
+
+// Mounted inside the route Suspense, so it runs once the first page's code has
+// loaded. The two landing pages hide the loading screen themselves when their
+// content is ready; every other page is ready as soon as it renders.
+const SplashController = () => {
+  const { pathname } = useLocation();
+  const isLanding = pathname === "/" || pathname === "/welcome";
+  useEffect(() => {
+    if (!isLanding) hideSplash();
+  }, [isLanding]);
+  return null;
+};
 
 // The apex "/" shows the Zuri platform landing page, unless a studio is active
 // (subdomain in prod, or /s/:slug / impersonation locally) — then it's that
@@ -135,7 +160,11 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 30 * 60 * 1000, // keep unused data cached for 30 minutes
       refetchOnWindowFocus: false,
-      retry: 1,
+      // One retry for a network blip or a 5xx. Never for a 4xx: a 404 won't
+      // fix itself, and retrying a 429 (rate limited) only uses up more of
+      // the allowance.
+      retry: (failureCount, error) =>
+        failureCount < 1 && !(error instanceof ApiError && error.status < 500),
     },
   },
 });
@@ -143,6 +172,7 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
    <StudioProvider>
+    <ProcessingProvider>
     <AuthProvider>
       <ThemeProvider>
         <TooltipProvider>
@@ -154,6 +184,7 @@ const App = () => (
             <SessionGuard />
             <StudioTheme />
             <Suspense fallback={<PageLoader />}>
+            <SplashController />
             <Routes>
               <Route path="/" element={<RootRoute />} />
               <Route path="/welcome" element={<PlatformLanding />} />
@@ -216,8 +247,11 @@ const App = () => (
               
               {/* Admin Routes — one guard + persistent sidebar for all */}
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/studio-login" element={<StudioLogin />} />
               <Route path="/admin" element={<AdminOutlet />}>
-                <Route index element={<AdminAppointments />} />
+                <Route index element={<AdminDashboard />} />
+                <Route path="appointments" element={<AdminAppointments />} />
+                <Route path="users" element={<AdminCustomers />} />
                 <Route path="services" element={<AdminServices />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="gallery" element={<AdminGallery />} />
@@ -236,6 +270,7 @@ const App = () => (
                 <Route path="products" element={<AdminProducts />} />
                 <Route path="product-categories" element={<AdminProductCategories />} />
                 <Route path="orders" element={<AdminOrders />} />
+                <Route path="transactions" element={<AdminTransactions />} />
                 <Route path="commerce" element={<AdminCommerce />} />
               </Route>
 
@@ -255,9 +290,14 @@ const App = () => (
                   <Route index element={<PlatformDashboard />} />
                   <Route path="studios/new" element={<PlatformStudioNew />} />
                   <Route path="studios/:id" element={<PlatformStudioDetail />} />
+                  <Route path="users" element={<PlatformUsers />} />
+                  <Route path="earnings" element={<PlatformEarnings />} />
                   <Route path="requests" element={<PlatformRequests />} />
                 <Route path="reviews" element={<PlatformReviews />} />
+                <Route path="transactions" element={<PlatformTransactions />} />
                   <Route path="billing" element={<PlatformBilling />} />
+                  <Route path="jobs" element={<PlatformJobs />} />
+                  <Route path="settings" element={<PlatformSettings />} />
                   <Route path="audit" element={<PlatformAudit />} />
                   <Route path="activity" element={<PlatformActivity />} />
                 </Route>
@@ -271,6 +311,7 @@ const App = () => (
         </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
+    </ProcessingProvider>
    </StudioProvider>
   </QueryClientProvider>
 );

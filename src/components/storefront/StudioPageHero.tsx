@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import heroFallback from "@/assets/hero-beauty.jpg";
@@ -38,11 +37,8 @@ const CtaButtons = ({
   cta || secondaryCta ? (
     <div className="animate-fade-in mt-7 flex flex-col gap-3 [animation-delay:360ms] sm:flex-row">
       {cta && (
-        <Button size="lg" className="group" asChild>
-          <Link to={cta.to}>
-            {cta.label}
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
+        <Button size="lg" asChild>
+          <Link to={cta.to}>{cta.label}</Link>
         </Button>
       )}
       {secondaryCta && (
@@ -64,10 +60,8 @@ const TextBlock = ({
   center?: boolean;
 }) => (
   <div className={cn("max-w-xl", center && "mx-auto text-center")}>
-    <span className="animate-fade-in inline-block text-sm font-medium uppercase tracking-[0.2em] text-primary">
-      {eyebrow}
-    </span>
-    <h1 className="animate-fade-in mt-3 font-serif text-3xl font-bold leading-[1.08] text-foreground [animation-delay:120ms] sm:text-4xl md:text-5xl">
+    <p className="animate-fade-in font-medium text-primary">{eyebrow}</p>
+    <h1 className="animate-fade-in mt-2 font-serif text-3xl font-semibold leading-[1.08] text-foreground [animation-delay:120ms] sm:text-4xl md:text-5xl">
       {title}
     </h1>
     {description && (
@@ -142,7 +136,7 @@ export const StudioPageHero = ({
             <img
               src={image ?? heroFallback}
               alt=""
-              className="aspect-[4/3] w-full rounded-2xl object-cover"
+              className="aspect-[4/3] w-full rounded-lg object-cover"
             />
           </div>
         </div>

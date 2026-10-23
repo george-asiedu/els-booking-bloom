@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useMobileBookingBar } from "@/hooks/useMobileBookingBar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -11,18 +10,8 @@ import { cn } from "@/lib/utils";
  * covers the hero's own CTA. Respects the safe-area inset.
  */
 export const MobileBookingBar = () => {
-  const { pathname } = useLocation();
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 480);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Don't show on the booking flow or the cart/checkout.
-  if (["/book", "/cart"].some((p) => pathname.startsWith(p))) return null;
+  const { allowed, show } = useMobileBookingBar();
+  if (!allowed) return null;
 
   return (
     <div
@@ -32,11 +21,8 @@ export const MobileBookingBar = () => {
         show ? "translate-y-0" : "translate-y-full",
       )}
     >
-      <Button size="lg" className="group w-full" asChild>
-        <Link to="/book">
-          Book appointment
-          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Link>
+      <Button size="lg" className="w-full" asChild>
+        <Link to="/book">Book an appointment</Link>
       </Button>
     </div>
   );

@@ -1,8 +1,8 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery } from "@tanstack/react-query";
 import PaystackPop from "@paystack/inline-js";
-import { paymentsApi, contactInfoApi } from "@/lib/api";
-import { whatsappLink } from "@/lib/whatsapp";
+import { paymentsApi } from "@/lib/api";
 import { downloadReceipt, receiptFromVerify } from "@/lib/receipt";
 import { useStudio } from "@/hooks/useStudio";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import {
   PaymentResultStatus,
   ResultRow,
 } from "@/components/payment/PaymentResultScreen";
+import { formatGHS } from "@/lib/currency";
 
 const PaymentCallback = () => {
   const [params] = useSearchParams();
@@ -19,6 +20,7 @@ const PaymentCallback = () => {
   const { name: studioName, config } = useStudio();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const processing = useProcessing();
 
   const { data: receipt, isLoading, isError, error } = useQuery({
     queryKey: ["verify-payment", reference],
@@ -27,13 +29,6 @@ const PaymentCallback = () => {
     retry: 1,
   });
 
-  const { data: contactInfo } = useQuery({
-    queryKey: ["contact-info"],
-    queryFn: () => contactInfoApi.get(),
-  });
-
-  const studioWhatsapp =
-    contactInfo?.showWhatsapp && contactInfo.whatsapp ? contactInfo.whatsapp : null;
   const paid = receipt?.status === "paid";
 
   const status: PaymentResultStatus = !reference
@@ -50,29 +45,15 @@ const PaymentCallback = () => {
         { label: "Date", value: `${receipt.appointment_date} · ${receipt.appointment_time}` },
         {
           label: receipt.type === "partial" ? "Deposit paid" : "Amount paid",
-          value: `GHS ${receipt.amount}`,
+          value: formatGHS(receipt.amount),
           highlight: true,
         },
         ...(receipt.balance > 0
-          ? [{ label: "Balance due at studio", value: `GHS ${receipt.balance}` }]
+          ? [{ label: "Balance due at studio", value: formatGHS(receipt.balance) }]
           : []),
         { label: "Reference", value: receipt.reference ?? "—" },
       ]
     : [];
-
-  const whatsappUrl =
-    studioWhatsapp && receipt && paid
-      ? whatsappLink(
-          studioWhatsapp,
-          `Hi ${studioName}, I've just paid for my appointment:\n\n` +
-            `Service: ${receipt.service_name}\n` +
-            `Date: ${receipt.appointment_date}\n` +
-            `Time: ${receipt.appointment_time}\n` +
-            `${receipt.type === "partial" ? "Deposit paid" : "Amount paid"}: GHS ${receipt.amount}\n` +
-            (receipt.balance > 0 ? `Balance due at studio: GHS ${receipt.balance}\n` : "") +
-            `Reference: ${receipt.reference}\n`,
-        )
-      : null;
 
   // Retry the same appointment payment in place: re-initialize the charge and
   // reopen Paystack. On success we refetch the verification so the screen flips
@@ -82,10 +63,12 @@ const PaymentCallback = () => {
   const retryPayment = async () => {
     if (!appointmentId) return;
     try {
+      processing.show(PROCESSING.preparing);
       const init = await paymentsApi.initialize(
         appointmentId,
         receipt?.type === "partial" ? "PARTIAL" : "FULL",
       );
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(init.access_code, {
         onSuccess: () => {
@@ -99,6 +82,7 @@ const PaymentCallback = () => {
           toast({ variant: "destructive", title: "Payment failed", description: e?.message }),
       });
     } catch (err) {
+      processing.hide();
       toast({
         variant: "destructive",
         title: "Couldn't reopen payment",
@@ -118,7 +102,6 @@ const PaymentCallback = () => {
       onDownloadReceipt={
         receipt ? () => downloadReceipt(receiptFromVerify(receipt), { name: studioName, primaryColor: config?.branding.primaryColor, accentColor: config?.branding.accentColor }) : undefined
       }
-      whatsappUrl={whatsappUrl}
       onRetry={canRetry ? retryPayment : undefined}
       retryTo="/book"
       retryLabel="Back to booking"

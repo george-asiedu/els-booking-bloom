@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PaystackPop from "@paystack/inline-js";
 import { Loader2, CreditCard, Check, Crown } from "lucide-react";
@@ -6,7 +7,8 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { studioBillingApi } from "@/lib/api";
+import { studioBillingApi, type RenewalReceiptDTO } from "@/lib/api";
+import { RenewalSuccessDialog } from "@/components/admin/RenewalSuccessDialog";
 import { PLANS, planPrice } from "@/config/platform";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
@@ -16,8 +18,10 @@ const GHS = formatGHS;
 const AdminBilling = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const processing = useProcessing();
   const [cadence, setCadence] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const [busy, setBusy] = useState(false);
+  const [renewed, setRenewed] = useState<{ receipt: RenewalReceiptDTO; wasLapsed: boolean } | null>(null);
 
   const { data: billing, isLoading } = useQuery({
     queryKey: ["studio-billing"],
@@ -32,15 +36,21 @@ const AdminBilling = () => {
       return;
     }
     setBusy(true);
+    processing.show(PROCESSING.preparing);
     try {
       const { reference, accessCode } = await studioBillingApi.startChange({
         plan,
         cadence,
       });
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(accessCode, {
         onSuccess: async () => {
           try {
+            processing.show({
+              title: "Updating your plan",
+              message: "Your payment went through. We're applying it to your plan now.",
+            });
             await studioBillingApi.applyChange({ reference, plan, cadence });
             queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
@@ -55,6 +65,7 @@ const AdminBilling = () => {
               description: err instanceof Error ? err.message : "Please contact support.",
             });
           } finally {
+            processing.hide();
             setBusy(false);
           }
         },
@@ -65,6 +76,7 @@ const AdminBilling = () => {
         },
       });
     } catch (error) {
+      processing.hide();
       setBusy(false);
       toast({
         variant: "destructive",
@@ -76,19 +88,35 @@ const AdminBilling = () => {
 
   const renew = async () => {
     setBusy(true);
+    processing.show(PROCESSING.preparing);
     try {
       const { reference, accessCode } = await studioBillingApi.startRenewal();
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(accessCode, {
         onSuccess: async () => {
           try {
-            await studioBillingApi.applyRenewal({ reference });
+            processing.show({
+              title: "Updating your plan",
+              message: "Your payment went through. We're applying it to your plan now.",
+            });
+            const wasLapsed = Boolean(billing?.lapsed);
+            const updated = await studioBillingApi.applyRenewal({ reference });
             queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
-            toast({
-              title: "Renewed",
-              description: "Your plan has been extended for another period.",
-            });
+            if (updated.renewal) {
+              setRenewed({
+                receipt: updated.renewal,
+                // The server knows when it applied the payment itself; if the
+                // webhook got there first, go by what this page showed.
+                wasLapsed: updated.renewal.wasLapsed ?? wasLapsed,
+              });
+            } else {
+              toast({
+                title: "Renewed",
+                description: "Your plan has been extended for another period.",
+              });
+            }
           } catch (err) {
             toast({
               variant: "destructive",
@@ -96,6 +124,7 @@ const AdminBilling = () => {
               description: err instanceof Error ? err.message : "Please contact support.",
             });
           } finally {
+            processing.hide();
             setBusy(false);
           }
         },
@@ -106,6 +135,7 @@ const AdminBilling = () => {
         },
       });
     } catch (error) {
+      processing.hide();
       setBusy(false);
       toast({
         variant: "destructive",
@@ -264,6 +294,11 @@ const AdminBilling = () => {
           </>
         )}
       </div>
+      <RenewalSuccessDialog
+        receipt={renewed?.receipt ?? null}
+        wasLapsed={renewed?.wasLapsed ?? false}
+        onClose={() => setRenewed(null)}
+      />
     </AdminLayout>
   );
 };

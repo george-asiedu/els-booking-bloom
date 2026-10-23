@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState } from "react";
+import { SignupSuccess } from "@/components/onboarding/SignupSuccess";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useSearchParams } from "react-router-dom";
 import PaystackPop from "@paystack/inline-js";
 import {
-  Sparkles,
   Check,
   Loader2,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
-  PartyPopper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PLATFORM, PLANS, planPrice } from "@/config/platform";
+import { BrandLogo } from "@/components/BrandLogo";
+import { subscriptionSetup } from "@/lib/setupFee";
 import {
   onboardingApi,
+  type SignupSummary,
   Plan,
   Cadence,
   BillingMode,
@@ -35,6 +38,7 @@ const GHS = formatGHS;
 const Onboarding = () => {
   const [params] = useSearchParams();
   const { toast } = useToast();
+  const processing = useProcessing();
 
   const [step, setStep] = useState(1);
   const [plan, setPlan] = useState<Plan>(
@@ -61,6 +65,7 @@ const Onboarding = () => {
 
   const [reference, setReference] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [summary, setSummary] = useState<SignupSummary | null>(null);
   const [studioSlug, setStudioSlug] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -75,8 +80,12 @@ const Onboarding = () => {
   const setupFee =
     plan === "PREMIUM" ? cfg?.setupFeePremium ?? 0 : cfg?.setupFeeStandard ?? 0;
   const revShare = billingMode === "REVENUE_SHARE";
-  // Amount charged now: plan price (subscription) or one-time setup fee (rev-share).
-  const dueToday = revShare ? setupFee : price;
+  // Subscription setup fee for the selected plan, when the platform sets one.
+  const subSetup = revShare ? null : subscriptionSetup(cfg, plan, cadence);
+  const per = cadence === "MONTHLY" ? "month" : "year";
+  // Amount charged now: the activation fee (revenue-share), the setup fee
+  // (subscription with one), or the first period's price.
+  const dueToday = revShare ? setupFee : subSetup ? subSetup.fee : price;
 
   // Load the platform billing config so we know whether to offer revenue-share.
   useEffect(() => {
@@ -140,6 +149,7 @@ const Onboarding = () => {
         if (res.status === "PROVISIONED") {
           if (pollRef.current) clearInterval(pollRef.current);
           setStudioSlug(res.slug ?? slug);
+          setSummary(res.summary ?? null);
           setDone(true);
         }
       } catch {
@@ -166,6 +176,7 @@ const Onboarding = () => {
 
   const pay = async () => {
     setSubmitting(true);
+    processing.show(PROCESSING.creatingStudio);
     try {
       const res = await onboardingApi.start({
         name: name.trim(),
@@ -182,6 +193,9 @@ const Onboarding = () => {
       // Free revenue-share signup (no setup fee) — provisioned immediately.
       if (res.provisioned) {
         setStudioSlug(res.slug ?? slug);
+        // The studio exists already; fetch its summary for the welcome screen.
+        const ready = await onboardingApi.status(res.reference).catch(() => null);
+        setSummary(ready?.summary ?? null);
         setDone(true);
         return;
       }
@@ -189,6 +203,7 @@ const Onboarding = () => {
         throw new Error("Couldn't start checkout. Please try again.");
       }
 
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(res.accessCode, {
         onSuccess: () => {
@@ -215,6 +230,7 @@ const Onboarding = () => {
         description: error instanceof Error ? error.message : "Please try again.",
       });
     } finally {
+      processing.hide();
       setSubmitting(false);
     }
   };
@@ -224,10 +240,9 @@ const Onboarding = () => {
       <header className="border-b border-border bg-background">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            <span className="font-serif text-xl font-semibold">{PLATFORM.name}</span>
+            <BrandLogo />
           </Link>
-          <Link to="/admin/login" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link to="/studio-login" className="text-sm text-muted-foreground hover:text-foreground">
             Studio login
           </Link>
         </div>
@@ -249,29 +264,18 @@ const Onboarding = () => {
         )}
 
         {done ? (
-          <div className="rounded-2xl border border-border bg-card p-10 text-center">
-            <PartyPopper className="mx-auto mb-4 h-12 w-12 text-primary" />
-            <h1 className="font-serif text-2xl font-bold">Your studio is live!</h1>
-            <p className="mt-2 text-muted-foreground">
-              Welcome to {PLATFORM.name}. Sign in with the email and password you
-              just set to finish setting up.
-            </p>
-            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild>
-                {/* Scope the session to the new studio before the login page loads,
-                    so the sign-in request carries this studio's slug and finds the
-                    owner account (email is unique per studio, not globally). */}
-                <Link to="/admin/login" onClick={() => studioStore.setSlug(studioSlug)}>
-                  Go to your dashboard
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to={`/s/${studioSlug}`} onClick={() => studioStore.setSlug(studioSlug)}>
-                  View your site
-                </Link>
-              </Button>
-            </div>
-          </div>
+          <SignupSuccess
+            summary={summary}
+            // Without the summary, pick the studio in this browser instead
+            // (email is unique per studio, so sign-in needs to know which).
+            onOpenDashboard={() => {
+              studioStore.setSlug(studioSlug);
+              window.location.href = "/admin/login";
+            }}
+            onOpenSite={() => {
+              window.location.href = `/s/${studioSlug}`;
+            }}
+          />
         ) : step === 1 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
             <h1 className="mb-1 font-serif text-2xl font-bold">Choose your plan</h1>
@@ -296,7 +300,7 @@ const Onboarding = () => {
                 <button
                   key={p.id}
                   onClick={() => setPlan(p.id)}
-                  className={`relative rounded-xl border p-5 text-left transition-colors ${
+                  className={`relative flex flex-col justify-start rounded-xl border p-5 text-left transition-colors ${
                     plan === p.id
                       ? "border-primary ring-2 ring-primary/30"
                       : "border-border hover:border-primary/40"
@@ -304,7 +308,7 @@ const Onboarding = () => {
                 >
                   {p.featured && (
                     <span className="absolute -top-2.5 right-4 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                      Most popular
+                      Adds the online shop
                     </span>
                   )}
                   <div className="flex items-center justify-between">
@@ -323,6 +327,14 @@ const Onboarding = () => {
                       /{cadence === "MONTHLY" ? "mo" : "yr"}
                     </span>
                   </div>
+                  {(() => {
+                    const s = billingMode === "SUBSCRIPTION" ? subscriptionSetup(cfg, p.id, cadence) : null;
+                    return s ? (
+                      <p className="mt-1 text-xs font-medium text-foreground">
+                        {GHS(s.fee)} setup fee covers your first {s.months} months
+                      </p>
+                    ) : null;
+                  })()}
                   <p className="mt-1 text-xs text-muted-foreground">{p.blurb}</p>
                   <ul className="mt-4 space-y-2 border-t border-border pt-4">
                     {p.features.map((f) => (
@@ -354,7 +366,12 @@ const Onboarding = () => {
                   >
                     <span className="font-semibold">Plan subscription</span>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Pay {GHS(price)}/{cadence === "MONTHLY" ? "mo" : "yr"} up front.
+                      {(() => {
+                        const s = subscriptionSetup(cfg, plan, cadence);
+                        return s
+                          ? `${GHS(s.fee)} setup fee for your first ${s.months} months, then ${GHS(price)}/${per}.`
+                          : `Pay ${GHS(price)}/${per} up front.`;
+                      })()}{" "}
                       No cut of your sales.
                     </p>
                   </button>
@@ -370,7 +387,7 @@ const Onboarding = () => {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {commissionPct}% per transaction
                       {setupFee > 0
-                        ? `, plus a one-time ${GHS(setupFee)} setup fee.`
+                        ? `, plus a one-time ${GHS(setupFee)} activation fee.`
                         : `. No upfront plan fee.`}
                     </p>
                   </button>
@@ -490,7 +507,7 @@ const Onboarding = () => {
                 <span className="font-semibold">Due today</span>
                 <span className="font-serif text-xl font-bold text-primary">
                   {GHS(dueToday)}
-                  {!revShare && (
+                  {!revShare && !subSetup && (
                     <span className="text-sm font-normal text-muted-foreground">
                       /{cadence === "MONTHLY" ? "mo" : "yr"}
                     </span>
@@ -501,9 +518,11 @@ const Onboarding = () => {
             <p className="mt-3 text-xs text-muted-foreground">
               {revShare
                 ? setupFee > 0
-                  ? `A one-time ${GHS(setupFee)} setup fee today, then ${commissionPct}% of each customer payment. No recurring plan fee.`
-                  : `No upfront fee — the platform takes ${commissionPct}% of each customer payment.`
-                : `Covers one ${cadence === "MONTHLY" ? "month" : "year"}. You'll renew from your dashboard before it ends — no automatic charges.`}{" "}
+                  ? `A one-time ${GHS(setupFee)} activation fee today, then ${commissionPct}% of each customer payment. No recurring plan fee.`
+                  : `No upfront fee. The platform takes ${commissionPct}% of each customer payment.`
+                : subSetup
+                  ? `The setup fee covers your first ${subSetup.months} months. After that your plan is ${GHS(price)}/${per}, which you renew from your dashboard. There are no automatic charges.`
+                  : `Covers one ${per}. You'll renew from your dashboard before it ends. There are no automatic charges.`}{" "}
               By continuing you agree to our{" "}
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms</a> and{" "}
               <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.
