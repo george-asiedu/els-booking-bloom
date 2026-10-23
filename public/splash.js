@@ -38,7 +38,7 @@
   } else if (looksLikePlatform) {
     mark.className += " splash-plain";
     var zuri = document.createElement("img");
-    zuri.src = "/zuri-icon.png";
+    zuri.src = "/zuri-mark.png";
     zuri.alt = "";
     mark.appendChild(zuri);
     nameEl.textContent = "Zuri Studios";

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import PaystackPop from "@paystack/inline-js";
 import {
-  Sparkles,
   Check,
   Loader2,
   ArrowRight,
@@ -15,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PLATFORM, PLANS, planPrice } from "@/config/platform";
+import { BrandLogo } from "@/components/BrandLogo";
 import { subscriptionSetup } from "@/lib/setupFee";
 import {
   onboardingApi,
@@ -229,8 +229,7 @@ const Onboarding = () => {
       <header className="border-b border-border bg-background">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            <span className="font-serif text-xl font-semibold">{PLATFORM.name}</span>
+            <BrandLogo full />
           </Link>
           <Link to="/admin/login" className="text-sm text-muted-foreground hover:text-foreground">
             Studio login

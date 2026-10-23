@@ -212,7 +212,7 @@ export const FooterSection = () => {
         <div className="container mx-auto px-4 py-14">
           <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
             <div className="col-span-2 md:col-span-2">
-              <BrandLogo full />
+              <BrandLogo stacked />
               <p className="mt-4 max-w-xs text-sm text-muted-foreground">
                 Bookings, payments and a website for every kind of beauty business in Ghana.
               </p>

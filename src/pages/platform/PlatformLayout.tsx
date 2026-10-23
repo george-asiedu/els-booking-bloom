@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard, Activity, Receipt, Timer, Settings } from "lucide-react";
+import { LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard, Activity, Receipt, Timer, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
@@ -32,7 +32,7 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link to="/platform" className="flex items-center gap-2 min-w-0">
-            <LayoutGrid className="h-5 w-5 text-primary shrink-0" />
+            <img src="/zuri-mark.png" alt="" className="h-5 w-auto shrink-0" width={54} height={20} />
             <span className="font-serif text-lg font-semibold truncate">
               Platform Console
             </span>

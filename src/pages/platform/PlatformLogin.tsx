@@ -3,7 +3,7 @@ import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { LayoutGrid, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -67,7 +67,7 @@ const PlatformLogin = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mb-4 flex items-center justify-center gap-2">
-            <LayoutGrid className="h-8 w-8 text-primary" />
+            <img src="/zuri-mark.png" alt="" className="h-7 w-auto" width={76} height={28} />
             <span className="font-serif text-2xl font-semibold">
               Platform Console
             </span>
