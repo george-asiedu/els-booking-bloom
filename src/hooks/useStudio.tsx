@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { studioApi, StudioConfigDTO, StudioFeatureFlags } from "@/lib/api";
+import { studioStore } from "@/lib/apiClient";
 
 interface StudioContextType {
   config: StudioConfigDTO | null;
@@ -31,6 +32,8 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     queryKey: ["studio-config"],
     queryFn: () => studioApi.getConfig(),
     staleTime: 10 * 60 * 1000,
+    // The platform's own pages have no studio to load.
+    enabled: Boolean(studioStore.getSlug()),
   });
 
   // Theming is applied by <StudioTheme/> inside the router, so the platform

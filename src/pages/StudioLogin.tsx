@@ -16,6 +16,9 @@ const LOCAL_HOST = /^(localhost|127\.|\d{1,3}(\.\d{1,3}){3}$)|\.local$/;
 const usesSubdomains = () =>
   Boolean(PLATFORM.rootDomain) && !LOCAL_HOST.test(window.location.hostname);
 
+// How addresses are written in examples: the real domain, even locally.
+const exampleDomain = () => (usesSubdomains() ? PLATFORM.rootDomain : "zuristudios.com");
+
 // Remembered per browser so a returning admin only has to press Continue.
 const LAST_STUDIO_KEY = "zuri_last_studio";
 
@@ -109,7 +112,7 @@ const StudioLogin = () => {
                     setAddress(e.target.value);
                     setError(null);
                   }}
-                  placeholder="yourstudio"
+                  placeholder={usesSubdomains() ? "e.g. glowbyama" : `e.g. glowbyama or glowbyama.${exampleDomain()}`}
                   autoComplete="off"
                   autoCapitalize="none"
                   spellCheck={false}
@@ -129,7 +132,8 @@ const StudioLogin = () => {
                 role={error ? "alert" : undefined}
                 className={error ? "text-sm text-destructive" : "text-sm text-muted-foreground"}
               >
-                {error ?? "It's in the welcome email you got when you set up your studio."}
+                {error ??
+                  `The address your customers use to book you, like glowbyama.${exampleDomain()}. It's also in your welcome email.`}
               </p>
             </div>
             <Button type="submit" className="w-full" disabled={checking}>
