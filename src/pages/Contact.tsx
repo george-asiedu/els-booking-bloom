@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { contactInfoApi, businessHoursApi, galleryApi, ContactInfoDTO } from "@/lib/api";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { useStudioWhatsapp } from "@/hooks/useStudioWhatsapp";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const dayNames = [
   "Sunday",
@@ -237,7 +238,11 @@ const Contact = () => {
           <h2 className="text-2xl font-serif font-bold text-foreground mb-8 text-center">
             Frequently Asked Questions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <Accordion
+            type="single"
+            collapsible
+            className="mx-auto max-w-3xl rounded-lg border border-border bg-card px-5"
+          >
             {/* Only answers the platform itself makes true for every studio.
                 Policies (cancellation fees, walk-ins) differ by business and
                 must not be invented on a studio's behalf. */}
@@ -250,17 +255,15 @@ const Contact = () => {
                 q: "Can I change my appointment?",
                 a: "Yes. Sign in, open your account and choose Reschedule on the booking. We'll confirm the new time.",
               },
-            ].map((faq, index) => (
-              <div
-                key={index}
-                className="bg-card border border-border rounded-lg p-6 animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <h3 className="font-semibold text-foreground mb-2">{faq.q}</h3>
-                <p className="text-sm text-muted-foreground">{faq.a}</p>
-              </div>
+            ].map((faq) => (
+              <AccordionItem key={faq.q} value={faq.q} className="last:border-b-0">
+                <AccordionTrigger className="gap-4 py-5 text-left font-semibold text-foreground hover:no-underline hover:text-primary">
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="pr-8 text-muted-foreground">{faq.a}</AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </div>
       </section>
     </Layout>

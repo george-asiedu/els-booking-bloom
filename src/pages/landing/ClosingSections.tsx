@@ -7,6 +7,7 @@ import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { PLATFORM, PLANS, planPrice, studioUrl, YEARLY_FREE_MONTHS } from "@/config/platform";
 import { cn } from "@/lib/utils";
 import { GHS, FAQ, isWhatsapp, contactHref } from "./content";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { whatsappLink } from "@/lib/whatsapp";
 import { FooterCol } from "./Visuals";
 import { hasNoSetupFee, subscriptionSetup, useOnboardingConfig } from "@/lib/setupFee";
@@ -149,17 +150,20 @@ export const FaqSection = () => {
               Frequently asked questions
             </h2>
           </div>
-          <div className="space-y-4">
-            {FAQ.map((item, i) => (
-              <div
-                key={item.q}
-                className="rounded-2xl border border-border bg-card p-5"
-              >
-                <h3 className="font-semibold">{item.q}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.a}</p>
-              </div>
+          <Accordion
+            type="single"
+            collapsible
+            className="rounded-2xl border border-border bg-card px-5"
+          >
+            {FAQ.map((item) => (
+              <AccordionItem key={item.q} value={item.q} className="last:border-b-0">
+                <AccordionTrigger className="gap-4 py-5 text-left font-semibold hover:no-underline hover:text-primary">
+                  {item.q}
+                </AccordionTrigger>
+                <AccordionContent className="pr-8 text-muted-foreground">{item.a}</AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </div>
       </section>
 
