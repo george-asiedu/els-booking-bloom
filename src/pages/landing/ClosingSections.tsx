@@ -232,7 +232,7 @@ export const FooterSection = () => {
             <FooterCol
               title="Studios"
               links={[
-                { label: "Studio login", to: "/admin/login" },
+                { label: "Studio login", to: "/studio-login" },
                 { label: "Set up your studio", to: "/onboarding" },
               ]}
             />

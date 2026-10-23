@@ -160,6 +160,25 @@ export const maybeResolveCustomDomain = async (): Promise<void> => {
   }
 };
 
+/**
+ * Whether a studio with this address exists and is open, asked of the API
+ * directly so it doesn't depend on (or change) the studio this browser has
+ * stored. Used by the platform's "Sign in to your studio" page.
+ */
+export const checkStudio = async (
+  slug: string,
+): Promise<"ok" | "missing" | "suspended" | "error"> => {
+  try {
+    const res = await fetch(`${API_URL}/studio`, { headers: { "X-Studio-Slug": slug } });
+    if (res.ok) return "ok";
+    if (res.status === 404) return "missing";
+    if (res.status === 403) return "suspended";
+    return "error";
+  } catch {
+    return "error";
+  }
+};
+
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;

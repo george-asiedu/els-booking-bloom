@@ -80,6 +80,7 @@ const PlatformBilling = lazy(() => import("./pages/platform/PlatformBilling"));
 const PlatformJobs = lazy(() => import("./pages/platform/PlatformJobs"));
 const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"));
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
+const StudioLogin = lazy(() => import("./pages/StudioLogin"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
@@ -240,6 +241,7 @@ const App = () => (
               
               {/* Admin Routes — one guard + persistent sidebar for all */}
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/studio-login" element={<StudioLogin />} />
               <Route path="/admin" element={<AdminOutlet />}>
                 <Route index element={<AdminAppointments />} />
                 <Route path="services" element={<AdminServices />} />

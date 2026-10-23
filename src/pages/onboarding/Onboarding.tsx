@@ -231,7 +231,7 @@ const Onboarding = () => {
           <Link to="/" className="flex items-center gap-2">
             <BrandLogo />
           </Link>
-          <Link to="/admin/login" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link to="/studio-login" className="text-sm text-muted-foreground hover:text-foreground">
             Studio login
           </Link>
         </div>

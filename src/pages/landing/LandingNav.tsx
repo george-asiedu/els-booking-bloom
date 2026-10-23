@@ -46,7 +46,7 @@ export const NavSection = () => {
             ))}
             <ThemeToggle />
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/admin/login">Studio login</Link>
+              <Link to="/studio-login">Studio login</Link>
             </Button>
             <Button size="sm" className="group" asChild>
               <Link to="/onboarding">
@@ -80,7 +80,7 @@ export const NavSection = () => {
               ))}
               <div className="mt-2 flex flex-col gap-2">
                 <Button variant="outline" asChild>
-                  <Link to="/admin/login">Studio login</Link>
+                  <Link to="/studio-login">Studio login</Link>
                 </Button>
                 <Button asChild>
                   <Link to="/onboarding">Set up your studio</Link>
