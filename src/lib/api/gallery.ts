@@ -78,7 +78,19 @@ export const galleryApi = {
     return normalizeGalleryImage(res.data);
   },
 
-  async remove(id: string): Promise<void> {
+  async update(
+    id: string,
+    input: { title?: string; category?: string; active?: boolean },
+  ): Promise<GalleryImageDTO> {
+    const res = await apiRequest<Envelope<RawGalleryImage>>(`/gallery/${id}`, {
+      method: "PATCH",
+      auth: true,
+      body: input,
+    });
+    return normalizeGalleryImage(res.data);
+  },
+
+    async remove(id: string): Promise<void> {
     await apiRequest<Envelope<null>>(`/gallery/${id}`, {
       method: "DELETE",
       auth: true,

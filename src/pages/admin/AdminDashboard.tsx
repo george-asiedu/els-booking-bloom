@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
+import { DashboardCharts } from "@/components/admin/DashboardCharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -477,6 +478,8 @@ const AdminDashboard = () => {
                 </Card>
               </div>
             </div>
+
+            <DashboardCharts appointments={appointments} />
 
             {/* Recent payments */}
             <Card>
