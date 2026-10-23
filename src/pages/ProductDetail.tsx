@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -32,6 +33,7 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const processing = useProcessing();
   const queryClient = useQueryClient();
 
   const [qty, setQty] = useState(1);
@@ -129,6 +131,8 @@ const ProductDetail = () => {
     }
     try {
       setRedirecting(true);
+      // Stays up until the browser leaves for Paystack's checkout page.
+      processing.show(PROCESSING.preparing);
       const res = await ordersApi.guestCheckout({
         items: [{ productId: id, quantity: qty }],
         name: guest.name.trim(),
@@ -142,6 +146,7 @@ const ProductDetail = () => {
       window.location.href = res.authorization_url;
     } catch (e) {
       setRedirecting(false);
+      processing.hide();
       toast({
         variant: "destructive",
         title: "Couldn't start checkout",

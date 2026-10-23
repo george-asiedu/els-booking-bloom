@@ -10,6 +10,7 @@ import {
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { celebrate } from "@/lib/confetti";
+import { PROCESSING, ProcessingPanel } from "@/components/ProcessingOverlay";
 
 export type PaymentResultStatus =
   | "verifying"
@@ -82,15 +83,9 @@ export const PaymentResultScreen = ({
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-md animate-fade-in text-center">
             {status === "verifying" ? (
-              <>
-                <Loader2 className="mx-auto mb-6 h-10 w-10 animate-spin text-primary" />
-                <h1 className="mb-2 font-serif text-2xl font-bold text-foreground">
-                  Confirming your payment…
-                </h1>
-                <p className="text-muted-foreground">
-                  Please wait while we verify your transaction.
-                </p>
-              </>
+              <div role="status" aria-live="polite" className="flex min-h-[60vh] items-center justify-center">
+                <ProcessingPanel {...PROCESSING.confirming} />
+              </div>
             ) : status === "success" ? (
               <>
                 <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useSearchParams } from "react-router-dom";
 import PaystackPop from "@paystack/inline-js";
 import {
@@ -36,6 +37,7 @@ const GHS = formatGHS;
 const Onboarding = () => {
   const [params] = useSearchParams();
   const { toast } = useToast();
+  const processing = useProcessing();
 
   const [step, setStep] = useState(1);
   const [plan, setPlan] = useState<Plan>(
@@ -171,6 +173,7 @@ const Onboarding = () => {
 
   const pay = async () => {
     setSubmitting(true);
+    processing.show(PROCESSING.creatingStudio);
     try {
       const res = await onboardingApi.start({
         name: name.trim(),
@@ -194,6 +197,7 @@ const Onboarding = () => {
         throw new Error("Couldn't start checkout. Please try again.");
       }
 
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(res.accessCode, {
         onSuccess: () => {
@@ -220,6 +224,7 @@ const Onboarding = () => {
         description: error instanceof Error ? error.message : "Please try again.",
       });
     } finally {
+      processing.hide();
       setSubmitting(false);
     }
   };

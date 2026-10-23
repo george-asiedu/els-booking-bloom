@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
@@ -39,6 +40,7 @@ const Account = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const processing = useProcessing();
   const initialTab = searchParams.get("tab") || "appointments";
   const [payingId, setPayingId] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState<AppointmentDTO | null>(
@@ -57,6 +59,7 @@ const Account = () => {
     const type = apt.payment.type === "partial" ? "PARTIAL" : "FULL";
     try {
       setPayingId(apt.id);
+      processing.show(PROCESSING.preparing);
       const init = await paymentsApi.initialize(apt.id, type);
       setPayAppt({ id: apt.id, type });
       setPaymentTarget({
@@ -76,6 +79,7 @@ const Account = () => {
           error instanceof Error ? error.message : "Please try again.",
       });
     } finally {
+      processing.hide();
       setPayingId(null);
     }
   };

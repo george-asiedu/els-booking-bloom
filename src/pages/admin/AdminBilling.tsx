@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PaystackPop from "@paystack/inline-js";
 import { Loader2, CreditCard, Check, Crown } from "lucide-react";
@@ -16,6 +17,7 @@ const GHS = formatGHS;
 const AdminBilling = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const processing = useProcessing();
   const [cadence, setCadence] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const [busy, setBusy] = useState(false);
 
@@ -32,15 +34,21 @@ const AdminBilling = () => {
       return;
     }
     setBusy(true);
+    processing.show(PROCESSING.preparing);
     try {
       const { reference, accessCode } = await studioBillingApi.startChange({
         plan,
         cadence,
       });
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(accessCode, {
         onSuccess: async () => {
           try {
+            processing.show({
+              title: "Updating your plan",
+              message: "Your payment went through. We're applying it to your plan now.",
+            });
             await studioBillingApi.applyChange({ reference, plan, cadence });
             queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
@@ -55,6 +63,7 @@ const AdminBilling = () => {
               description: err instanceof Error ? err.message : "Please contact support.",
             });
           } finally {
+            processing.hide();
             setBusy(false);
           }
         },
@@ -65,6 +74,7 @@ const AdminBilling = () => {
         },
       });
     } catch (error) {
+      processing.hide();
       setBusy(false);
       toast({
         variant: "destructive",
@@ -76,12 +86,18 @@ const AdminBilling = () => {
 
   const renew = async () => {
     setBusy(true);
+    processing.show(PROCESSING.preparing);
     try {
       const { reference, accessCode } = await studioBillingApi.startRenewal();
+      processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(accessCode, {
         onSuccess: async () => {
           try {
+            processing.show({
+              title: "Updating your plan",
+              message: "Your payment went through. We're applying it to your plan now.",
+            });
             await studioBillingApi.applyRenewal({ reference });
             queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
@@ -96,6 +112,7 @@ const AdminBilling = () => {
               description: err instanceof Error ? err.message : "Please contact support.",
             });
           } finally {
+            processing.hide();
             setBusy(false);
           }
         },
@@ -106,6 +123,7 @@ const AdminBilling = () => {
         },
       });
     } catch (error) {
+      processing.hide();
       setBusy(false);
       toast({
         variant: "destructive",
