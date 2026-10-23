@@ -49,6 +49,25 @@ export interface OnboardingStartResult {
   slug?: string;
 }
 
+// What the "your studio is live" screen shows; sent once the studio exists.
+export interface SignupSummary {
+  reference: string;
+  studioName: string;
+  slug: string;
+  websiteUrl: string;
+  dashboardUrl: string;
+  plan: Plan;
+  cadence: Cadence;
+  billingMode: BillingMode;
+  amountPaid: number | null;
+  currency: string;
+  paidAt: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  coverageMonths: number | null;
+  commissionPercent: number | null;
+}
+
 export const onboardingApi = {
   async config(): Promise<OnboardingConfig> {
     const res = await apiRequest<Envelope<OnboardingConfig>>("/onboarding/config");
@@ -74,8 +93,10 @@ export const onboardingApi = {
 
   async status(
     reference: string,
-  ): Promise<{ status: string; slug?: string }> {
-    const res = await apiRequest<Envelope<{ status: string; slug?: string }>>(
+  ): Promise<{ status: string; slug?: string; summary?: SignupSummary | null }> {
+    const res = await apiRequest<
+      Envelope<{ status: string; slug?: string; summary?: SignupSummary | null }>
+    >(
       `/onboarding/status?reference=${encodeURIComponent(reference)}`,
     );
     return res.data;

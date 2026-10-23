@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SignupSuccess } from "@/components/onboarding/SignupSuccess";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useSearchParams } from "react-router-dom";
 import PaystackPop from "@paystack/inline-js";
@@ -8,7 +9,6 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
-  PartyPopper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { subscriptionSetup } from "@/lib/setupFee";
 import {
   onboardingApi,
+  type SignupSummary,
   Plan,
   Cadence,
   BillingMode,
@@ -64,6 +65,7 @@ const Onboarding = () => {
 
   const [reference, setReference] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [summary, setSummary] = useState<SignupSummary | null>(null);
   const [studioSlug, setStudioSlug] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -147,6 +149,7 @@ const Onboarding = () => {
         if (res.status === "PROVISIONED") {
           if (pollRef.current) clearInterval(pollRef.current);
           setStudioSlug(res.slug ?? slug);
+          setSummary(res.summary ?? null);
           setDone(true);
         }
       } catch {
@@ -190,6 +193,9 @@ const Onboarding = () => {
       // Free revenue-share signup (no setup fee) — provisioned immediately.
       if (res.provisioned) {
         setStudioSlug(res.slug ?? slug);
+        // The studio exists already; fetch its summary for the welcome screen.
+        const ready = await onboardingApi.status(res.reference).catch(() => null);
+        setSummary(ready?.summary ?? null);
         setDone(true);
         return;
       }
@@ -258,29 +264,18 @@ const Onboarding = () => {
         )}
 
         {done ? (
-          <div className="rounded-2xl border border-border bg-card p-10 text-center">
-            <PartyPopper className="mx-auto mb-4 h-12 w-12 text-primary" />
-            <h1 className="font-serif text-2xl font-bold">Your studio is live!</h1>
-            <p className="mt-2 text-muted-foreground">
-              Welcome to {PLATFORM.name}. Sign in with the email and password you
-              just set to finish setting up.
-            </p>
-            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild>
-                {/* Scope the session to the new studio before the login page loads,
-                    so the sign-in request carries this studio's slug and finds the
-                    owner account (email is unique per studio, not globally). */}
-                <Link to="/admin/login" onClick={() => studioStore.setSlug(studioSlug)}>
-                  Go to your dashboard
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to={`/s/${studioSlug}`} onClick={() => studioStore.setSlug(studioSlug)}>
-                  View your site
-                </Link>
-              </Button>
-            </div>
-          </div>
+          <SignupSuccess
+            summary={summary}
+            // Without the summary, pick the studio in this browser instead
+            // (email is unique per studio, so sign-in needs to know which).
+            onOpenDashboard={() => {
+              studioStore.setSlug(studioSlug);
+              window.location.href = "/admin/login";
+            }}
+            onOpenSite={() => {
+              window.location.href = `/s/${studioSlug}`;
+            }}
+          />
         ) : step === 1 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
             <h1 className="mb-1 font-serif text-2xl font-bold">Choose your plan</h1>
