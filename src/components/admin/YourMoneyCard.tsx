@@ -1,19 +1,11 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { ArrowRight, Landmark, Loader2, Smartphone } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { studioMoneyApi } from "@/lib/api";
 import { formatGHS } from "@/lib/currency";
-
-// Paystack's Mobile Money codes, in the words people use.
-const PROVIDER: Record<string, string> = {
-  MTN: "MTN Mobile Money",
-  VOD: "Telecel Cash",
-  ATL: "AirtelTigo Money",
-  TGO: "AirtelTigo Money",
-};
 
 const day = (iso: string | null | undefined) => (iso ? format(parseISO(iso), "EEE d MMM") : null);
 
@@ -38,10 +30,6 @@ export const YourMoneyCard = () => {
   });
 
   const account = data?.payoutAccount;
-  const accountName = account
-    ? `${(account.provider && PROVIDER[account.provider]) || account.provider || "your account"}${account.number ? ` ${account.number}` : ""}`
-    : null;
-  const AccountIcon = account?.type === "bank" ? Landmark : Smartphone;
 
   return (
     <Card>
@@ -90,19 +78,12 @@ export const YourMoneyCard = () => {
               </div>
             </div>
 
-            {account ? (
-              <div className="flex items-start gap-3 rounded-lg bg-muted/50 px-4 py-3 text-sm">
-                <AccountIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                <p className="text-muted-foreground">
-                  Customer payments go to your Paystack account, and Paystack sends them to{" "}
-                  <span className="font-medium text-foreground">{accountName}</span>
-                  {account.name ? ` (${account.name})` : ""}, usually the next working day, after
-                  its fee.
-                  {data.commissionPercent ? ` Zuri Studios keeps ${data.commissionPercent}% of each payment.` : ""}
-                  {data.payoutsError ? " We couldn't load your payouts from Paystack just now; refresh to try again." : ""}
-                </p>
-              </div>
-            ) : (
+            {data.payoutsError ? (
+              <p className="text-xs text-muted-foreground">
+                We couldn't load your payouts just now. Refresh to try again.
+              </p>
+            ) : null}
+            {!account && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3 text-sm">
                 <p className="text-muted-foreground">
                   Add the Mobile Money or bank account you want to be paid into, so customers can
