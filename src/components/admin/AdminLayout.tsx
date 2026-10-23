@@ -215,7 +215,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         )}
 
         {/* Main Content: the only vertical scroll area */}
-        <main className="min-w-0 flex-1 p-4 md:p-6 overflow-y-auto">
+        {/* relative: absolutely positioned bits inside (screen-reader-only
+            text, chart tooltips) position against this scrolling area and are
+            clipped by it, instead of stretching the whole page past the end. */}
+        <main className="relative min-w-0 flex-1 p-4 md:p-6 overflow-y-auto">
           {children}
         </main>
       </div>
