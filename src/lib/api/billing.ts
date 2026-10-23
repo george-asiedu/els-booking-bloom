@@ -11,6 +11,22 @@ export interface StudioBillingDTO {
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   lapsed?: boolean;
+  // Only on the reply to a renewal: what was just paid for.
+  renewal?: RenewalReceiptDTO | null;
+}
+
+export interface RenewalReceiptDTO {
+  reference: string;
+  plan: "STANDARD" | "PREMIUM";
+  cadence: "MONTHLY" | "YEARLY";
+  amount: number;
+  currency: string;
+  paidAt: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  // True: the plan had lapsed and this brought the studio back. Null when
+  // the payment had already been applied (e.g. by the webhook) first.
+  wasLapsed: boolean | null;
 }
 
 export const studioBillingApi = {

@@ -7,7 +7,8 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { studioBillingApi } from "@/lib/api";
+import { studioBillingApi, type RenewalReceiptDTO } from "@/lib/api";
+import { RenewalSuccessDialog } from "@/components/admin/RenewalSuccessDialog";
 import { PLANS, planPrice } from "@/config/platform";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
@@ -20,6 +21,7 @@ const AdminBilling = () => {
   const processing = useProcessing();
   const [cadence, setCadence] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const [busy, setBusy] = useState(false);
+  const [renewed, setRenewed] = useState<{ receipt: RenewalReceiptDTO; wasLapsed: boolean } | null>(null);
 
   const { data: billing, isLoading } = useQuery({
     queryKey: ["studio-billing"],
@@ -98,13 +100,23 @@ const AdminBilling = () => {
               title: "Updating your plan",
               message: "Your payment went through. We're applying it to your plan now.",
             });
-            await studioBillingApi.applyRenewal({ reference });
+            const wasLapsed = Boolean(billing?.lapsed);
+            const updated = await studioBillingApi.applyRenewal({ reference });
             queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
-            toast({
-              title: "Renewed",
-              description: "Your plan has been extended for another period.",
-            });
+            if (updated.renewal) {
+              setRenewed({
+                receipt: updated.renewal,
+                // The server knows when it applied the payment itself; if the
+                // webhook got there first, go by what this page showed.
+                wasLapsed: updated.renewal.wasLapsed ?? wasLapsed,
+              });
+            } else {
+              toast({
+                title: "Renewed",
+                description: "Your plan has been extended for another period.",
+              });
+            }
           } catch (err) {
             toast({
               variant: "destructive",
@@ -282,6 +294,11 @@ const AdminBilling = () => {
           </>
         )}
       </div>
+      <RenewalSuccessDialog
+        receipt={renewed?.receipt ?? null}
+        wasLapsed={renewed?.wasLapsed ?? false}
+        onClose={() => setRenewed(null)}
+      />
     </AdminLayout>
   );
 };
