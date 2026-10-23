@@ -20,10 +20,9 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 340 20% 15%;
 
-    /* Zuri pink. Buttons and links carry text, so they use a deeper shade
-       (#DB0049) that stays readable: 5.1:1 with white text, 4.9:1 on the
-       page. The logo's own pink (#FF3175, --rose) is for things without text. */
-    --primary: 340 100% 43%;
+    /* Zuri cranberry pink (#DB5079) for buttons and links. The logo's own
+       pink (#FF3175, --rose) is for things without text. */
+    --primary: 342 66% 59%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 340 20% 95%;
