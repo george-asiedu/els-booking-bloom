@@ -32,9 +32,8 @@
       img.src = studio.logoUrl;
       img.alt = "";
       mark.appendChild(img);
-    } else {
-      mark.textContent = studio.name.trim().charAt(0).toUpperCase();
     }
+    // No logo: show just the name, never a made-up mark.
   } else if (looksLikePlatform) {
     mark.className += " splash-plain";
     var zuri = document.createElement("img");

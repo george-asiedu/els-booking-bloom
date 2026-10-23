@@ -42,6 +42,7 @@ const Account = lazy(() => import("./pages/account/Account"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
 const AdminGallery = lazy(() => import("./pages/admin/AdminGallery"));
 const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
@@ -243,7 +244,8 @@ const App = () => (
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/studio-login" element={<StudioLogin />} />
               <Route path="/admin" element={<AdminOutlet />}>
-                <Route index element={<AdminAppointments />} />
+                <Route index element={<AdminDashboard />} />
+                <Route path="appointments" element={<AdminAppointments />} />
                 <Route path="services" element={<AdminServices />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="gallery" element={<AdminGallery />} />

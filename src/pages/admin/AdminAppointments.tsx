@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
@@ -135,7 +136,11 @@ const statusConfig = {
 };
 
 const AdminAppointments = () => {
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  // The dashboard links here with ?status=pending etc.
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<string>(
+    () => searchParams.get("status") ?? "all",
+  );
   const [pendingDelete, setPendingDelete] = useState<AppointmentDTO | null>(
     null,
   );

@@ -1,29 +1,18 @@
 import { cn } from "@/lib/utils";
 
 /**
- * A studio's mark: its uploaded logo, or else the first letter of its name in
- * the studio's colour. Used wherever the studio identifies itself (nav,
- * footer, loading screen).
+ * A studio's logo, where the studio identifies itself (nav, footer, admin
+ * header, sign-in). Nothing at all when the studio hasn't uploaded one: a
+ * made-up mark would look like a logo the studio never chose.
  */
 export const StudioMark = ({
-  name,
   logoUrl,
   className,
 }: {
-  name: string;
+  name?: string;
   logoUrl: string | null | undefined;
   className?: string;
 }) =>
   logoUrl ? (
     <img src={logoUrl} alt="" className={cn("h-8 w-8 shrink-0 rounded object-cover", className)} />
-  ) : (
-    <span
-      aria-hidden
-      className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-serif text-base font-semibold text-primary-foreground",
-        className,
-      )}
-    >
-      {name.trim().charAt(0).toUpperCase() || "·"}
-    </span>
-  );
+  ) : null;

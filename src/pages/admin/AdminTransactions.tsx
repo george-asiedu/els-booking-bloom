@@ -453,7 +453,7 @@ const AdminTransactions = () => {
 
               {detailQuery.data.entry.appointmentId ? (
                 <a
-                  href="/admin"
+                  href="/admin/appointments"
                   className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                 >
                   View bookings <ExternalLink className="h-3 w-3" aria-hidden />
