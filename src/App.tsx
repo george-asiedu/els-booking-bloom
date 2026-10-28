@@ -30,6 +30,7 @@ const Services = lazy(() => import("./pages/Services"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Book = lazy(() => import("./pages/Book"));
 const Shop = lazy(() => import("./pages/Shop"));
+const ShopHome = lazy(() => import("./pages/ShopHome"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
 const OrderCallback = lazy(() => import("./pages/OrderCallback"));
@@ -117,7 +118,7 @@ const RootRoute = () => {
   const { features, isLoading } = useStudio();
   if (!studioStore.getSlug()) return <PlatformLanding />;
   // A Zuri Storefront (shop only) opens on its shop.
-  if (!isLoading && features.booking === false) return <Shop />;
+  if (!isLoading && features.booking === false) return <ShopHome />;
   return <Index />;
 };
 
@@ -211,6 +212,14 @@ const App = () => (
               <Route path="/book" element={<Book />} />
               <Route
                 path="/shop"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <ShopHome />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/shop/products"
                 element={
                   <FeatureRoute feature="commerce">
                     <Shop />

@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Layout } from "@/components/layout/Layout";
+import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { productsApi, cartApi, ordersApi, commerceApi } from "@/lib/api";

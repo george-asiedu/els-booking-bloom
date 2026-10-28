@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Layout } from "@/components/layout/Layout";
+import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { cn } from "@/lib/utils";
 import { cartApi, commerceApi, ordersApi, PaymentTarget } from "@/lib/api";

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Layout } from "@/components/layout/Layout";
+import { Layout as StudioLayout } from "@/components/layout/Layout";
+import { ShopLayout } from "@/components/shop/ShopLayout";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
@@ -41,7 +42,10 @@ const Account = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const processing = useProcessing();
-  const initialTab = searchParams.get("tab") || "appointments";
+  // A Zuri Storefront has no bookings: its customers see orders first.
+  const booking = features.booking !== false;
+  const Layout = booking ? StudioLayout : ShopLayout;
+  const initialTab = searchParams.get("tab") || (booking ? "appointments" : "orders");
   const [payingId, setPayingId] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState<AppointmentDTO | null>(
     null,
@@ -95,7 +99,7 @@ const Account = () => {
     queryFn: ({ pageParam }) => appointmentsApi.listMinePage(pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
-    enabled: !!user,
+    enabled: !!user && booking,
   });
   const appointments = appointmentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const appointmentsLoading = appointmentsQuery.isLoading;
@@ -250,6 +254,7 @@ const Account = () => {
             </Card>
             )}
 
+            {booking && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -266,6 +271,7 @@ const Account = () => {
                 </p>
               </CardContent>
             </Card>
+            )}
 
             {features.referrals && (
             <Card>
@@ -294,10 +300,12 @@ const Account = () => {
 
           <Tabs defaultValue={initialTab} className="space-y-6">
             <TabsList className="flex w-full flex-wrap h-auto sm:inline-flex sm:w-auto sm:flex-nowrap">
-              <TabsTrigger value="appointments">
-                <Calendar className="h-4 w-4 mr-2" />
-                Appointments
-              </TabsTrigger>
+              {booking && (
+                <TabsTrigger value="appointments">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Appointments
+                </TabsTrigger>
+              )}
               {features.commerce && (
                 <TabsTrigger value="orders">
                   <Package className="h-4 w-4 mr-2" />

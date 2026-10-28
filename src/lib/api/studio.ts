@@ -25,6 +25,9 @@ export interface StudioFeatureCard {
 export interface StudioConfigDTO {
   name: string;
   slug: string;
+  // What the shop sells (lib/shopCategories): picks the shop design.
+  shopCategory?: string | null;
+  plan?: string;
   branding: {
     logoUrl: string | null;
     primaryColor: string | null;
@@ -75,6 +78,8 @@ export interface StudioContentDTO {
   // lib/studioTemplates: the kind of studio (default wording) and the layout.
   studioType?: string | null;
   siteTemplate?: string | null;
+  // Saved on the studio; sent with content updates.
+  shopCategory?: string | null;
 }
 
 export interface BrandingUpdateInput {

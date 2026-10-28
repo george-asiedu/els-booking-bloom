@@ -80,7 +80,7 @@ const ColorField = ({
 const AdminAppearance = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { name: studioName } = useStudio();
+  const { name: studioName, features } = useStudio();
   // ?tab=content opens straight onto the landing-page editor.
   const [searchParams] = useSearchParams();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -322,7 +322,7 @@ const AdminAppearance = () => {
               </div>
             ) : (
               <div className="space-y-6">
-              <WebsiteDesignPicker value={contentForm} onChange={setContentForm} />
+              <WebsiteDesignPicker value={contentForm} onChange={setContentForm} shop={features.booking === false} />
               <LandingContentEditor
                 value={contentForm}
                 onChange={setContentForm}

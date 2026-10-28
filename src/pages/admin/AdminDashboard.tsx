@@ -30,6 +30,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
 import { YourMoneyCard } from "@/components/admin/YourMoneyCard";
+import { ShopDashboard } from "@/components/admin/ShopDashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -147,7 +148,19 @@ const Stat = ({
 
 // ---- page ------------------------------------------------------------------
 
+// A Zuri Storefront has no bookings: it gets the shop dashboard instead.
 const AdminDashboard = () => {
+  const { features } = useStudio();
+  if (features.booking === false)
+    return (
+      <AdminLayout>
+        <ShopDashboard />
+      </AdminLayout>
+    );
+  return <StudioDashboard />;
+};
+
+const StudioDashboard = () => {
   const { name: studioName, config, features } = useStudio();
   const now = new Date();
   const today = startOfDay(now);

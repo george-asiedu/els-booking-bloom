@@ -16,6 +16,7 @@ import {
   type SiteTemplate,
   type StudioType,
 } from "@/lib/studioTemplates";
+import { SHOP_CATEGORIES } from "@/lib/shopCategories";
 import { cn } from "@/lib/utils";
 
 // A tiny drawing of each layout, so owners can tell them apart at a glance.
@@ -50,10 +51,41 @@ const Thumb = ({ t }: { t: SiteTemplate }) => (
 export const WebsiteDesignPicker = ({
   value,
   onChange,
+  shop = false,
 }: {
   value: StudioContentDTO;
   onChange: (next: StudioContentDTO) => void;
+  // A Zuri Storefront picks what it sells; the shop design follows from that.
+  shop?: boolean;
 }) => {
+  if (shop)
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Your shop</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Tell us what you sell and we'll fill in wording that fits. Anything you write below replaces it.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-sm space-y-2">
+            <Label htmlFor="shop-category">What do you sell?</Label>
+            <Select value={value.shopCategory ?? "other"} onValueChange={(v) => onChange({ ...value, shopCategory: v })}>
+              <SelectTrigger id="shop-category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SHOP_CATEGORIES.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.emoji} {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+    );
   const type = studioTypeOf(value.studioType);
   const template = templateOf(value.siteTemplate);
   return (

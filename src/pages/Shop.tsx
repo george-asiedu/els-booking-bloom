@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Layout } from "@/components/layout/Layout";
+import { useStudio } from "@/hooks/useStudio";
+import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { Reveal } from "@/components/Reveal";
 import { ToastAction } from "@/components/ui/toast";
@@ -36,7 +37,12 @@ const Shop = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [addingId, setAddingId] = useState<string | null>(null);
-  const [activeCat, setActiveCat] = useState("all");
+  const { features } = useStudio();
+  const studioShop = features.booking !== false;
+  const [params] = useSearchParams();
+  const [activeCat, setActiveCat] = useState(() => params.get("category") ?? "all");
+  const query = (params.get("q") ?? "").trim().toLowerCase();
+  useEffect(() => setActiveCat(params.get("category") ?? "all"), [params]);
 
   const { data: commerce } = useQuery({
     queryKey: ["commerce-settings"],
@@ -137,8 +143,9 @@ const Shop = () => {
     ...orderedSlugs.filter((s) => present.includes(s)),
     ...present.filter((s) => !orderedSlugs.includes(s)),
   ];
-  const filtered =
-    activeCat === "all" ? products : products.filter((p) => p.category === activeCat);
+  const filtered = (activeCat === "all" ? products : products.filter((p) => p.category === activeCat)).filter(
+    (p) => !query || p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query),
+  );
 
   // Shop turned off by the admin.
   if (commerce && !commerce.enabled) {
@@ -167,8 +174,12 @@ const Shop = () => {
     <Layout>
       <StudioPageHero
         eyebrow="Shop"
-        title="Products we use and sell"
-        description="The products we use in the studio, available to buy online."
+        title={studioShop ? "Products we use and sell" : "All products"}
+        description={
+          studioShop
+            ? "The products we use in the studio, available to buy online."
+            : "Browse everything in store. Pay by Mobile Money or card."
+        }
         image={heroImg}
         variant="commerce"
       />
