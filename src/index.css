@@ -189,12 +189,32 @@ All colors MUST be HSL.
   opacity: 1;
   transform: none;
 }
+
+/* Landing hero: the photo settles from a slight zoom while the words rise
+   in, one after another. Runs once on load. */
+.hero-zoom {
+  animation: hero-zoom 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hero-rise {
+  animation: hero-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes hero-zoom {
+  from { transform: scale(1.08); }
+  to { transform: scale(1); }
+}
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .reveal-in {
+  .reveal-in,
+  .hero-zoom,
+  .hero-rise {
     opacity: 1;
     transform: none;
     transition: none;
+    animation: none;
   }
 }
 

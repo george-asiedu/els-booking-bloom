@@ -147,7 +147,7 @@ export const FaqSection = () => {
     <>
       {/* ---------------------------------------------------------------- FAQ */}
       <section className="py-20 md:py-28">
-        <div className="container mx-auto max-w-3xl px-4">
+        <div className="container mx-auto max-w-5xl px-4">
           <div>
             <h2 className="mb-10 text-center font-serif text-3xl font-semibold md:text-4xl">
               Frequently asked questions
@@ -178,7 +178,7 @@ export const FooterSection = () => {
   return (
     <>
       {/* ------------------------------------------------------------- Footer */}
-      <footer className="border-t border-border bg-card">
+      <footer className="border-t border-border bg-foreground text-background [&_.text-foreground]:text-background [&_.text-muted-foreground]:text-background/70 dark:bg-card dark:text-foreground dark:[&_.text-foreground]:text-foreground dark:[&_.text-muted-foreground]:text-muted-foreground [&_.border-border]:border-background/15 dark:[&_.border-border]:border-border">
         <div className="container mx-auto px-4 py-14">
           <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
             <div className="col-span-2 md:col-span-2">

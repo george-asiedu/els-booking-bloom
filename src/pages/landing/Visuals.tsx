@@ -32,73 +32,64 @@ export const StorefrontMockup = ({
         </div>
       </div>
 
-      <div className="p-5">
-        {/* Studio header */}
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-serif text-lg font-semibold text-white"
-            style={{ backgroundColor: brand }}
-          >
-            {studio.name.charAt(0)}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate font-serif text-base font-semibold leading-tight">
-              {studio.name}
-            </p>
-            {/* No rating here: these are real studio names, and an
-                invented score would read as a fact about them. */}
-            <p className="mt-0.5 text-xs text-muted-foreground">Booking online now</p>
-          </div>
-        </div>
-
-        {/* Service chips */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {studio.tags.map((t, i) => (
+      {/* Hero: photo, studio name, headline and the booking button, like a
+          studio's real homepage. */}
+      <div className="relative isolate overflow-hidden">
+        <img src={studio.gallery[0]} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+        <div className="flex items-center justify-between px-4 py-3 text-white">
+          <span className="flex items-center gap-2">
             <span
-              key={t}
-              className="rounded-full px-3 py-1 text-xs font-medium"
-              style={
-                i === 0
-                  ? { backgroundColor: brand, color: "#fff" }
-                  : { backgroundColor: brandSoft, color: brand }
-              }
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold"
+              style={{ backgroundColor: brand }}
             >
-              {t}
+              {studio.name.charAt(0)}
             </span>
-          ))}
+            <span className="truncate font-serif text-sm font-semibold">{studio.name}</span>
+          </span>
+          <span className="hidden gap-3 text-[10px] text-white/80 sm:flex">
+            <span>Services</span>
+            <span>Gallery</span>
+            <span>Contact</span>
+          </span>
         </div>
-
-        {/* Featured service */}
-        <div className="mt-4 rounded-xl border border-border p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Featured
-              </p>
-              <p className="mt-0.5 font-semibold">{studio.featured.name}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {GHS(studio.featured.price)} · {studio.featured.duration}
-              </p>
-            </div>
-          </div>
-          <button
-            className="mt-3 w-full rounded-lg py-2 text-sm font-semibold text-white transition-transform duration-200 hover:brightness-105"
+        <div className="px-4 pb-6 pt-4 text-white">
+          <p className="max-w-[14rem] font-serif text-xl font-semibold leading-tight">
+            Book your next {studio.tags[0].toLowerCase()} appointment in a minute.
+          </p>
+          <span
+            className="mt-3 inline-block rounded-full px-3.5 py-1.5 text-[11px] font-semibold text-white"
             style={{ backgroundColor: brand }}
           >
-            Book appointment
-          </button>
+            Book an appointment
+          </span>
         </div>
+      </div>
 
-        {/* Gallery */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
+      {/* Why choose us */}
+      <div className="grid grid-cols-3 gap-2 border-b border-border px-4 py-3 text-center text-[10px] font-medium">
+        {["Skilled team", "Clean and safe", "On time"].map((r) => (
+          <span key={r} className="flex flex-col items-center gap-1">
+            <span className="h-5 w-5 rounded-full" style={{ backgroundColor: brandSoft, boxShadow: `inset 0 0 0 1.5px ${brand}` }} />
+            {r}
+          </span>
+        ))}
+      </div>
+
+      {/* Featured services */}
+      <div className="p-4">
+        <p className="text-center font-serif text-sm font-semibold">Our featured services</p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {studio.gallery.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt=""
-              loading="lazy"
-              className="aspect-square w-full rounded-lg object-cover"
-            />
+            <div key={i} className="overflow-hidden rounded-lg border border-border">
+              <img src={src} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+              <div className="p-1.5">
+                <p className="truncate text-[10px] font-semibold">{studio.tags[i] ?? studio.featured.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {GHS(i === 0 ? studio.featured.price : studio.featured.price - 40 * i)}
+                </p>
+              </div>
+            </div>
           ))}
         </div>
       </div>

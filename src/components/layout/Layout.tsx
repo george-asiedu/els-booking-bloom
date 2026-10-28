@@ -1,3 +1,4 @@
+import { BackToTop } from "@/components/BackToTop";
 import { ReactNode } from "react";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
@@ -27,6 +28,7 @@ export const Layout = ({ children, heroOverlay = false }: LayoutProps) => {
       <Footer />
       <MobileBookingBar />
       <WhatsappChatButton />
+      <BackToTop />
       <StudioPreviewExit />
     </div>
   );

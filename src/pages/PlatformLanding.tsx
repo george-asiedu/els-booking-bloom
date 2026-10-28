@@ -3,6 +3,7 @@
 // owns whatever state it needs.
 import { NavSection } from "./landing/LandingNav";
 import { useHideSplashWhen } from "@/lib/splash";
+import { BackToTop } from "@/components/BackToTop";
 import { StorefrontsSection } from "./landing/ShowcaseSections";
 import { LoyaltyReviewsSection } from "./landing/ProductSections";
 import { PlatformMetricsSection } from "./landing/TrustSections";
@@ -15,7 +16,6 @@ import {
   DifferenceBand,
   TypesCarousel,
   StepsBand,
-  ContactBlock,
   PhotoCta,
 } from "./landing/HomeLook";
 
@@ -37,9 +37,9 @@ const PlatformLanding = () => {
       <LoyaltyReviewsSection />
       <PricingSection />
       <FaqSection />
-      <ContactBlock />
       <PhotoCta />
       <FooterSection />
+      <BackToTop className="bottom-6" />
     </div>
   );
 };

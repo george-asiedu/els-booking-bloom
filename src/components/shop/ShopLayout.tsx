@@ -1,3 +1,4 @@
+import { BackToTop } from "@/components/BackToTop";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -217,6 +218,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </footer>
       <WhatsappChatButton />
+      <BackToTop />
       <StudioPreviewExit />
     </div>
   );
