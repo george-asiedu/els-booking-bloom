@@ -48,6 +48,7 @@ const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
 const AdminGallery = lazy(() => import("./pages/admin/AdminGallery"));
+const AdminImages = lazy(() => import("./pages/admin/AdminImages"));
 const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
 const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
@@ -270,6 +271,7 @@ const App = () => (
                 <Route path="services" element={<AdminServices />} />
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="gallery" element={<AdminGallery />} />
+                <Route path="images" element={<AdminImages />} />
                 <Route path="hours" element={<AdminHours />} />
                 <Route path="reviews" element={<AdminReviews />} />
                 <Route path="appearance" element={<AdminAppearance />} />
