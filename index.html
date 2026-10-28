@@ -49,10 +49,10 @@
          downloaded; src/lib/splash.ts fades it out once the page is ready. -->
     <style>
       #splash {
-        --splash-bg: hsl(20 33% 98%);
-        --splash-fg: hsl(340 20% 15%);
-        --splash-muted: hsl(340 10% 45% / 0.25);
-        --splash-accent: hsl(340 100% 60%);
+        --splash-bg: hsl(0 0% 100%);
+        --splash-fg: hsl(214 33% 10%);
+        --splash-muted: hsl(214 10% 45% / 0.2);
+        --splash-accent: hsl(46 100% 49%);
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -66,10 +66,10 @@
         transition: opacity 0.35s ease, visibility 0.35s ease;
       }
       html.dark #splash {
-        --splash-bg: hsl(340 20% 8%);
-        --splash-fg: hsl(340 10% 95%);
-        --splash-muted: hsl(340 10% 95% / 0.15);
-        --splash-accent: hsl(340 100% 62%);
+        --splash-bg: hsl(214 33% 7%);
+        --splash-fg: hsl(0 0% 98%);
+        --splash-muted: hsl(0 0% 98% / 0.15);
+        --splash-accent: hsl(46 100% 49%);
       }
       #splash.splash-hide {
         opacity: 0;

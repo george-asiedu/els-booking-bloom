@@ -106,7 +106,8 @@ const AdminAppearance = () => {
     mutationFn: () =>
       studioAdminApi.updateBranding({
         primaryColor: brandForm?.primaryColor ?? null,
-        accentColor: brandForm?.accentColor ?? null,
+        // Only one brand colour now; clear any old accent.
+        accentColor: null,
         fontFamily: brandForm?.fontFamily ?? null,
         logo: logoFile,
         removeLogo: !logoFile && brandForm?.logoUrl === null,
@@ -254,20 +255,19 @@ const AdminAppearance = () => {
                     </p>
                   </div>
 
-                  <ColorField
-                    label="Primary color"
-                    value={brandForm.primaryColor}
-                    onChange={(v) =>
-                      setBrandForm((p) => (p ? { ...p, primaryColor: v } : p))
-                    }
-                  />
-                  <ColorField
-                    label="Accent color"
-                    value={brandForm.accentColor}
-                    onChange={(v) =>
-                      setBrandForm((p) => (p ? { ...p, accentColor: v } : p))
-                    }
-                  />
+                  <div className="space-y-1.5">
+                    <ColorField
+                      label="Brand colour"
+                      value={brandForm.primaryColor}
+                      onChange={(v) =>
+                        setBrandForm((p) => (p ? { ...p, primaryColor: v } : p))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      One colour for your buttons, links and highlights, on light and dark
+                      backgrounds. Leave it empty to use Zuri yellow.
+                    </p>
+                  </div>
 
                   <div className="space-y-2">
                     <Label>Font</Label>
