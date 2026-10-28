@@ -16,11 +16,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { PLATFORM, studioUrl } from "@/config/platform";
 import { contactHref, isWhatsapp } from "./content";
-import hero from "@/assets/hero-beauty.jpg";
-import nails1 from "@/assets/gallery/nails-1.jpg";
-import nails2 from "@/assets/gallery/nails-2.jpg";
-import lashes1 from "@/assets/gallery/lashes-1.jpg";
-import lashes2 from "@/assets/gallery/lashes-2.jpg";
+// Photos: Unsplash (free to use under the Unsplash License).
+import hero from "@/assets/landing/hero-salon.webp";
+import stylistClient from "@/assets/landing/stylist-client.webp";
+import bookingPhone from "@/assets/landing/booking-phone.webp";
+import paymentsPhone from "@/assets/landing/payments-phone.webp";
+import shopOwner from "@/assets/landing/shop-owner.webp";
+import loyaltyRobe from "@/assets/landing/loyalty-robe.webp";
+import barberAtWork from "@/assets/landing/barber-at-work.webp";
+import typeNails from "@/assets/landing/type-nails.webp";
+import typeLashes from "@/assets/landing/type-lashes.webp";
+import typeBraids from "@/assets/landing/type-braids.webp";
+import typeSkin from "@/assets/landing/type-skin.webp";
+import typeMakeup from "@/assets/landing/type-makeup.webp";
+import typeBarber from "@/assets/landing/type-barber.webp";
+import typeBoutique from "@/assets/landing/type-boutique.webp";
+import salonOwner from "@/assets/landing/salon-owner.webp";
 
 // The Zuri landing page in the studio-homepage-look layout: photo hero, a
 // row of reasons, an image-and-text block, featured cards, a dark band with
@@ -35,7 +46,7 @@ const Eyebrow = ({ children, light = false }: { children: React.ReactNode; light
 /** Full-width photo with the headline over it. */
 export const PhotoHero = () => (
   <section className="relative isolate flex min-h-[88svh] items-end overflow-hidden md:items-center">
-    <img src={hero} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+    <img src={hero} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover object-[60%_30%]" />
     <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/45 to-black/30 md:bg-gradient-to-r md:from-black/80 md:via-black/45 md:to-black/10" />
     <div className="container mx-auto px-4 pb-14 pt-32 md:py-32">
       <div className="max-w-xl text-white">
@@ -92,7 +103,7 @@ export const WhyRow = () => (
 export const ApproachSplit = () => (
   <section className="bg-secondary py-16 md:py-24">
     <div className="container mx-auto grid items-center gap-10 px-4 md:grid-cols-2 md:gap-16">
-      <img src={lashes1} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover" />
+      <img src={stylistClient} alt="A stylist with a happy client in her salon" loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover" />
       <div>
         <Eyebrow>MADE FOR HOW YOU WORK</Eyebrow>
         <h2 className="mt-3 text-balance font-serif text-3xl font-semibold md:text-4xl">
@@ -115,10 +126,10 @@ export const ApproachSplit = () => (
 );
 
 const FEATURED = [
-  { img: nails1, title: "Your booking website", text: "Your name, your colour, your prices and gallery, at your own web address." },
-  { img: lashes2, title: "Payments and deposits", text: "Mobile Money or card. Deposits cut no-shows, and the money comes to you." },
-  { img: nails2, title: "An online shop", text: "Sell products with your studio, or run Zuri Storefront for anything you sell." },
-  { img: hero, title: "Loyalty and reviews", text: "Points for every visit, rewards for referrals, and reviews new clients can read." },
+  { img: bookingPhone, title: "Your booking website", text: "Your name, your colour, your prices and gallery, at your own web address." },
+  { img: paymentsPhone, title: "Payments and deposits", text: "Mobile Money or card. Deposits cut no-shows, and the money comes to you." },
+  { img: shopOwner, title: "An online shop", text: "Sell products with your studio, or run Zuri Storefront for anything you sell." },
+  { img: loyaltyRobe, title: "Loyalty and reviews", text: "Points for every visit, rewards for referrals, and reviews new clients can read." },
 ];
 
 /** The main pieces, as photo cards. */
@@ -173,17 +184,18 @@ export const DifferenceBand = () => (
         ))}
       </ul>
     </div>
-    <img src={nails2} alt="" loading="lazy" className="h-72 w-full object-cover md:h-full" />
+    <img src={barberAtWork} alt="A barber at work" loading="lazy" className="h-80 w-full object-cover md:h-full" />
   </section>
 );
 
 const TYPES = [
-  { img: nails1, label: "Nail studios" },
-  { img: lashes1, label: "Lashes and brows" },
-  { img: hero, label: "Hair and braids" },
-  { img: lashes2, label: "Skin and spa" },
-  { img: nails2, label: "Makeup artists" },
-  { img: lashes1, label: "Barbershops" },
+  { img: typeBraids, label: "Hair and braids" },
+  { img: typeNails, label: "Nail studios" },
+  { img: typeLashes, label: "Lashes and makeup" },
+  { img: typeSkin, label: "Skin and spa" },
+  { img: typeMakeup, label: "Bridal and events" },
+  { img: typeBarber, label: "Barbershops" },
+  { img: typeBoutique, label: "Shops and boutiques" },
 ];
 
 /** Kinds of business, as a swipeable row. */
@@ -301,7 +313,7 @@ export const ContactBlock = () => (
 /** Closing photo banner. */
 export const PhotoCta = () => (
   <section className="relative isolate overflow-hidden">
-    <img src={lashes2} alt="" loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+    <img src={salonOwner} alt="" loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover" />
     <div className="absolute inset-0 -z-10 bg-black/60" />
     <div className="container mx-auto px-4 py-20 text-white md:py-28">
       <Eyebrow light>READY WHEN YOU ARE</Eyebrow>
