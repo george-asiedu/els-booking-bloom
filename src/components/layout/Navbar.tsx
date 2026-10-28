@@ -49,6 +49,8 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   const visibleLinks = navLinks.filter((l) => {
     if (l.path === "/shop") return shopEnabled;
     if (l.path === "/gallery") return features.gallery;
+    // A shop-only Storefront has no services or booking.
+    if (l.path === "/services" || l.path === "/book") return features.booking !== false;
     return true;
   });
 

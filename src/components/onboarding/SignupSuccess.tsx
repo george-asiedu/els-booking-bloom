@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarCheck2, Check, Copy, ExternalLink, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PLATFORM } from "@/config/platform";
+import { PLATFORM, planLabel } from "@/config/platform";
 import { formatGHS } from "@/lib/currency";
 import type { SignupSummary } from "@/lib/onboardingApi";
 
@@ -46,7 +46,7 @@ export const SignupSuccess = ({
   onOpenDashboard: () => void;
   onOpenSite: () => void;
 }) => {
-  const planName = summary?.plan === "PREMIUM" ? "Premium" : "Standard";
+  const planName = planLabel(summary?.plan);
   const subscription = summary?.billingMode === "SUBSCRIPTION";
 
   return (

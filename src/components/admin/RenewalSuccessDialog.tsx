@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { planLabel } from "@/config/platform";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { Check, Copy, PartyPopper, CalendarCheck2 } from "lucide-react";
@@ -42,7 +43,7 @@ export const RenewalSuccessDialog = ({
 
   if (!receipt) return null;
 
-  const planName = receipt.plan === "PREMIUM" ? "Premium" : "Standard";
+  const planName = planLabel(receipt.plan);
   const period = receipt.cadence === "YEARLY" ? "1 year" : "1 month";
   const copyRef = async () => {
     try {

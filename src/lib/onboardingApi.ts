@@ -5,7 +5,7 @@ interface Envelope<T> {
   data: T;
 }
 
-export type Plan = "STANDARD" | "PREMIUM";
+export type Plan = "STANDARD" | "PREMIUM" | "STOREFRONT";
 export type Cadence = "MONTHLY" | "YEARLY";
 export type BillingMode = "SUBSCRIPTION" | "REVENUE_SHARE";
 
@@ -25,6 +25,11 @@ export interface OnboardingConfig {
   priceStandardYearly: number;
   pricePremiumMonthly: number;
   pricePremiumYearly: number;
+  priceStorefrontMonthly: number;
+  priceStorefrontYearly: number;
+  subscriptionSetupFeeStorefront: number;
+  commissionStorefrontPercent: number;
+  setupFeeStorefront: number;
 }
 
 export interface OnboardingStartInput {
@@ -36,6 +41,8 @@ export interface OnboardingStartInput {
   plan: Plan;
   cadence: Cadence;
   billingMode: BillingMode;
+  // What the shop sells (lib/shopCategories). Required for Storefront.
+  shopCategory?: string;
 }
 
 export interface OnboardingStartResult {

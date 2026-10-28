@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { studioBillingApi, type RenewalReceiptDTO } from "@/lib/api";
 import { RenewalSuccessDialog } from "@/components/admin/RenewalSuccessDialog";
-import { PLANS, planPrice } from "@/config/platform";
+import { PLANS, planPrice, productOf, planLabel } from "@/config/platform";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
 
@@ -30,7 +30,7 @@ const AdminBilling = () => {
 
   const revShare = billing?.billingMode === "REVENUE_SHARE";
 
-  const changeTo = async (plan: "STANDARD" | "PREMIUM") => {
+  const changeTo = async (plan: "STANDARD" | "PREMIUM" | "STOREFRONT") => {
     if (billing && !revShare && billing.plan === plan && billing.cadence === cadence) {
       toast({ title: "You're already on this plan." });
       return;
@@ -56,7 +56,7 @@ const AdminBilling = () => {
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
             toast({
               title: "Plan updated",
-              description: `You're now on ${plan === "PREMIUM" ? "Premium" : "Standard"}.`,
+              description: `You're now on ${planLabel(plan)}.`,
             });
           } catch (err) {
             toast({
@@ -171,7 +171,7 @@ const AdminBilling = () => {
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Current plan</span>
                 <Badge variant={billing.plan === "PREMIUM" ? "default" : "secondary"}>
-                  {billing.plan === "PREMIUM" ? "Premium" : "Standard"}
+                  {planLabel(billing.plan)}
                 </Badge>
                 <Badge variant="outline">Pay as you earn</Badge>
               </div>
@@ -193,7 +193,7 @@ const AdminBilling = () => {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">Current plan</span>
                     <Badge variant={billing.plan === "PREMIUM" ? "default" : "secondary"}>
-                      {billing.plan === "PREMIUM" ? "Premium" : "Standard"}
+                      {planLabel(billing.plan)}
                     </Badge>
                     <Badge variant="outline">
                       {billing.cadence === "YEARLY" ? "Yearly" : "Monthly"}
@@ -239,7 +239,9 @@ const AdminBilling = () => {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {PLANS.map((p) => {
+              {/* Only plans from this account's product: a storefront sees
+                  Storefront, a studio sees Standard and Premium. */}
+              {PLANS.filter((p) => p.product === productOf(billing.plan)).map((p) => {
                 const current = !revShare && billing.plan === p.id && billing.cadence === cadence;
                 return (
                   <Card key={p.id} className={p.featured ? "border-primary" : ""}>

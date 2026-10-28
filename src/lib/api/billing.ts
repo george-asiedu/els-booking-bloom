@@ -4,7 +4,7 @@ import { Envelope } from "./core";
 // ---------------- Studio billing (plan/cadence) ----------------
 
 export interface StudioBillingDTO {
-  plan: "STANDARD" | "PREMIUM";
+  plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
   cadence: "MONTHLY" | "YEARLY";
   billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
   commissionPercent: number;
@@ -17,7 +17,7 @@ export interface StudioBillingDTO {
 
 export interface RenewalReceiptDTO {
   reference: string;
-  plan: "STANDARD" | "PREMIUM";
+  plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
   cadence: "MONTHLY" | "YEARLY";
   amount: number;
   currency: string;
@@ -37,7 +37,7 @@ export const studioBillingApi = {
     return res.data;
   },
   async startChange(input: {
-    plan: "STANDARD" | "PREMIUM";
+    plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
     cadence: "MONTHLY" | "YEARLY";
   }): Promise<{ reference: string; accessCode: string; publicKey: string }> {
     const res = await apiRequest<
@@ -47,7 +47,7 @@ export const studioBillingApi = {
   },
   async applyChange(input: {
     reference: string;
-    plan: "STANDARD" | "PREMIUM";
+    plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
     cadence: "MONTHLY" | "YEARLY";
   }): Promise<StudioBillingDTO> {
     const res = await apiRequest<Envelope<StudioBillingDTO>>(

@@ -13,7 +13,11 @@ export const subscriptionSetup = (
 ): { fee: number; months: number } | null => {
   if (!cfg) return null;
   const fee =
-    plan === "PREMIUM" ? cfg.subscriptionSetupFeePremium : cfg.subscriptionSetupFeeStandard;
+    plan === "PREMIUM"
+      ? cfg.subscriptionSetupFeePremium
+      : plan === "STOREFRONT"
+        ? (cfg.subscriptionSetupFeeStorefront ?? 0)
+        : cfg.subscriptionSetupFeeStandard;
   if (!(fee > 0)) return null;
   return {
     fee,

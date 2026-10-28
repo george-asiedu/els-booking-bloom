@@ -18,6 +18,7 @@ const StudioContext = createContext<StudioContextType | undefined>(undefined);
 const FALLBACK_NAME = "Zuri Studios";
 
 const ALL_ON: StudioFeatureFlags = {
+  booking: true,
   commerce: true,
   loyalty: true,
   referrals: true,

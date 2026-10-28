@@ -122,6 +122,7 @@ async function platformRequest<T>(
 export type StudioStatus = "ACTIVE" | "SUSPENDED" | "TRIAL";
 
 export interface StudioFeatureSettings {
+  booking?: boolean;
   commerce: boolean;
   loyalty: boolean;
   referrals: boolean;
@@ -192,6 +193,11 @@ export interface PlatformAnalytics {
 }
 
 export interface PlatformBillingConfig {
+  priceStorefrontMonthly: number;
+  priceStorefrontYearly: number;
+  subscriptionSetupFeeStorefront: number;
+  commissionStorefrontPercent: number;
+  setupFeeStorefront: number;
   revenueShareEnabled: boolean;
   commissionStandardPercent: number;
   commissionPremiumPercent: number;

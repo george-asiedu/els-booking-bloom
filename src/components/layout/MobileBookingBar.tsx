@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMobileBookingBar } from "@/hooks/useMobileBookingBar";
+import { useStudio } from "@/hooks/useStudio";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +12,8 @@ import { cn } from "@/lib/utils";
  */
 export const MobileBookingBar = () => {
   const { allowed, show } = useMobileBookingBar();
-  if (!allowed) return null;
+  const { features } = useStudio();
+  if (!allowed || features.booking === false) return null;
 
   return (
     <div

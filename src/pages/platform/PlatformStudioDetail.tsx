@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { planLabel } from "@/config/platform";
 import { format, parseISO } from "date-fns";
 import { DetailsSheet } from "@/components/ui/details-sheet";
 import { EarningDetails, PurposeBadge } from "@/components/platform/EarningDetails";
@@ -59,6 +60,7 @@ const statusVariant: Record<
 
 const FEATURES: { key: keyof StudioFeatureSettings; label: string; hint: string }[] =
   [
+    { key: "booking", label: "Booking", hint: "Appointments and services (off for Storefront)" },
     { key: "reviews", label: "Reviews", hint: "Customer ratings & testimonials" },
     { key: "gallery", label: "Gallery", hint: "Showcase of past work" },
     { key: "loyalty", label: "Loyalty points", hint: "Earn & redeem points" },
@@ -295,7 +297,7 @@ const PlatformStudioDetail = () => {
               {studio.status.toLowerCase()}
             </Badge>
             <Badge variant={studio.plan === "PREMIUM" ? "default" : "secondary"}>
-              {studio.plan === "PREMIUM" ? "Premium" : "Standard"}
+              {planLabel(studio.plan)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">

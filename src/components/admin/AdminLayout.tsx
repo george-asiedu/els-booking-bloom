@@ -47,22 +47,22 @@ interface AdminLayoutProps {
 const navItems = [
   { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { name: "Setup", path: "/admin/onboarding", icon: Rocket },
-  { name: "Appointments", path: "/admin/appointments", icon: Calendar },
+  { name: "Appointments", path: "/admin/appointments", icon: Calendar, needs: "booking" as const },
   { name: "Users", path: "/admin/users", icon: Users },
-  { name: "Services", path: "/admin/services", icon: Scissors },
-  { name: "Categories", path: "/admin/categories", icon: Tag },
-  { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },
-  { name: "Hours", path: "/admin/hours", icon: Clock },
+  { name: "Services", path: "/admin/services", icon: Scissors, needs: "booking" as const },
+  { name: "Categories", path: "/admin/categories", icon: Tag, needs: "booking" as const },
+  { name: "Gallery", path: "/admin/gallery", icon: ImageIcon, needs: "gallery" as const },
+  { name: "Hours", path: "/admin/hours", icon: Clock, needs: "booking" as const },
   { name: "Reviews", path: "/admin/reviews", icon: Star },
   { name: "Appearance", path: "/admin/appearance", icon: Palette },
   { name: "Custom domain", path: "/admin/domain", icon: Globe },
   { name: "Promotions", path: "/admin/promos", icon: Megaphone },
   { name: "Feature Requests", path: "/admin/feature-requests", icon: Lightbulb },
   { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
-  { name: "Products", path: "/admin/products", icon: ShoppingBag },
-  { name: "Product Categories", path: "/admin/product-categories", icon: Tag },
-  { name: "Orders", path: "/admin/orders", icon: Package },
-  { name: "Shop Settings", path: "/admin/commerce", icon: Store },
+  { name: "Products", path: "/admin/products", icon: ShoppingBag, needs: "commerce" as const },
+  { name: "Product Categories", path: "/admin/product-categories", icon: Tag, needs: "commerce" as const },
+  { name: "Orders", path: "/admin/orders", icon: Package, needs: "commerce" as const },
+  { name: "Shop Settings", path: "/admin/commerce", icon: Store, needs: "commerce" as const },
   { name: "Transactions", path: "/admin/transactions", icon: Receipt },
   { name: "Payments", path: "/admin/payments", icon: CreditCard },
   { name: "Billing & plan", path: "/admin/billing", icon: CreditCard },
@@ -74,7 +74,13 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-  const { name: studioName, config } = useStudio();
+  const { name: studioName, config, features } = useStudio();
+  // Only what the studio's plan includes: no booking pages for a Storefront,
+  // no shop pages for Standard.
+  const visibleNav = navItems.filter((item) => {
+    const need = (item as { needs?: "booking" | "commerce" | "gallery" }).needs;
+    return !need || features[need] !== false;
+  });
   // Link to THIS studio's own storefront (subdomain in prod, /s/<slug> in dev) —
   // not "/", which shows the platform landing when no studio slug is active.
   const publicSiteUrl = config?.slug ? studioUrl(config.slug) : "/";
@@ -145,7 +151,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         <aside className="hidden md:flex w-64 flex-col border-r border-border overflow-y-auto">
           <nav className="flex-1 p-4">
             <ul className="space-y-1">
-              {navItems.map((item) => (
+              {visibleNav.map((item) => (
                 <li key={item.path}>
                   <Link
                     to={item.path}
@@ -182,7 +188,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             <aside className="fixed left-0 top-14 bottom-0 w-64 bg-background border-r border-border p-4">
               <nav>
                 <ul className="space-y-1">
-                  {navItems.map((item) => (
+                  {visibleNav.map((item) => (
                     <li key={item.path}>
                       <Link
                         to={item.path}

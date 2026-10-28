@@ -4,6 +4,8 @@ import { Envelope, uploadStudioMedia } from "./core";
 // ---------------- Studio (storefront branding/content/features) ----------------
 
 export interface StudioFeatureFlags {
+  // Appointment booking (off for Zuri Storefront shop-only accounts).
+  booking?: boolean;
   commerce: boolean;
   loyalty: boolean;
   referrals: boolean;

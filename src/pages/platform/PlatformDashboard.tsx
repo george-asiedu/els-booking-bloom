@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { planLabel } from "@/config/platform";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePagedList } from "@/hooks/usePagedList";
 import { cn } from "@/lib/utils";
@@ -320,7 +321,7 @@ const PlatformDashboard = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant={s.plan === "PREMIUM" ? "default" : "secondary"}>
-                          {s.plan === "PREMIUM" ? "Premium" : "Standard"}
+                          {planLabel(s.plan)}
                         </Badge>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {s.billingMode === "REVENUE_SHARE"

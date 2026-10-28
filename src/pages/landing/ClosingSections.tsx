@@ -61,7 +61,7 @@ export const PricingSection = () => {
             </div>
           </div>
 
-          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {PLANS.map((plan) => (
               <div
                 key={plan.id}
@@ -77,7 +77,10 @@ export const PricingSection = () => {
                     Adds the online shop
                   </span>
                 )}
-                <h3 className="text-xl font-semibold">{plan.name}</h3>
+                <p className="text-xs font-medium text-muted-foreground">
+                  {plan.product === "storefront" ? "Zuri Storefront · shop only" : "Zuri Studios · booking"}
+                </p>
+                <h3 className="mt-1 text-xl font-semibold">{plan.name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>
                 <div className="mt-5 flex items-end gap-1">
                   <span className="font-serif text-4xl font-semibold">

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SHOP_CATEGORIES, type ShopCategoryId } from "@/lib/shopCategories";
 import { SignupSuccess } from "@/components/onboarding/SignupSuccess";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
-import { PLATFORM, PLANS, planPrice } from "@/config/platform";
+import { PLATFORM, PLANS, planPrice, productOf } from "@/config/platform";
 import { BrandLogo } from "@/components/BrandLogo";
 import { subscriptionSetup } from "@/lib/setupFee";
 import {
@@ -41,9 +42,15 @@ const Onboarding = () => {
   const processing = useProcessing();
 
   const [step, setStep] = useState(1);
-  const [plan, setPlan] = useState<Plan>(
-    params.get("plan") === "PREMIUM" ? "PREMIUM" : "STANDARD",
-  );
+  const [plan, setPlan] = useState<Plan>(() => {
+    const p = params.get("plan");
+    return p === "PREMIUM" || p === "STOREFRONT" ? p : "STANDARD";
+  });
+  // What the shop will sell: picks the shop website's design (Premium's shop
+  // and Storefront; required for Storefront).
+  const [shopCategory, setShopCategory] = useState<ShopCategoryId | null>(null);
+  const product = productOf(plan);
+  const sellsProducts = plan !== "STANDARD";
   const [cadence, setCadence] = useState<Cadence>(
     params.get("cadence") === "YEARLY" ? "YEARLY" : "MONTHLY",
   );
@@ -76,9 +83,15 @@ const Onboarding = () => {
   const commissionPct =
     plan === "PREMIUM"
       ? cfg?.commissionPremiumPercent ?? 0
-      : cfg?.commissionStandardPercent ?? 0;
+      : plan === "STOREFRONT"
+        ? cfg?.commissionStorefrontPercent ?? 0
+        : cfg?.commissionStandardPercent ?? 0;
   const setupFee =
-    plan === "PREMIUM" ? cfg?.setupFeePremium ?? 0 : cfg?.setupFeeStandard ?? 0;
+    plan === "PREMIUM"
+      ? cfg?.setupFeePremium ?? 0
+      : plan === "STOREFRONT"
+        ? cfg?.setupFeeStorefront ?? 0
+        : cfg?.setupFeeStandard ?? 0;
   const revShare = billingMode === "REVENUE_SHARE";
   // Subscription setup fee for the selected plan, when the platform sets one.
   const subSetup = revShare ? null : subscriptionSetup(cfg, plan, cadence);
@@ -187,6 +200,7 @@ const Onboarding = () => {
         plan,
         cadence,
         billingMode,
+        ...(sellsProducts && shopCategory ? { shopCategory } : {}),
       });
       setReference(res.reference);
 
@@ -278,10 +292,31 @@ const Onboarding = () => {
           />
         ) : step === 1 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
-            <h1 className="mb-1 font-serif text-2xl font-bold">Choose your plan</h1>
-            <p className="mb-6 text-sm text-muted-foreground">
-              Booking is always included. Add the online shop with Premium.
+            <h1 className="mb-1 font-serif text-2xl font-bold">What are you setting up?</h1>
+            <p className="mb-5 text-sm text-muted-foreground">
+              A booking website for your beauty business, or an online shop for anything you sell.
             </p>
+            {/* Product: Zuri Studios (booking) or Zuri Storefront (a shop alone). */}
+            <div className="mb-8 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Product">
+              {([
+                ["studio", "Zuri Studios", "Bookings, payments and a website for your beauty business. Add a shop with Premium.", "STANDARD"],
+                ["storefront", "Zuri Storefront", "An online shop of your own, for clothes, food, perfume or anything else you sell.", "STOREFRONT"],
+              ] as const).map(([id, title, text, first]) => (
+                <button
+                  key={id}
+                  role="radio"
+                  aria-checked={product === id}
+                  onClick={() => product !== id && setPlan(first)}
+                  className={`rounded-xl border p-4 text-left transition-colors ${
+                    product === id ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <span className="font-semibold">{title}</span>
+                  <p className="mt-1 text-xs text-muted-foreground">{text}</p>
+                </button>
+              ))}
+            </div>
+            <h2 className="mb-3 font-semibold">Choose your plan</h2>
             <div className="mb-6 inline-flex rounded-full border border-border p-1">
               {(["MONTHLY", "YEARLY"] as const).map((c) => (
                 <button
@@ -295,8 +330,8 @@ const Onboarding = () => {
                 </button>
               ))}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {PLANS.map((p) => (
+            <div className={`grid gap-4 ${product === "studio" ? "sm:grid-cols-2" : "max-w-md"}`}>
+              {PLANS.filter((p) => p.product === product).map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setPlan(p.id)}
@@ -347,6 +382,36 @@ const Onboarding = () => {
                 </button>
               ))}
             </div>
+            {/* What they'll sell: sets up the shop's design. */}
+            {sellsProducts && (
+              <div className="mt-8">
+                <h2 className="mb-1 font-semibold">
+                  What will you sell?
+                  {plan === "PREMIUM" && <span className="font-normal text-muted-foreground"> (optional)</span>}
+                </h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  We'll set up your shop with a design made for it. You just add your products.
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="What you'll sell">
+                  {SHOP_CATEGORIES.map((c) => (
+                    <button
+                      key={c.id}
+                      role="radio"
+                      aria-checked={shopCategory === c.id}
+                      onClick={() => setShopCategory(c.id)}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                        shopCategory === c.id
+                          ? "border-primary bg-accent font-medium"
+                          : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <span aria-hidden>{c.emoji}</span>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Billing mode — only when the platform offers revenue-share. */}
             {cfg?.revenueShareEnabled && (
               <div className="mt-8">
@@ -400,17 +465,23 @@ const Onboarding = () => {
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Link>
               </Button>
-              <Button className="flex-1" onClick={() => setStep(2)}>
+              <Button
+                className="flex-1"
+                disabled={plan === "STOREFRONT" && !shopCategory}
+                onClick={() => setStep(2)}
+              >
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
         ) : step === 2 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
-            <h1 className="mb-6 font-serif text-2xl font-bold">Your studio details</h1>
+            <h1 className="mb-6 font-serif text-2xl font-bold">
+              {product === "storefront" ? "Your shop details" : "Your studio details"}
+            </h1>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ob-name">Studio name</Label>
+                <Label htmlFor="ob-name">{product === "storefront" ? "Shop name" : "Studio name"}</Label>
                 <Input
                   id="ob-name"
                   value={name}

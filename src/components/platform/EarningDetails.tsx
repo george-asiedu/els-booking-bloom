@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { planLabel } from "@/config/platform";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { DetailsSheet } from "@/components/ui/details-sheet";
@@ -42,7 +43,7 @@ export const EarningDetails = ({ entry, onClose }: { entry: EarningEntry | null;
                 { label: "Amount", value: formatGHS(entry.amount) },
                 { label: entry.purpose === "COMMISSION" ? "Month" : "Paid on", value: entry.purpose === "COMMISSION" ? entry.detail.month : format(parseISO(entry.date), "d MMM yyyy, h:mm a") },
                 ...(entry.plan
-                  ? [{ label: "Plan", value: `${entry.plan === "PREMIUM" ? "Premium" : "Standard"}${entry.cadence ? ` · ${entry.cadence === "YEARLY" ? "Yearly" : "Monthly"}` : ""}` }]
+                  ? [{ label: "Plan", value: `${planLabel(entry.plan)}${entry.cadence ? ` · ${entry.cadence === "YEARLY" ? "Yearly" : "Monthly"}` : ""}` }]
                   : []),
                 ...(entry.detail.coverageMonths ? [{ label: "Covers", value: `${entry.detail.coverageMonths} months` }] : []),
                 ...(entry.purpose === "COMMISSION"

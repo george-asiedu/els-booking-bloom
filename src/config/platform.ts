@@ -54,10 +54,15 @@ export const studioUrl = (slug: string) =>
 // platformService), so the "save 2 months" label is always true.
 export const YEARLY_FREE_MONTHS = 2;
 
-export type PlanId = "STANDARD" | "PREMIUM";
+export type PlanId = "STANDARD" | "PREMIUM" | "STOREFRONT";
+
+// Two products: Zuri Studios (booking, with an optional shop on Premium) and
+// Zuri Storefront (a shop on its own, for any seller).
+export type Product = "studio" | "storefront";
 
 export interface PlanDef {
   id: PlanId;
+  product: Product;
   name: string;
   blurb: string;
   monthly: number; // GHS
@@ -78,6 +83,7 @@ const STANDARD_FEATURES = [
 export const PLANS: PlanDef[] = [
   {
     id: "STANDARD",
+    product: "studio",
     name: "Standard",
     blurb: "Everything you need to take bookings and get paid.",
     monthly: 150,
@@ -86,6 +92,7 @@ export const PLANS: PlanDef[] = [
   },
   {
     id: "PREMIUM",
+    product: "studio",
     name: "Premium",
     blurb: "Standard, plus an online shop to sell your products.",
     monthly: 350,
@@ -98,7 +105,27 @@ export const PLANS: PlanDef[] = [
       "Payments settled straight to your account",
     ],
   },
+  {
+    id: "STOREFRONT",
+    product: "storefront",
+    name: "Storefront",
+    blurb: "An online shop of your own, for anything you sell.",
+    monthly: 200,
+    yearly: 2000,
+    features: [
+      "Your own shop website and web address",
+      "A shop design made for what you sell",
+      "Cart, checkout and order tracking",
+      "Mobile Money & card payments, paid to your account",
+      "Customer accounts, loyalty points & referrals",
+      "Promotions and discount banners",
+    ],
+  },
 ];
+
+export const STUDIO_PLANS = PLANS.filter((p) => p.product === "studio");
+export const STOREFRONT_PLANS = PLANS.filter((p) => p.product === "storefront");
+export const productOf = (id: PlanId): Product => (id === "STOREFRONT" ? "storefront" : "studio");
 
 export const planPrice = (plan: PlanDef, cadence: "MONTHLY" | "YEARLY") =>
   cadence === "YEARLY" ? plan.yearly : plan.monthly;
@@ -120,6 +147,8 @@ export interface PublicPlatformConfig {
     priceStandardYearly: number;
     pricePremiumMonthly: number;
     pricePremiumYearly: number;
+    priceStorefrontMonthly?: number;
+    priceStorefrontYearly?: number;
   };
 }
 
@@ -133,8 +162,13 @@ const applyPlatformConfig = (cfg: PublicPlatformConfig) => {
   PLATFORM.demoSlug = cfg.site.demoStudioSlug || SITE_DEFAULTS.demoSlug;
   for (const plan of PLANS) {
     const b = cfg.billing;
-    plan.monthly = plan.id === "PREMIUM" ? b.pricePremiumMonthly : b.priceStandardMonthly;
-    plan.yearly = plan.id === "PREMIUM" ? b.pricePremiumYearly : b.priceStandardYearly;
+    if (plan.id === "STOREFRONT") {
+      plan.monthly = b.priceStorefrontMonthly ?? plan.monthly;
+      plan.yearly = b.priceStorefrontYearly ?? plan.yearly;
+    } else {
+      plan.monthly = plan.id === "PREMIUM" ? b.pricePremiumMonthly : b.priceStandardMonthly;
+      plan.yearly = plan.id === "PREMIUM" ? b.pricePremiumYearly : b.priceStandardYearly;
+    }
   }
 };
 
@@ -169,3 +203,7 @@ export const loadPlatformConfig = async (
     // Offline or slow API: keep the cached or default values.
   }
 };
+
+/** "Standard", "Premium" or "Storefront". */
+export const planLabel = (id: string | null | undefined) =>
+  id === "PREMIUM" ? "Premium" : id === "STOREFRONT" ? "Storefront" : "Standard";

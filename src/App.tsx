@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ProcessingProvider } from "@/components/ProcessingOverlay";
+import { useStudio } from "@/hooks/useStudio";
 import { AuthProvider } from "@/hooks/useAuth";
 import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
@@ -112,8 +113,13 @@ const SplashController = () => {
 // The apex "/" shows the Zuri platform landing page, unless a studio is active
 // (subdomain in prod, or /s/:slug / impersonation locally) — then it's that
 // studio's storefront.
-const RootRoute = () =>
-  studioStore.getSlug() ? <Index /> : <PlatformLanding />;
+const RootRoute = () => {
+  const { features, isLoading } = useStudio();
+  if (!studioStore.getSlug()) return <PlatformLanding />;
+  // A Zuri Storefront (shop only) opens on its shop.
+  if (!isLoading && features.booking === false) return <Shop />;
+  return <Index />;
+};
 
 // Guards all /admin/* pages once and keeps the sidebar mounted while a page's
 // chunk loads (only the content area shows a spinner), so navigating between
