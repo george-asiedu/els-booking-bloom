@@ -4,7 +4,7 @@ import { Check, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
-import { PLATFORM, PLANS, planPrice, studioUrl, YEARLY_FREE_MONTHS } from "@/config/platform";
+import { PLATFORM, PLANS, planPrice, YEARLY_FREE_MONTHS } from "@/config/platform";
 import { cn } from "@/lib/utils";
 import { GHS, FAQ, isWhatsapp, contactHref } from "./content";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -26,11 +26,11 @@ export const PricingSection = () => {
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <div>
               <h2 className="font-serif text-3xl font-semibold md:text-5xl">
-                Two plans, paid monthly or yearly.
+                Simple plans, paid monthly or yearly.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Both include bookings, payments and your website. Premium adds an
-                online shop.{" "}
+                Standard and Premium are for studios with bookings; Premium adds an
+                online shop. Storefront is a shop on its own, for anything you sell.{" "}
                 {anySetup
                   ? `A setup fee at signup covers your first ${anySetup.months} months, then the plan price applies. Cancel at any time.`
                   : hasNoSetupFee(billing)
@@ -167,43 +167,6 @@ export const FaqSection = () => {
               </AccordionItem>
             ))}
           </Accordion>
-        </div>
-      </section>
-
-    </>
-  );
-};
-
-export const FinalCtaSection = () => {
-  return (
-    <>
-      {/* ---------------------------------------------------------- Final CTA */}
-      <section className="px-4 pb-24 pt-4">
-        <div className="container relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-accent/60 via-background to-primary/10 p-10 text-center md:p-16">
-          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-            <div className="animate-float-slow absolute -left-10 -top-10 h-52 w-52 rounded-full bg-primary/15 blur-3xl" />
-            <div className="animate-float-slow absolute -bottom-12 -right-8 h-56 w-56 rounded-full bg-primary/10 blur-3xl [animation-delay:2s]" />
-          </div>
-          <div>
-            <h2 className="mx-auto max-w-2xl font-serif text-3xl font-semibold leading-tight md:text-5xl">
-              Ready to take bookings online?
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Set up your studio now, or message us first if you'd like a hand.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button size="lg" className="group w-full sm:w-auto" asChild>
-                <Link to="/onboarding">
-                  Set up your studio
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
-                <a href={studioUrl(PLATFORM.demoSlug)} target="_blank" rel="noreferrer">
-                  See a real studio's page
-                </a>
-              </Button>
-            </div>
-          </div>
         </div>
       </section>
 

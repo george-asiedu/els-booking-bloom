@@ -24,9 +24,10 @@ export const NavSection = () => {
       <header
         className={cn(
           "fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow,padding] duration-300",
-          scrolled
+          scrolled || menuOpen
             ? "border-b border-border bg-background/80 py-2 shadow-sm backdrop-blur-xl"
-            : "border-b border-transparent bg-background/40 py-4 backdrop-blur-sm",
+            : // Over the hero photo: white text and icons so they read on it.
+              "border-b border-transparent bg-transparent py-4 text-white [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/85",
         )}
       >
         <div className="container mx-auto flex items-center justify-between px-4">

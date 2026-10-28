@@ -1,12 +1,23 @@
-// The platform's own marketing page (the apex domain). Each section lives in
-// src/pages/landing/ and owns whatever state it needs, so hovering a demo
-// studio or scrolling past the nav threshold re-renders that section only.
+// The platform's own marketing page (the apex domain), in the
+// studio-homepage-look layout. Each section lives in src/pages/landing/ and
+// owns whatever state it needs.
 import { NavSection } from "./landing/LandingNav";
 import { useHideSplashWhen } from "@/lib/splash";
-import { HeroSection, FeaturesSection, StorefrontsSection, JourneySection } from "./landing/ShowcaseSections";
-import { BookingSection, BusinessSection, LoyaltyReviewsSection, HowSection } from "./landing/ProductSections";
-import { WhyZuriSection, PlatformMetricsSection } from "./landing/TrustSections";
-import { PricingSection, FaqSection, FinalCtaSection, FooterSection } from "./landing/ClosingSections";
+import { StorefrontsSection } from "./landing/ShowcaseSections";
+import { LoyaltyReviewsSection } from "./landing/ProductSections";
+import { PlatformMetricsSection } from "./landing/TrustSections";
+import { PricingSection, FaqSection, FooterSection } from "./landing/ClosingSections";
+import {
+  PhotoHero,
+  WhyRow,
+  ApproachSplit,
+  FeaturedCards,
+  DifferenceBand,
+  TypesCarousel,
+  StepsBand,
+  ContactBlock,
+  PhotoCta,
+} from "./landing/HomeLook";
 
 const PlatformLanding = () => {
   // Everything above the fold is static, so the page is ready once it renders.
@@ -14,19 +25,20 @@ const PlatformLanding = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <NavSection />
-      <HeroSection />
-      <PlatformMetricsSection />
-      <WhyZuriSection />
-      <FeaturesSection />
+      <PhotoHero />
+      <WhyRow />
+      <ApproachSplit />
+      <FeaturedCards />
+      <DifferenceBand />
+      <TypesCarousel />
       <StorefrontsSection />
-      <JourneySection />
-      <BookingSection />
-      <BusinessSection />
+      <PlatformMetricsSection />
+      <StepsBand />
       <LoyaltyReviewsSection />
-      <HowSection />
       <PricingSection />
       <FaqSection />
-      <FinalCtaSection />
+      <ContactBlock />
+      <PhotoCta />
       <FooterSection />
     </div>
   );
