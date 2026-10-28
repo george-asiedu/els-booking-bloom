@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User, ShoppingBag } from "lucide-react";
+import { Menu, X, User, ShoppingBag, MapPin, Phone } from "lucide-react";
 import { StudioMark } from "@/components/StudioMark";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
-import { cartApi, commerceApi } from "@/lib/api";
+import { cartApi, commerceApi, contactInfoApi, promoApi } from "@/lib/api";
 
 const navLinks = [
   { name: "Home", path: "/" },
@@ -37,6 +37,20 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   // Transparent over the hero only when overlay mode is on AND we're at the top;
   // solid + blur + border once scrolled (and on every non-overlay page).
   const transparent = overlay && !scrolled && !isOpen;
+
+  // For the homepage info strip.
+  const { data: contact } = useQuery({
+    queryKey: ["contact-info"],
+    queryFn: () => contactInfoApi.get(),
+    enabled: overlay,
+  });
+  const { data: promos = [] } = useQuery({
+    queryKey: ["promo-banners", "booking"],
+    queryFn: () => promoApi.listActive("booking"),
+    enabled: overlay,
+    staleTime: 5 * 60 * 1000,
+  });
+  const offer = promos[0];
 
   // Hide the shop entirely when the admin has disabled it.
   const { data: commerce } = useQuery({
@@ -81,10 +95,35 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color,box-shadow] duration-300",
         transparent
-          ? "border-b border-transparent bg-transparent"
+          ? // Over the hero photo: white text and icons so they read on it.
+            "border-b border-transparent bg-transparent [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/85 [&_button.inline-flex]:text-white"
           : "border-b border-border bg-background/80 shadow-sm backdrop-blur-md",
       )}
     >
+      {/* Info strip on the homepage, before scrolling: address, the current
+          offer, phone. On phones just the offer. */}
+      {overlay && !scrolled && (offer || contact?.address || contact?.phone) && (
+        <div className="border-b border-white/15 bg-black/35 text-xs text-white backdrop-blur-sm">
+          <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-2">
+            <span className="hidden min-w-0 items-center gap-1.5 truncate md:flex">
+              {contact?.showAddress && contact.address && (
+                <>
+                  <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden /> {contact.address}
+                </>
+              )}
+            </span>
+            <span className="mx-auto truncate text-center font-medium md:mx-0">{offer?.message}</span>
+            <span className="hidden shrink-0 items-center gap-1.5 md:flex">
+              {contact?.showPhone && contact.phone && (
+                <>
+                  <Phone className="h-3.5 w-3.5" aria-hidden />
+                  <a href={`tel:${contact.phone}`} className="hover:underline">{contact.phone}</a>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
       <nav
         className={cn(
           "container mx-auto px-4 transition-[padding] duration-300",

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { WebsiteDesignPicker } from "@/components/admin/WebsiteDesignPicker";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Loader2, Upload, Trash2, Palette } from "lucide-react";
@@ -320,6 +321,8 @@ const AdminAppearance = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
+              <div className="space-y-6">
+              <WebsiteDesignPicker value={contentForm} onChange={setContentForm} />
               <LandingContentEditor
                 value={contentForm}
                 onChange={setContentForm}
@@ -327,6 +330,7 @@ const AdminAppearance = () => {
                 onSave={() => contentMutation.mutate()}
                 saving={contentMutation.isPending}
               />
+              </div>
             )}
           </TabsContent>
         </Tabs>

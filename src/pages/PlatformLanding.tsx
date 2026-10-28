@@ -5,6 +5,7 @@ import { NavSection } from "./landing/LandingNav";
 import { useHideSplashWhen } from "@/lib/splash";
 import { HeroSection, FeaturesSection, StorefrontsSection, JourneySection } from "./landing/ShowcaseSections";
 import { BookingSection, BusinessSection, LoyaltyReviewsSection, HowSection } from "./landing/ProductSections";
+import { WhyZuriSection, PlatformMetricsSection } from "./landing/TrustSections";
 import { PricingSection, FaqSection, FinalCtaSection, FooterSection } from "./landing/ClosingSections";
 
 const PlatformLanding = () => {
@@ -14,6 +15,8 @@ const PlatformLanding = () => {
     <div className="min-h-screen bg-background text-foreground">
       <NavSection />
       <HeroSection />
+      <PlatformMetricsSection />
+      <WhyZuriSection />
       <FeaturesSection />
       <StorefrontsSection />
       <JourneySection />

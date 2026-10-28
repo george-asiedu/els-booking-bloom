@@ -72,6 +72,9 @@ export interface StudioContentDTO {
   ctaImageUrl: string | null;
   contactHeading: string | null;
   showTestimonials: boolean;
+  // lib/studioTemplates: the kind of studio (default wording) and the layout.
+  studioType?: string | null;
+  siteTemplate?: string | null;
 }
 
 export interface BrandingUpdateInput {
@@ -232,6 +235,25 @@ export interface StudioMoneyDTO {
 export const studioMoneyApi = {
   async get(): Promise<StudioMoneyDTO> {
     const res = await apiRequest<Envelope<StudioMoneyDTO>>("/studio/money", { auth: true });
+    return res.data;
+  },
+};
+
+// ---- Public: the studio's real numbers for its website ----
+
+export interface StudioStatsDTO {
+  // Null until there's enough to be meaningful.
+  appointmentsCompleted: number | null;
+  clientsServed: number | null;
+  averageRating: number | null;
+  reviewCount: number | null;
+  servicesOffered: number | null;
+  onZuriSince: string | null;
+}
+
+export const studioStatsApi = {
+  async get(): Promise<StudioStatsDTO> {
+    const res = await apiRequest<Envelope<StudioStatsDTO>>("/studio/stats");
     return res.data;
   },
 };
