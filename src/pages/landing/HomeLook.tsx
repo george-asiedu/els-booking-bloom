@@ -1,5 +1,7 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { platformReviewsApi } from "@/lib/api";
 import {
   CalendarCheck,
   ChevronLeft,
@@ -8,6 +10,7 @@ import {
   Globe,
   ShieldCheck,
   Smartphone,
+  Star,
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +37,18 @@ import typeNaturalHair from "@/assets/landing/type-natural-hair.webp";
 import typePedicure from "@/assets/landing/type-pedicure.webp";
 import typeBrows from "@/assets/landing/type-brows.webp";
 import typeWellness from "@/assets/landing/type-wellness.webp";
+import typeTattoo from "@/assets/landing/type-tattoo.webp";
+import typePiercing from "@/assets/landing/type-piercing.webp";
+import typeHenna from "@/assets/landing/type-henna.webp";
+import typeSchool from "@/assets/landing/type-school.webp";
+import typeAesthetics from "@/assets/landing/type-aesthetics.webp";
+import typeLaser from "@/assets/landing/type-laser.webp";
+import typeMicroblading from "@/assets/landing/type-microblading.webp";
+import typeLashExt from "@/assets/landing/type-lash-ext.webp";
+import typeSalon from "@/assets/landing/type-salon.webp";
+import typeTeeth from "@/assets/landing/type-teeth.webp";
+import typeScalp from "@/assets/landing/type-scalp.webp";
+import typeLocs from "@/assets/landing/type-locs.webp";
 import salonOwner from "@/assets/landing/salon-owner.webp";
 
 // The Zuri landing page in the studio-homepage-look layout: photo hero, a
@@ -206,18 +221,30 @@ export const DifferenceBand = () => (
 );
 
 const TYPES = [
-  { img: typeBraids, label: "Hair and braids" },
-  { img: typeNaturalHair, label: "Natural hair, wigs and locs" },
-  { img: typeNails, label: "Nail studios" },
-  { img: typePedicure, label: "Pedicure and foot spa" },
-  { img: typeLashes, label: "Lashes and makeup" },
-  { img: typeBrows, label: "Brows and threading" },
-  { img: typeSkin, label: "Skin care and facials" },
-  { img: typeMassage, label: "Massage and spa" },
-  { img: typeWellness, label: "Waxing and body care" },
-  { img: typeMakeup, label: "Bridal and events" },
+  { img: typeSalon, label: "Hair salons" },
+  { img: typeBraids, label: "Braiders" },
+  { img: typeNaturalHair, label: "Natural hair and wigs" },
+  { img: typeLocs, label: "Locs and extensions" },
+  { img: typeScalp, label: "Scalp and hair restoration" },
   { img: typeBarber, label: "Barbershops" },
-  { img: typeBoutique, label: "Shops and boutiques" },
+  { img: typeNails, label: "Nail studios" },
+  { img: typePedicure, label: "Pedicure and foot spas" },
+  { img: typeLashExt, label: "Eyelash extensions" },
+  { img: typeBrows, label: "Brows and threading" },
+  { img: typeMicroblading, label: "Microblading and permanent makeup" },
+  { img: typeLashes, label: "Makeup artists" },
+  { img: typeMakeup, label: "Bridal beauty" },
+  { img: typeSkin, label: "Skin care and facials" },
+  { img: typeAesthetics, label: "Aesthetic clinics and med spas" },
+  { img: typeLaser, label: "Laser hair removal" },
+  { img: typeMassage, label: "Massage and day spas" },
+  { img: typeWellness, label: "Waxing, tanning and body care" },
+  { img: typeTattoo, label: "Tattoo studios" },
+  { img: typePiercing, label: "Body piercing" },
+  { img: typeHenna, label: "Henna artists" },
+  { img: typeTeeth, label: "Teeth whitening" },
+  { img: typeSchool, label: "Beauty schools and training" },
+  { img: typeBoutique, label: "Beauty supply and shops" },
 ];
 
 /** Kinds of business, as a swipeable row. */
@@ -231,8 +258,8 @@ export const TypesCarousel = () => {
           <Eyebrow>FOR EVERY KIND OF BEAUTY BUSINESS</Eyebrow>
           <h2 className="mt-3 font-serif text-3xl font-semibold md:text-4xl">Find your kind of business</h2>
           <p className="mt-3 text-muted-foreground">
-            Salons, home studios and mobile artists alike. If you take bookings, Zuri works for you.
-            Selling something else?{" "}
+            Shops, home studios and mobile artists alike. Don't see yours? If you take bookings,
+            Zuri works for you. Selling something else?{" "}
             <Link to="/onboarding" className="font-medium text-foreground underline underline-offset-4">Try Zuri Storefront</Link>.
           </p>
         </Reveal>
@@ -293,6 +320,54 @@ export const StepsBand = () => (
     </div>
   </section>
 );
+
+// Shown until real reviews are approved, and labelled as examples on the page.
+const EXAMPLE_TESTIMONIALS = [
+  { id: "a", content: "Clients stopped asking me for prices in my DMs. They see everything and book by themselves.", authorName: "A nail studio owner", rating: 5 },
+  { id: "b", content: "Deposits by Mobile Money cut my no-shows, and the money comes straight to my account.", authorName: "A braiding studio owner", rating: 5 },
+  { id: "c", content: "I set up my site on my phone between clients. It looks like I paid a designer for it.", authorName: "A makeup artist", rating: 5 },
+];
+
+/** What owners say: real approved reviews, submitted from the studio admin. */
+export const TestimonialsSection = () => {
+  const { data: real = [] } = useQuery({
+    queryKey: ["platform-testimonials"],
+    queryFn: () => platformReviewsApi.listApproved(),
+    staleTime: 10 * 60 * 1000,
+  });
+  const examples = real.length === 0;
+  const shown = examples ? EXAMPLE_TESTIMONIALS : real.slice(0, 3);
+  return (
+    <section className="py-16 md:py-24">
+      <div className="container mx-auto px-4">
+        <Reveal className="mx-auto mb-10 max-w-xl text-center">
+          <Eyebrow>TESTIMONIALS</Eyebrow>
+          <h2 className="mt-3 text-balance font-serif text-3xl font-semibold md:text-4xl">
+            Loved by the people running the business
+          </h2>
+        </Reveal>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {shown.map((t, i) => (
+            <Reveal key={t.id} delay={i * 90}>
+              <figure className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <div className="flex gap-0.5 text-primary" aria-label={`${t.rating} out of 5`}>
+                  {Array.from({ length: 5 }, (_, j) => (
+                    <Star key={j} className={cn("h-4 w-4", j < t.rating ? "fill-current" : "opacity-25")} aria-hidden />
+                  ))}
+                </div>
+                <blockquote className="mt-4 flex-1 font-serif text-lg leading-snug">"{t.content}"</blockquote>
+                <figcaption className="mt-5 text-sm font-medium">{t.authorName}</figcaption>
+              </figure>
+            </Reveal>
+          ))}
+        </div>
+        {examples && (
+          <p className="mt-6 text-center text-xs text-muted-foreground">Examples of how studios use Zuri.</p>
+        )}
+      </div>
+    </section>
+  );
+};
 
 /** Closing photo banner. */
 export const PhotoCta = () => (

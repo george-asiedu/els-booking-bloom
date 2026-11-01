@@ -17,6 +17,7 @@ import {
   TypesCarousel,
   StepsBand,
   PhotoCta,
+  TestimonialsSection,
 } from "./landing/HomeLook";
 
 const PlatformLanding = () => {
@@ -35,6 +36,7 @@ const PlatformLanding = () => {
       <PlatformMetricsSection />
       <StepsBand />
       <LoyaltyReviewsSection />
+      <TestimonialsSection />
       <PricingSection />
       <FaqSection />
       <PhotoCta />

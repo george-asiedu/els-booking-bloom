@@ -41,9 +41,13 @@ export const tokenStore = {
 // Root domain of the platform (e.g. "app.example.com"). When set, a request to
 // "<slug>.app.example.com" resolves to that studio's slug. Left empty in local
 // dev, where the slug comes from impersonation or the server default instead.
+// A bare host, however it's written in the env ("http://localhost:8080" -> "localhost").
 const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)
   ?.trim()
-  .toLowerCase();
+  .toLowerCase()
+  .replace(/^https?:\/\//, "")
+  .replace(/[/?#].*$/, "")
+  .replace(/:\d+$/, "");
 
 // Labels that are never a studio slug (platform surfaces / conventions).
 const RESERVED_SUBDOMAINS = new Set([
@@ -61,7 +65,7 @@ const RESERVED_SUBDOMAINS = new Set([
 const subdomainSlug = (() => {
   if (typeof window === "undefined") return null;
   const host = window.location.hostname.toLowerCase();
-  // Local dev / IPs never carry a studio subdomain.
+  // Local dev / IPs never carry a studio subdomain (els.localhost does).
   if (
     host === "localhost" ||
     host.startsWith("127.") ||

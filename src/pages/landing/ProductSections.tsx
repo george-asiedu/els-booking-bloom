@@ -1,17 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { platformReviewsApi } from "@/lib/api";
 import { Gift, Star, MessageSquareQuote } from "lucide-react";
 import { CountUp } from "@/components/CountUp";
-import { cn } from "@/lib/utils";
 import { Bar } from "./Visuals";
 
 export const LoyaltyReviewsSection = () => {
-  const { data: testimonials = [] } = useQuery({
-    queryKey: ["platform-testimonials"],
-    queryFn: () => platformReviewsApi.listApproved(),
-    staleTime: 10 * 60 * 1000,
-  });
-
   return (
     <>
       {/* ------------------------------------------------- Loyalty + reviews */}
@@ -79,38 +70,6 @@ export const LoyaltyReviewsSection = () => {
             </div>
           </div>
 
-          {/* Real studio testimonials, if any */}
-          {testimonials.length > 0 && (
-            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-              {testimonials.slice(0, 3).map((t, i) => (
-                <div
-                  key={t.id}
-                  className="rounded-2xl border border-border bg-card p-6"
-                >
-                  <div className="mb-3 flex gap-1" style={{ color: "hsl(var(--gold))" }}>
-                    {[...Array(5)].map((_, j) => (
-                      <Star
-                        key={j}
-                        className={cn(
-                          "h-4 w-4",
-                          j < t.rating ? "fill-current" : "text-muted-foreground/30",
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm">“{t.content}”</p>
-                  <p className="mt-4 text-sm font-medium">
-                    {t.authorName}
-                    {t.authorRole ? (
-                      <span className="font-normal text-muted-foreground">
-                        {" "}· {t.authorRole}
-                      </span>
-                    ) : null}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </section>
 

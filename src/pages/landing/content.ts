@@ -5,6 +5,9 @@ import nails1 from "@/assets/gallery/nails-1.jpg";
 import nails2 from "@/assets/gallery/nails-2.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
 import lashes2 from "@/assets/gallery/lashes-2.jpg";
+import siteEls from "@/assets/landing/site-els.webp";
+import siteZara from "@/assets/landing/site-zara.webp";
+import siteAma from "@/assets/landing/site-ama.webp";
 import { formatGHS } from "@/lib/currency";
 
 export const GHS = formatGHS;
@@ -18,11 +21,13 @@ export interface DemoStudio {
   tags: string[];
   featured: { name: string; price: number; duration: string };
   gallery: string[];
+  site: string; // capture of the homepage, one template per studio
 }
 
 export const STUDIOS: DemoStudio[] = [
   {
     key: "els",
+    site: siteEls,
     name: "El's Beauty Studio",
     slug: "elsbeautystudio",
     accent: "341 53% 50%",
@@ -32,6 +37,7 @@ export const STUDIOS: DemoStudio[] = [
   },
   {
     key: "zara",
+    site: siteZara,
     name: "Nailed by Zara",
     slug: "nailedbyzara",
     accent: "286 34% 52%",
@@ -41,6 +47,7 @@ export const STUDIOS: DemoStudio[] = [
   },
   {
     key: "ama",
+    site: siteAma,
     name: "Glow by Ama",
     slug: "glowbyama",
     accent: "18 58% 52%",
