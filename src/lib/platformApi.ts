@@ -1,8 +1,8 @@
 // API layer for the super-admin platform surface (/api/platform/*).
 //
 // The platform session is kept separate from the storefront/admin session
-// (its own token + user keys) so that impersonating a studio — which writes the
-// normal els_token/els_user — doesn't sign the super admin out of /platform.
+// (its own cookie + user key) so that impersonating a studio — which writes the
+// normal session and els_user — doesn't sign the super admin out of /platform.
 
 import { ApiError } from "./apiClient";
 import {
@@ -36,12 +36,6 @@ export interface PlatformUser {
 }
 
 export const platformStore = {
-  getToken(): string | null {
-    return localStorage.getItem(PLATFORM_TOKEN_KEY);
-  },
-  setToken(token: string) {
-    localStorage.setItem(PLATFORM_TOKEN_KEY, token);
-  },
   getUser(): PlatformUser | null {
     const raw = localStorage.getItem(PLATFORM_USER_KEY);
     if (!raw) return null;
@@ -76,10 +70,8 @@ async function platformRequest<T>(
   if (path === "/auth/login") {
     headers["X-Device-Id"] = getDeviceId();
   }
-  const token = platformStore.getToken();
-  if (auth && token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  headers["X-Zuri-Client"] = "web";
+  const signedIn = Boolean(platformStore.getUser());
 
   let payload: BodyInit | undefined;
   if (body !== undefined) {
@@ -91,6 +83,7 @@ async function platformRequest<T>(
     method,
     headers,
     body: payload,
+    credentials: "include",
   });
 
   let json: unknown = null;
@@ -105,7 +98,7 @@ async function platformRequest<T>(
 
   if (!res.ok) {
     // Dead platform session — clear it so the guard bounces to /platform/login.
-    if (res.status === 401 && auth && token) {
+    if (res.status === 401 && auth && signedIn) {
       platformStore.clear();
     }
     const message =
@@ -358,7 +351,6 @@ export interface PlatformActivityLogPage {
 }
 
 export interface ImpersonateResult {
-  token: { accessToken: string; refreshToken: string };
   studio: { id: string; slug: string; name: string };
   user: { id: string; email: string; role: string };
 }
@@ -425,9 +417,8 @@ interface Envelope<T> {
 export const platformApi = {
   async login(email: string, password: string): Promise<PlatformUser> {
     const res = await platformRequest<
-      Envelope<{ user: PlatformUser; token: { accessToken: string } }>
+      Envelope<{ user: PlatformUser }>
     >("/auth/login", { method: "POST", auth: false, body: { email, password } });
-    platformStore.setToken(res.data.token.accessToken);
     platformStore.setUser(res.data.user);
     return res.data.user;
   },

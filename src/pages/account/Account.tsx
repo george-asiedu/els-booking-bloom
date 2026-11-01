@@ -31,6 +31,7 @@ import type { DocumentBrand } from "@/lib/receipt";
 import { splitByDay } from "./accountFormat";
 import { AppointmentsTab } from "./AppointmentsTab";
 import { OrdersTab } from "./OrdersTab";
+import { VerifyEmailCard } from "./VerifyEmailCard";
 import { TransactionsTab } from "./TransactionsTab";
 import { RewardsTab } from "./RewardsTab";
 
@@ -297,6 +298,8 @@ const Account = () => {
             </Card>
             )}
           </div>
+
+          {user.role === "CUSTOMER" && <VerifyEmailCard email={user.email} />}
 
           <Tabs defaultValue={initialTab} className="space-y-6">
             <TabsList className="flex w-full flex-wrap h-auto sm:inline-flex sm:w-auto sm:flex-nowrap">

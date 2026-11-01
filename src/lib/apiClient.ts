@@ -1,13 +1,13 @@
 // Low-level API client for the ELS-Server Express API.
-// Handles base URL, bearer-token auth, JSON (de)serialization and error shaping.
+// Handles base URL, cookie sessions, JSON (de)serialization and error shaping.
 
 import { getDeviceId } from "./deviceIdentity";
 
-const API_URL: string =
+const CONFIGURED_API_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
   "http://localhost:5000/api";
 
-const TOKEN_KEY = "els_token";
+const TOKEN_KEY = "els_token"; // Old sessions: only ever removed now.
 const USER_KEY = "els_user";
 const STUDIO_SLUG_KEY = "els_studio_slug";
 
@@ -17,13 +17,9 @@ export interface AuthUser {
   role: "CUSTOMER" | "ADMIN";
 }
 
+// The session itself is an HttpOnly cookie that scripts can't read; this only
+// remembers who's signed in, for the UI.
 export const tokenStore = {
-  getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-  },
-  setToken(token: string) {
-    localStorage.setItem(TOKEN_KEY, token);
-  },
   getUser(): AuthUser | null {
     const raw = localStorage.getItem(USER_KEY);
     if (!raw) return null;
@@ -139,6 +135,13 @@ const isCustomHost = (): boolean => {
   return true;
 };
 
+// A studio's own domain forwards /api to the server, so the session cookie
+// belongs to that domain (browsers block cookies from another site).
+const API_URL: string =
+  isCustomHost() && !window.location.hostname.endsWith(".vercel.app")
+    ? `${window.location.origin}/api`
+    : CONFIGURED_API_URL;
+
 /**
  * When served from a studio's custom domain, resolve that host to a studio slug
  * and store it so every request is scoped correctly. No-op on localhost, the
@@ -216,10 +219,9 @@ export async function apiRequest<T>(
   if (path === "/auth/login" || path === "/auth/signup") {
     headers["X-Device-Id"] = getDeviceId();
   }
-  const token = tokenStore.getToken();
-  if (auth && token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  // Proves the request came from this app (see the CSRF check in the API).
+  headers["X-Zuri-Client"] = "web";
+  const signedIn = Boolean(tokenStore.getUser());
 
   // Scope the request to a specific studio when one is active (e.g. during
   // super-admin impersonation). Absent, the server uses its default studio.
@@ -240,6 +242,7 @@ export async function apiRequest<T>(
     method,
     headers,
     body: payload,
+    credentials: "include",
   });
 
   let json: unknown = null;
@@ -253,10 +256,10 @@ export async function apiRequest<T>(
   }
 
   if (!res.ok) {
-    // An expired/invalid token on an authenticated request. There is no
+    // An expired/invalid session on an authenticated request. There is no
     // silent refresh, so clear the dead session and let the app redirect to
-    // login. Guarded on `token` so failed logins (no token) don't trigger it.
-    if (res.status === 401 && auth && token) {
+    // login. Guarded on `signedIn` so failed logins don't trigger it.
+    if (res.status === 401 && auth && signedIn) {
       tokenStore.clear();
       unauthorizedHandler?.();
     }
