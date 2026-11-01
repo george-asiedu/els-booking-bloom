@@ -61,7 +61,7 @@ const ShopHome = () => {
           </h1>
           <p className="hero-rise mt-5 max-w-md text-white/85 [animation-delay:280ms]">{content?.heroSubtext || t.subtext}</p>
           <div className="hero-rise mt-8 flex flex-wrap items-center gap-6 [animation-delay:380ms]">
-            <Link to="/shop/products" className={cn(SHOP_CTA, "bg-white text-black")}>{t.cta}</Link>
+            <Link to="/shop/products" className={SHOP_CTA}>{t.cta}</Link>
             <a href="#best" className="text-sm hover:underline">{t.bestTitle} →</a>
           </div>
         </div>
@@ -124,7 +124,7 @@ const ShopHome = () => {
           <p className={cn("mt-3 max-w-lg text-balance text-3xl leading-tight md:text-4xl", heading)}>
             {banner?.message ?? `Something new at ${name}`}
           </p>
-          <Link to="/shop/products" className={cn(SHOP_CTA, "mt-6 h-11 bg-white text-black")}>Shop now</Link>
+          <Link to="/shop/products" className={cn(SHOP_CTA, "mt-6 h-11")}>Shop now</Link>
         </div>
       </section>
 
@@ -154,7 +154,7 @@ const ShopHome = () => {
           <div className="container mx-auto px-4">
             <h2 className={cn("text-3xl", heading)}>{t.joinTitle}</h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">{t.joinText}</p>
-            <Link to="/signup" className="mt-6 inline-flex h-10 items-center rounded-full bg-foreground px-6 text-sm text-background hover:opacity-85">
+            <Link to="/signup" className="mt-6 inline-flex h-10 items-center rounded-full bg-primary px-6 text-sm text-primary-foreground hover:opacity-85">
               Become a member →
             </Link>
           </div>

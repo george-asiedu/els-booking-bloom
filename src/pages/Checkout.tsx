@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, LocateFixed } from "lucide-react";
+import { CouponBox } from "@/components/shop/CouponBox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +26,10 @@ const Checkout = () => {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
+  // What the map shows: settles after typing stops, so it doesn't reload per key.
+  const [mapQuery, setMapQuery] = useState("");
+  const [locating, setLocating] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const isCustomer = !!user && user.role !== "ADMIN";
@@ -42,13 +47,35 @@ const Checkout = () => {
     if (commerce) setFulfillment(commerce.enable_pickup ? "PICKUP" : "DELIVERY");
   }, [commerce]);
 
+  useEffect(() => {
+    const t = setTimeout(() => setMapQuery(address.trim()), 800);
+    return () => clearTimeout(t);
+  }, [address]);
+
   if (!isCustomer) return <Navigate to="/cart" replace />;
   if (!isLoading && !paymentOpen && !cart?.items.length) return <Navigate to="/cart" replace />;
 
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const deliveryFee = fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
-  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
+  const total = Math.round((subtotal - (coupon?.discount ?? 0) + deliveryFee) * 100) / 100;
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const pin = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+        setAddress((a) => (a.trim() ? `${a.trim()} (${pin})` : pin));
+        setMapQuery(pin);
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        toast({ variant: "destructive", title: "Couldn't get your location", description: "Type your address instead." });
+      },
+    );
+  };
 
   const proceed = async () => {
     if (fulfillment === "DELIVERY" && (!address.trim() || !phone.trim())) {
@@ -62,6 +89,7 @@ const Checkout = () => {
         fulfillment,
         deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
         deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
+        couponCode: coupon?.code,
       });
       setPaymentTarget({
         reference: result.reference,
@@ -124,6 +152,19 @@ const Checkout = () => {
                   <Label htmlFor="co-address" className="text-xs uppercase tracking-wider">Address *</Label>
                   <Textarea id="co-address" rows={3} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="House number, street, area and a nearby landmark" className="mt-2 rounded-none" />
                 </div>
+                <button type="button" onClick={useMyLocation} disabled={locating} className="flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 hover:underline">
+                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" aria-hidden />}
+                  Use my current location
+                </button>
+                {mapQuery && (
+                  <iframe
+                    title="Map of your delivery address"
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="h-64 w-full border border-border"
+                  />
+                )}
               </div>
             )}
             <button type="button" className={cn(SHOP_CTA, "w-full")} disabled={busy || isLoading} onClick={proceed}>
@@ -139,20 +180,22 @@ const Checkout = () => {
             </div>
             <ul className="divide-y divide-border">
               {items.map((i) => (
-                <li key={i.product_id} className="flex gap-3 p-4 text-sm">
+                <li key={`${i.product_id}:${i.size}:${i.color}`} className="flex gap-3 p-4 text-sm">
                   <div className="h-16 w-14 shrink-0 overflow-hidden bg-muted">
                     {i.image_url && <img src={i.image_url} alt="" className="h-full w-full object-cover" />}
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium">{i.name}</p>
-                    <p className="text-muted-foreground">Qty: {i.quantity}</p>
+                    <p className="text-muted-foreground">Qty: {i.quantity}{i.size && ` · Size ${i.size}`}{i.color && ` · ${i.color}`}</p>
                     <p className="tabular-nums">{GHS(i.line_total)}</p>
                   </div>
                 </li>
               ))}
             </ul>
+            <div className="border-t border-border p-5"><CouponBox subtotal={subtotal} onChange={setCoupon} /></div>
             <div className="space-y-2 border-t border-border p-5 text-sm">
               <p className="flex justify-between"><span>Subtotal</span><span className="tabular-nums">{GHS(subtotal)}</span></p>
+              {coupon && <p className="flex justify-between"><span>Discount</span><span className="tabular-nums">-{GHS(coupon.discount)}</span></p>}
               <p className="flex justify-between"><span>Delivery</span><span className="tabular-nums">{deliveryFee > 0 ? GHS(deliveryFee) : "Free"}</span></p>
               <p className="flex justify-between pt-1 text-xl font-semibold"><span>Total</span><span className="tabular-nums">{GHS(total)}</span></p>
             </div>

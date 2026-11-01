@@ -14,6 +14,12 @@ export interface ProductDTO {
   on_promo: boolean;
   effective_price: number;
   image_url: string | null;
+  // Every photo, main one first.
+  images: string[];
+  sizes: string[];
+  colors: { name: string; hex: string }[];
+  rating_average: number | null;
+  rating_count: number;
   category: string;
   stock: number;
   track_stock: boolean;
@@ -30,6 +36,11 @@ interface RawProduct {
   costPrice?: number;
   promoPrice: number | null;
   imageUrl: string | null;
+  images?: string[];
+  sizes?: string[];
+  colors?: string[];
+  ratingAverage?: number | null;
+  ratingCount?: number;
   category: string;
   stock: number;
   trackStock: boolean;
@@ -49,6 +60,14 @@ const normalizeProduct = (p: RawProduct): ProductDTO => {
     on_promo: onPromo,
     effective_price: onPromo ? (p.promoPrice as number) : p.price,
     image_url: p.imageUrl,
+    images: [...(p.imageUrl ? [p.imageUrl] : []), ...(p.images ?? [])],
+    sizes: p.sizes ?? [],
+    colors: (p.colors ?? []).map((c) => {
+      const [name, hex] = c.split("|");
+      return { name, hex };
+    }),
+    rating_average: p.ratingAverage ?? null,
+    rating_count: p.ratingCount ?? 0,
     category: p.category,
     stock: p.stock,
     track_stock: p.trackStock,
@@ -71,6 +90,11 @@ export interface ProductInput {
   popular?: boolean;
   image?: File | null;
   imageUrl?: string | null;
+  // Extra photos: already-uploaded ones to keep, and new files to add.
+  images?: string[];
+  newImages?: File[];
+  sizes?: string[];
+  colors?: string[];
 }
 
 const productForm = (input: Partial<ProductInput>): FormData => {
@@ -90,6 +114,12 @@ const productForm = (input: Partial<ProductInput>): FormData => {
   if (input.popular !== undefined) form.append("popular", String(input.popular));
   if (input.image) form.append("image", input.image);
   return form;
+};
+
+const withExtraPhotos = async (input: Partial<ProductInput>) => {
+  if (input.images === undefined && !input.newImages?.length) return {};
+  const added = await Promise.all((input.newImages ?? []).map((f) => uploadStudioMedia(f, "products")));
+  return { images: [...(input.images ?? []), ...added] };
 };
 
 export const productsApi = {
@@ -120,7 +150,7 @@ export const productsApi = {
     const res = await apiRequest<Envelope<RawProduct>>("/products", {
       method: "POST",
       auth: true,
-      body: { ...input, image: undefined, imageUrl },
+      body: { ...input, image: undefined, newImages: undefined, imageUrl, ...(await withExtraPhotos(input)) },
     });
     return normalizeProduct(res.data);
   },
@@ -129,7 +159,7 @@ export const productsApi = {
     const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`, {
       method: "PUT",
       auth: true,
-      body: { ...input, image: undefined, imageUrl },
+      body: { ...input, image: undefined, newImages: undefined, imageUrl, ...(await withExtraPhotos(input)) },
     });
     return normalizeProduct(res.data);
   },

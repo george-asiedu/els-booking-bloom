@@ -8,6 +8,8 @@ export type Fulfillment = "pickup" | "delivery";
 
 export interface OrderItemDTO {
   name: string;
+  size?: string | null;
+  color?: string | null;
   unit_price: number;
   cost_price: number;
   quantity: number;
@@ -63,7 +65,7 @@ export interface RawOrder {
   customerName?: string | null;
   customerEmail?: string | null;
   customerPhone?: string | null;
-  items: { name: string; unitPrice: number; costPrice?: number; quantity: number }[];
+  items: { name: string; unitPrice: number; costPrice?: number; quantity: number; size?: string | null; color?: string | null }[];
   user?: { email: string; profile?: { fullName: string | null } | null } | null;
 }
 
@@ -72,6 +74,8 @@ export const normalizeOrder = (o: RawOrder): OrderDTO => {
     const cost = i.costPrice ?? 0;
     return {
       name: i.name,
+      size: i.size ?? null,
+      color: i.color ?? null,
       unit_price: i.unitPrice,
       cost_price: cost,
       quantity: i.quantity,
@@ -113,10 +117,11 @@ export interface CheckoutInput {
   deliveryPhone?: string;
   applyPoints?: boolean;
   referralCode?: string;
+  couponCode?: string;
 }
 
 export interface GuestCheckoutInput {
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; quantity: number; size?: string; color?: string }[];
   name: string;
   email: string;
   phone: string;
@@ -124,6 +129,7 @@ export interface GuestCheckoutInput {
   deliveryAddress?: string;
   deliveryPhone?: string;
   referralCode?: string;
+  couponCode?: string;
 }
 
 export interface CheckoutResult {
@@ -163,6 +169,14 @@ const mapCheckout = (d: RawCheckout): CheckoutResult => ({
 });
 
 export const ordersApi = {
+  async checkCoupon(code: string, subtotal: number): Promise<{ code: string; discount: number }> {
+    const res = await apiRequest<Envelope<{ code: string; discount: number }>>("/orders/coupon", {
+      method: "POST",
+      body: { code, subtotal },
+    });
+    return res.data;
+  },
+
   async checkout(input: CheckoutInput): Promise<CheckoutResult> {
     const res = await apiRequest<Envelope<RawCheckout>>("/orders/checkout", {
       method: "POST",

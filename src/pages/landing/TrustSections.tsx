@@ -25,14 +25,14 @@ export const PlatformMetricsSection = () => {
     { value: data.paymentsProcessed, label: "Paid to businesses", prefix: "GH₵ " },
   ];
   return (
-    <section className="border-y border-border bg-foreground py-14 text-background">
+    <section className="border-y border-border bg-band py-14 text-band-foreground">
       <div className="container mx-auto grid grid-cols-2 gap-y-10 px-4 md:grid-cols-4">
         {items.map((m) => (
           <div key={m.label} className="text-center">
             <p className="font-serif text-3xl font-semibold tabular-nums text-primary md:text-4xl">
               <CountUp value={m.value ?? 0} prefix={m.prefix} />
             </p>
-            <p className="mt-1 text-sm text-background/70">{m.label}</p>
+            <p className="mt-1 text-sm text-band-foreground/70">{m.label}</p>
           </div>
         ))}
       </div>

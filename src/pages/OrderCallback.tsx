@@ -111,8 +111,8 @@ const OrderCallback = () => {
           <h2 className="mt-10 font-medium">Your order details</h2>
           <ul className="mt-3 divide-y divide-border border-y border-border">
             {order.items.map((it) => (
-              <li key={it.name} className="flex justify-between gap-4 py-4 text-sm">
-                <span>{it.name} <span className="text-muted-foreground">× {it.quantity}</span></span>
+              <li key={`${it.name}:${it.size}:${it.color}`} className="flex justify-between gap-4 py-4 text-sm">
+                <span>{it.name} <span className="text-muted-foreground">× {it.quantity}{it.size && ` · Size ${it.size}`}{it.color && ` · ${it.color}`}</span></span>
                 <span className="tabular-nums">{formatGHS(it.line_total)}</span>
               </li>
             ))}
@@ -128,6 +128,7 @@ const OrderCallback = () => {
             </div>
             <div className="space-y-2">
               <p className="flex justify-between"><span>Subtotal</span><span className="tabular-nums">{formatGHS(order.subtotal)}</span></p>
+              {order.discount_amount > 0 && <p className="flex justify-between"><span>Discount</span><span className="tabular-nums">-{formatGHS(order.discount_amount)}</span></p>}
               {order.delivery_fee > 0 && <p className="flex justify-between"><span>Delivery</span><span className="tabular-nums">{formatGHS(order.delivery_fee)}</span></p>}
               <p className="flex justify-between text-xl font-semibold"><span>Total</span><span className="tabular-nums">{formatGHS(order.total)}</span></p>
             </div>

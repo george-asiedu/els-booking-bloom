@@ -5,6 +5,8 @@ import { Envelope } from "./core";
 
 export interface CartItemDTO {
   product_id: string;
+  size: string;
+  color: string;
   name: string;
   unit_price: number;
   image_url: string | null;
@@ -24,6 +26,8 @@ interface RawCart {
   items: {
     productId: string;
     quantity: number;
+    size?: string;
+    color?: string;
     product: {
       id: string;
       name: string;
@@ -44,6 +48,8 @@ const normalizeCart = (c: RawCart | null): CartDTO => {
     const unit = onPromo ? (p.promoPrice as number) : p.price;
     return {
       product_id: it.productId,
+      size: it.size ?? "",
+      color: it.color ?? "",
       name: p.name,
       unit_price: unit,
       image_url: p.imageUrl,
@@ -66,25 +72,26 @@ export const cartApi = {
     });
     return normalizeCart(res.data);
   },
-  async addItem(productId: string, quantity = 1): Promise<CartDTO> {
+  async addItem(productId: string, quantity = 1, size = "", color = ""): Promise<CartDTO> {
     const res = await apiRequest<Envelope<RawCart>>("/cart/items", {
       method: "POST",
       auth: true,
-      body: { productId, quantity },
+      body: { productId, quantity, size, color },
     });
     return normalizeCart(res.data);
   },
-  async updateItem(productId: string, quantity: number): Promise<CartDTO> {
+  async updateItem(productId: string, quantity: number, size = "", color = ""): Promise<CartDTO> {
     const res = await apiRequest<Envelope<RawCart>>("/cart/items", {
       method: "PUT",
       auth: true,
-      body: { productId, quantity },
+      body: { productId, quantity, size, color },
     });
     return normalizeCart(res.data);
   },
-  async removeItem(productId: string): Promise<CartDTO> {
+  async removeItem(productId: string, size = "", color = ""): Promise<CartDTO> {
+    const query = new URLSearchParams({ size, color }).toString();
     const res = await apiRequest<Envelope<RawCart>>(
-      `/cart/items/${productId}`,
+      `/cart/items/${productId}?${query}`,
       { method: "DELETE", auth: true },
     );
     return normalizeCart(res.data);

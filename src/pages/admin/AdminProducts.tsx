@@ -65,6 +65,9 @@ interface ProductFormData {
   stock: string;
   trackStock: boolean;
   popular: boolean;
+  sizes: string;
+  colors: { name: string; hex: string }[];
+  images: string[];
 }
 
 const emptyForm: ProductFormData = {
@@ -77,6 +80,9 @@ const emptyForm: ProductFormData = {
   stock: "0",
   trackStock: true,
   popular: false,
+  sizes: "",
+  colors: [],
+  images: [],
 };
 
 const AdminProducts = () => {
@@ -87,6 +93,7 @@ const AdminProducts = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
   const [image, setImage] = useState<File | null>(null);
+  const [newImages, setNewImages] = useState<File[]>([]);
   // Filters
   const [pSearch, setPSearch] = useState("");
   const [pCategory, setPCategory] = useState("all");
@@ -127,6 +134,10 @@ const AdminProducts = () => {
         trackStock: data.trackStock,
         popular: data.popular,
         image,
+        newImages,
+        images: data.images,
+        sizes: data.sizes.split(",").map((x) => x.trim()).filter(Boolean),
+        colors: data.colors.filter((c) => c.name.trim()).map((c) => `${c.name.trim()}|${c.hex}`),
       };
       if (data.id) await productsApi.update(data.id, payload);
       else await productsApi.create(payload);
@@ -137,6 +148,8 @@ const AdminProducts = () => {
       setEditing(null);
       setForm(emptyForm);
       setImage(null);
+    setNewImages([]);
+      setNewImages([]);
       toast({ title: editing ? "Product updated" : "Product created" });
     },
     onError: (error) =>
@@ -172,6 +185,7 @@ const AdminProducts = () => {
     setEditing(null);
     setForm({ ...emptyForm, category: categories[0]?.slug ?? "" });
     setImage(null);
+    setNewImages([]);
     setIsDialogOpen(true);
   };
 
@@ -187,8 +201,13 @@ const AdminProducts = () => {
       stock: p.stock.toString(),
       trackStock: p.track_stock,
       popular: p.popular,
+      sizes: p.sizes.join(", "),
+      colors: p.colors,
+      // The first photo is the main image, edited by its own field.
+      images: p.images.slice(p.image_url ? 1 : 0),
     });
     setImage(null);
+    setNewImages([]);
     setIsDialogOpen(true);
   };
 
@@ -508,6 +527,58 @@ const AdminProducts = () => {
                 />
                 <Label htmlFor="trackStock">Track stock</Label>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="more-images">More photos (up to 8)</Label>
+              {form.images.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.images.map((src) => (
+                    <button
+                      key={src}
+                      type="button"
+                      aria-label="Remove this photo"
+                      title="Remove this photo"
+                      onClick={() => setForm({ ...form, images: form.images.filter((x) => x !== src) })}
+                      className="group relative h-16 w-16 overflow-hidden rounded border"
+                    >
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                      <span className="absolute inset-0 hidden items-center justify-center bg-black/50 text-white group-hover:flex"><Trash2 className="h-4 w-4" /></span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Input id="more-images" type="file" accept="image/*" multiple onChange={(e) => setNewImages([...(e.target.files ?? [])])} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sizes">Sizes (optional)</Label>
+              <Input id="sizes" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} placeholder="S, M, L, XL" />
+              <p className="text-xs text-muted-foreground">Separate with commas. Customers must pick one. All sizes share the stock above.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Colours (optional)</Label>
+              {form.colors.map((c, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Colour"
+                    value={c.hex}
+                    onChange={(e) => setForm({ ...form, colors: form.colors.map((x, j) => (j === i ? { ...x, hex: e.target.value } : x)) })}
+                    className="h-10 w-12 cursor-pointer rounded border"
+                  />
+                  <Input
+                    aria-label="Colour name"
+                    value={c.name}
+                    placeholder="Colour name, e.g. Sand"
+                    onChange={(e) => setForm({ ...form, colors: form.colors.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })}
+                  />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove colour" onClick={() => setForm({ ...form, colors: form.colors.filter((_, j) => j !== i) })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, colors: [...form.colors, { name: "", hex: "#000000" }] })}>
+                <Plus className="mr-2 h-4 w-4" /> Add colour
+              </Button>
             </div>
             <div className="space-y-2">
               <Label htmlFor="image">

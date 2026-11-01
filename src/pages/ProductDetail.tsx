@@ -4,6 +4,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  Heart,
+  Star,
   Loader2,
   ImageOff,
   Minus,
@@ -14,13 +16,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Breadcrumbs, ProductRow, SHOP_CTA } from "@/components/shop/ProductCard";
+import { Stars } from "@/components/shop/Stars";
+import { useWishlist } from "@/hooks/useWishlist";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { productsApi, productCategoriesApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
+import { productsApi, productCategoriesApi, productReviewsApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -36,8 +40,14 @@ const ProductDetail = () => {
   const { toast } = useToast();
   const processing = useProcessing();
   const queryClient = useQueryClient();
+  const wishlist = useWishlist();
 
   const [qty, setQty] = useState(1);
+  const [photo, setPhoto] = useState(0);
+  const [size, setSize] = useState("");
+  const [color, setColor] = useState("");
+  const [myRating, setMyRating] = useState(0);
+  const [myReview, setMyReview] = useState("");
   const [redirecting, setRedirecting] = useState(false);
   // Guest express-checkout form.
   const [guest, setGuest] = useState({ name: "", email: "", phone: "" });
@@ -72,6 +82,9 @@ const ProductDetail = () => {
   useEffect(() => {
     if (!id) return;
     setQty(1);
+    setPhoto(0);
+    setSize("");
+    setColor("");
     try {
       const seen = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as string[];
       setRecentIds(seen);
@@ -81,10 +94,26 @@ const ProductDetail = () => {
     }
   }, [id]);
 
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["product-reviews", id],
+    queryFn: () => productReviewsApi.list(id),
+    enabled: !!id,
+  });
+  const reviewMutation = useMutation({
+    mutationFn: () => productReviewsApi.add(id, myRating, myReview),
+    onSuccess: (message) => {
+      setMyRating(0);
+      setMyReview("");
+      toast({ title: "Review sent", description: message });
+    },
+    onError: (e) =>
+      toast({ variant: "destructive", title: "Couldn't send your review", description: e instanceof Error ? e.message : "Please try again." }),
+  });
+
   const maxQty = product?.track_stock ? product.stock : 99;
 
   const addMutation = useMutation({
-    mutationFn: () => cartApi.addItem(id, qty),
+    mutationFn: () => cartApi.addItem(id, qty, size, color),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast({ title: "Added to cart", description: `${product?.name} × ${qty}` });
@@ -123,9 +152,18 @@ const ProductDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCustomer]);
 
+  // Each option the product offers has to be chosen before it can be bought.
+  const optionsChosen = () => {
+    const missing = product?.sizes.length && !size ? "size" : product?.colors.length && !color ? "colour" : null;
+    if (missing) toast({ variant: "destructive", title: `Choose a ${missing}` });
+    return !missing;
+  };
+
   const handleAddToCart = () => {
+    if (!optionsChosen()) return;
     if (!user) {
-      setPendingCartAdd(id);
+      // The saved add has no options, so those shoppers choose again after login.
+      if (!product?.sizes.length && !product?.colors.length) setPendingCartAdd(id);
       navigate(`/login?redirect=/shop/${id}`);
       return;
     }
@@ -137,6 +175,7 @@ const ProductDetail = () => {
   };
 
   const handleGuestBuy = async () => {
+    if (!optionsChosen()) return;
     if (!guest.name.trim() || !guest.email.trim() || !guest.phone.trim()) {
       toast({
         variant: "destructive",
@@ -158,7 +197,7 @@ const ProductDetail = () => {
       // Stays up until the browser leaves for Paystack's checkout page.
       processing.show(PROCESSING.preparing);
       const res = await ordersApi.guestCheckout({
-        items: [{ productId: id, quantity: qty }],
+        items: [{ productId: id, quantity: qty, size, color }],
         name: guest.name.trim(),
         email: guest.email.trim(),
         phone: guest.phone.trim(),
@@ -223,22 +262,90 @@ const ProductDetail = () => {
           ]}
         />
         <div className="mt-6 grid gap-8 md:grid-cols-2 lg:gap-14">
-          <div className="relative aspect-[8/9] overflow-hidden bg-muted">
-            {product.image_url ? (
-              <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground"><ImageOff className="h-12 w-12" /></div>
+          <div>
+            <div className="relative aspect-[8/9] overflow-hidden bg-muted">
+              {product.images.length ? (
+                <img src={product.images[Math.min(photo, product.images.length - 1)]} alt={product.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground"><ImageOff className="h-12 w-12" /></div>
+              )}
+              <button
+                type="button"
+                aria-pressed={wishlist.has(product.id)}
+                aria-label={wishlist.has(product.id) ? "Remove from wishlist" : "Save to wishlist"}
+                onClick={() => wishlist.toggle(product.id)}
+                className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground"
+              >
+                <Heart className={cn("h-5 w-5", wishlist.has(product.id) && "fill-current")} aria-hidden />
+              </button>
+            </div>
+            {product.images.length > 1 && (
+              <div className="mt-3 grid grid-cols-4 gap-3">
+                {product.images.slice(0, 8).map((src, i) => (
+                  <button
+                    key={src}
+                    type="button"
+                    aria-label={`Photo ${i + 1}`}
+                    aria-current={photo === i}
+                    onClick={() => setPhoto(i)}
+                    className={cn("aspect-square overflow-hidden border-2", photo === i ? "border-foreground" : "border-transparent")}
+                  >
+                    <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
           <div>
             <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">{product.name}</h1>
+            {product.rating_average !== null && (
+              <a href="#reviews" className="mt-2 block"><Stars value={product.rating_average} count={product.rating_count} className="text-sm" /></a>
+            )}
             <p className="mt-3 text-2xl font-semibold tabular-nums text-muted-foreground">
               {product.on_promo && <span className="mr-2 text-lg font-normal line-through">{formatGHS(product.price)}</span>}
               {formatGHS(product.effective_price)}
             </p>
             <hr className="my-6 border-border" />
             {product.description && <p className="whitespace-pre-line leading-relaxed text-muted-foreground">{product.description}</p>}
+
+            {product.colors.length > 0 && (
+              <div className="mt-6">
+                <p className="text-sm font-medium">Colour{color && ` — ${color}`}</p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  {product.colors.map((c) => (
+                    <button
+                      key={c.name}
+                      type="button"
+                      title={c.name}
+                      aria-label={c.name}
+                      aria-pressed={color === c.name}
+                      onClick={() => setColor(c.name)}
+                      className={cn("h-9 w-9 rounded-full border border-border ring-offset-2 ring-offset-background", color === c.name && "ring-2 ring-foreground")}
+                      style={{ backgroundColor: c.hex }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {product.sizes.length > 0 && (
+              <div className="mt-5">
+                <p className="text-sm font-medium">Size</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {product.sizes.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      aria-pressed={size === s}
+                      onClick={() => setSize(s)}
+                      className={cn("h-11 min-w-11 border px-3 text-sm", size === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-foreground")}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {product.in_stock ? (
               <>
@@ -320,6 +427,40 @@ const ProductDetail = () => {
             </Accordion>
           </div>
         </div>
+      </section>
+
+      <section id="reviews" className="container mx-auto scroll-mt-24 px-4 py-10">
+        <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Reviews</h2>
+        {reviews.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">No reviews yet.</p>
+        ) : (
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            {reviews.map((r) => (
+              <figure key={r.id} className="border border-border p-5">
+                <Stars value={r.rating} />
+                {r.content && <blockquote className="mt-2 text-sm">{r.content}</blockquote>}
+                <figcaption className="mt-3 text-xs text-muted-foreground">{r.user.profile?.fullName ?? "Customer"}</figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
+        {isCustomer && (
+          <form
+            className="mt-6 max-w-lg space-y-3"
+            onSubmit={(e) => { e.preventDefault(); reviewMutation.mutate(); }}
+          >
+            <p className="text-sm font-medium">Bought this? Tell others what you think.</p>
+            <div className="flex gap-1" role="radiogroup" aria-label="Your rating">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} type="button" role="radio" aria-checked={myRating === n} aria-label={`${n} stars`} onClick={() => setMyRating(n)} className="p-1">
+                  <Star className={cn("h-6 w-6", n <= myRating ? "fill-current" : "opacity-30")} aria-hidden />
+                </button>
+              ))}
+            </div>
+            <Textarea value={myReview} onChange={(e) => setMyReview(e.target.value)} rows={3} maxLength={1000} placeholder="Your review (optional)" />
+            <Button type="submit" variant="outline" className="rounded-none" disabled={!myRating || reviewMutation.isPending}>Send review</Button>
+          </form>
+        )}
       </section>
 
       <ProductRow title="Similar items you might like" products={similar.length ? similar : others} />

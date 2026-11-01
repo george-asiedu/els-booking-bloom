@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { CouponBox } from "@/components/shop/CouponBox";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, Minus, Plus, Loader2, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { ProductRow, SHOP_CTA } from "@/components/shop/ProductCard";
 import { cn } from "@/lib/utils";
-import { cartApi, contactInfoApi, productsApi } from "@/lib/api";
+import { cartApi, contactInfoApi, productsApi, type CartItemDTO } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS as GHS } from "@/lib/currency";
@@ -16,6 +18,7 @@ const Cart = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isCustomer = !!user && user.role !== "ADMIN";
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
 
   const { data: cart, isLoading } = useQuery({
     queryKey: ["cart"],
@@ -39,13 +42,13 @@ const Cart = () => {
       description: error instanceof Error ? error.message : "Please try again.",
     });
   const updateMutation = useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      cartApi.updateItem(productId, quantity),
+    mutationFn: ({ item, quantity }: { item: CartItemDTO; quantity: number }) =>
+      cartApi.updateItem(item.product_id, quantity, item.size, item.color),
     onSuccess: invalidateCart,
     onError,
   });
   const removeMutation = useMutation({
-    mutationFn: (productId: string) => cartApi.removeItem(productId),
+    mutationFn: (item: CartItemDTO) => cartApi.removeItem(item.product_id, item.size, item.color),
     onSuccess: invalidateCart,
     onError,
   });
@@ -136,25 +139,28 @@ const Cart = () => {
             </div>
             <ul className="divide-y divide-border border-b border-border md:border-t-0 mt-6 md:mt-0">
               {items.map((item) => (
-                <li key={item.product_id} className="grid grid-cols-[5rem_1fr] gap-4 py-5 md:grid-cols-[1fr_7rem_8rem_7rem] md:items-start md:gap-0">
+                <li key={`${item.product_id}:${item.size}:${item.color}`} className="grid grid-cols-[5rem_1fr] gap-4 py-5 md:grid-cols-[1fr_7rem_8rem_7rem] md:items-start md:gap-0">
                   <div className="contents md:flex md:gap-4">
                     <Link to={`/shop/${item.product_id}`} className="h-24 w-20 shrink-0 overflow-hidden bg-muted">
                       {item.image_url && <img src={item.image_url} alt="" className="h-full w-full object-cover" />}
                     </Link>
                     <div className="min-w-0">
                       <Link to={`/shop/${item.product_id}`} className="font-medium hover:underline">{item.name}</Link>
+                      {(item.size || item.color) && (
+                        <p className="mt-0.5 text-sm text-muted-foreground">{[item.color, item.size && `Size ${item.size}`].filter(Boolean).join(" · ")}</p>
+                      )}
                       {!item.in_stock && <p className="mt-1 text-sm text-destructive">No longer in stock. Remove it to continue.</p>}
                       <p className="mt-1 text-sm tabular-nums text-muted-foreground md:hidden">{GHS(item.unit_price)}</p>
-                      <button type="button" onClick={() => removeMutation.mutate(item.product_id)} className="mt-3 text-xs underline underline-offset-2 hover:text-destructive">
+                      <button type="button" onClick={() => removeMutation.mutate(item)} className="mt-3 text-xs underline underline-offset-2 hover:text-destructive">
                         Remove from basket
                       </button>
                     </div>
                   </div>
                   <p className="hidden text-sm tabular-nums md:block">{GHS(item.unit_price)}</p>
                   <div className="col-start-2 flex h-9 w-fit items-center border border-input md:col-start-auto">
-                    <button type="button" aria-label="Less" className="h-full px-2.5 disabled:opacity-40" disabled={item.quantity <= 1 || updateMutation.isPending} onClick={() => updateMutation.mutate({ productId: item.product_id, quantity: item.quantity - 1 })}><Minus className="h-3.5 w-3.5" /></button>
+                    <button type="button" aria-label="Less" className="h-full px-2.5 disabled:opacity-40" disabled={item.quantity <= 1 || updateMutation.isPending} onClick={() => updateMutation.mutate({ item, quantity: item.quantity - 1 })}><Minus className="h-3.5 w-3.5" /></button>
                     <span className="w-7 text-center text-sm tabular-nums">{item.quantity}</span>
-                    <button type="button" aria-label="More" className="h-full px-2.5 disabled:opacity-40" disabled={(item.max_qty !== null && item.quantity >= item.max_qty) || updateMutation.isPending} onClick={() => updateMutation.mutate({ productId: item.product_id, quantity: item.quantity + 1 })}><Plus className="h-3.5 w-3.5" /></button>
+                    <button type="button" aria-label="More" className="h-full px-2.5 disabled:opacity-40" disabled={(item.max_qty !== null && item.quantity >= item.max_qty) || updateMutation.isPending} onClick={() => updateMutation.mutate({ item, quantity: item.quantity + 1 })}><Plus className="h-3.5 w-3.5" /></button>
                   </div>
                   <p className="col-start-2 text-sm font-medium tabular-nums md:col-start-auto md:text-right">{GHS(item.line_total)}</p>
                 </li>
@@ -172,8 +178,10 @@ const Cart = () => {
                 </div>
               </div>
               <div>
+                <div className="mb-5"><CouponBox subtotal={subtotal} onChange={setCoupon} /></div>
                 <div className="flex items-baseline justify-between text-sm"><span>Subtotal</span><span className="tabular-nums">{GHS(subtotal)}</span></div>
-                <div className="mt-3 flex items-baseline justify-between text-2xl font-semibold"><span>Total</span><span className="tabular-nums">{GHS(subtotal)}</span></div>
+                {coupon && <div className="mt-1 flex items-baseline justify-between text-sm"><span>Discount</span><span className="tabular-nums">-{GHS(coupon.discount)}</span></div>}
+                <div className="mt-3 flex items-baseline justify-between text-2xl font-semibold"><span>Total</span><span className="tabular-nums">{GHS(subtotal - (coupon?.discount ?? 0))}</span></div>
                 <div className="mt-5">{checkout}</div>
               </div>
             </div>

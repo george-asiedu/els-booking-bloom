@@ -2,7 +2,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Search, ShoppingBag, User, X } from "lucide-react";
+import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { useStudio } from "@/hooks/useStudio";
 import { useAuth } from "@/hooks/useAuth";
 import { cartApi, contactInfoApi, productCategoriesApi, promoApi } from "@/lib/api";
@@ -132,6 +132,9 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
             >
               <User className="h-5 w-5" />
               <span className="hidden xl:inline">{user ? "Account" : "Login"}</span>
+            </Link>
+            <Link to="/wishlist" className="rounded-md p-2 hover:bg-accent" aria-label="Wishlist">
+              <Heart className="h-5 w-5" />
             </Link>
             <Link to="/cart" className="relative rounded-md p-2 hover:bg-accent" aria-label={`Bag, ${count} items`}>
               <ShoppingBag className="h-5 w-5" />

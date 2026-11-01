@@ -25,6 +25,7 @@ export type {
 } from "./models";
 export * from "./auth";
 export * from "./studio";
+export * from "./shopExtras";
 export * from "./platformReviews";
 export * from "./billing";
 export * from "./users";

@@ -34,6 +34,8 @@ const ShopHome = lazy(() => import("./pages/ShopHome"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
 const OrderCallback = lazy(() => import("./pages/OrderCallback"));
 const BookingCallback = lazy(() => import("./pages/BookingCallback"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -245,6 +247,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/wishlist"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Wishlist />
+                  </FeatureRoute>
+                }
+              />
+              <Route
                 path="/checkout"
                 element={
                   <FeatureRoute feature="commerce">
@@ -285,6 +295,7 @@ const App = () => (
                 <Route path="reviews" element={<AdminReviews />} />
                 <Route path="appearance" element={<AdminAppearance />} />
                 <Route path="promos" element={<AdminPromos />} />
+                <Route path="coupons" element={<AdminCoupons />} />
                 <Route path="billing" element={<AdminBilling />} />
                 <Route path="testimonial" element={<AdminTestimonial />} />
                 <Route path="domain" element={<AdminDomain />} />

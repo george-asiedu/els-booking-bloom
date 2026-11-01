@@ -84,7 +84,7 @@ export const PhotoHero = () => (
           <Button size="lg" className="rounded-full px-7 transition-transform hover:-translate-y-0.5 active:scale-[0.97]" asChild>
             <Link to="/onboarding">Set up your studio</Link>
           </Button>
-          <Button size="lg" variant="outline" className="rounded-full border-white/70 bg-transparent px-7 text-white hover:bg-white hover:text-foreground" asChild>
+          <Button size="lg" variant="outline" className="rounded-full border-white/70 bg-transparent px-7 text-white hover:bg-white/15 hover:text-white" asChild>
             <a href={studioUrl(PLATFORM.demoSlug)} target="_blank" rel="noreferrer">
               See a real studio
             </a>
@@ -194,7 +194,7 @@ const DIFFERENCE = [
 
 /** Dark band: what makes Zuri different, beside a photo. Kept compact. */
 export const DifferenceBand = () => (
-  <section className="bg-foreground text-background">
+  <section className="bg-band text-band-foreground">
     <div className="container mx-auto grid items-center gap-8 px-4 py-12 md:grid-cols-[1.2fr_1fr] md:py-14">
       <Reveal>
         <Eyebrow light>THE ZURI DIFFERENCE</Eyebrow>
@@ -207,7 +207,7 @@ export const DifferenceBand = () => (
               </span>
               <div>
                 <p className="text-sm font-semibold">{d.title}</p>
-                <p className="mt-0.5 text-sm text-background/70">{d.text}</p>
+                <p className="mt-0.5 text-sm text-band-foreground/70">{d.text}</p>
               </div>
             </li>
           ))}
@@ -299,12 +299,12 @@ const STEPS = [
 
 /** Dark band: how setting up works. */
 export const StepsBand = () => (
-  <section id="how" className="scroll-mt-24 bg-foreground py-16 text-background md:py-24">
+  <section id="how" className="scroll-mt-24 bg-band py-16 text-band-foreground md:py-24">
     <div className="container mx-auto px-4">
       <Reveal className="mx-auto mb-10 max-w-xl text-center">
         <Eyebrow light>GETTING STARTED</Eyebrow>
         <h2 className="mt-3 font-serif text-3xl font-semibold md:text-4xl">Set up in about 5 minutes</h2>
-        <p className="mt-3 text-background/70">From sign-up to your first paid booking.</p>
+        <p className="mt-3 text-band-foreground/70">From sign-up to your first paid booking.</p>
       </Reveal>
       <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s, i) => (

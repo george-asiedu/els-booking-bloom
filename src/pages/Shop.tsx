@@ -26,6 +26,8 @@ const Shop = () => {
   const query = (params.get("q") ?? "").trim().toLowerCase();
   const [cats, setCats] = useState<string[]>([]);
   const [range, setRange] = useState<[number, number] | null>(null);
+  const [size, setSize] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>(null);
   const [inStock, setInStock] = useState(false);
   const [onSale, setOnSale] = useState(false);
   const [sort, setSort] = useState<Sort>("newest");
@@ -63,9 +65,13 @@ const Shop = () => {
       (!query || p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)) &&
       p.effective_price >= lo &&
       p.effective_price <= hi &&
+      (!size || p.sizes.includes(size)) &&
+      (!color || p.colors.some((c) => c.name === color)) &&
       (!inStock || p.in_stock) &&
       (!onSale || p.on_promo),
   );
+  const allSizes = [...new Set(products.flatMap((p) => p.sizes))];
+  const allColors = [...new Map(products.flatMap((p) => p.colors).map((c) => [c.name, c])).values()];
   const filtered = matches.filter((p) => !cats.length || cats.includes(p.category));
   const sorted = [...filtered].sort((a, b) =>
     sort === "low"
@@ -84,6 +90,8 @@ const Shop = () => {
   const clear = () => {
     setCats([]);
     setRange(null);
+    setSize(null);
+    setColor(null);
     setInStock(false);
     setOnSale(false);
     setPage(1);
@@ -130,6 +138,43 @@ const Shop = () => {
             ))}
           </div>
         </fieldset>
+      )}
+      {allSizes.length > 0 && (
+        <div className="border-b border-border pb-6">
+          <p className="mb-3 font-serif font-semibold">Size</p>
+          <div className="flex flex-wrap gap-1.5">
+            {allSizes.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={size === s}
+                onClick={() => changed(() => setSize(size === s ? null : s))}
+                className={cn("h-9 min-w-9 border px-2 text-xs", size === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-foreground")}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {allColors.length > 0 && (
+        <div className="border-b border-border pb-6">
+          <p className="mb-3 font-serif font-semibold">Colour</p>
+          <div className="flex flex-wrap gap-2">
+            {allColors.map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                title={c.name}
+                aria-label={c.name}
+                aria-pressed={color === c.name}
+                onClick={() => changed(() => setColor(color === c.name ? null : c.name))}
+                className={cn("h-7 w-7 rounded-full border border-border ring-offset-2 ring-offset-background", color === c.name && "ring-2 ring-foreground")}
+                style={{ backgroundColor: c.hex }}
+              />
+            ))}
+          </div>
+        </div>
       )}
       {maxPrice > 0 && (
         <div className="border-b border-border pb-6">
@@ -228,7 +273,7 @@ const Shop = () => {
                   type="button"
                   aria-current={n === current ? "page" : undefined}
                   onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                  className={cn("h-10 w-10", n === current ? "bg-foreground text-background" : "hover:bg-accent")}
+                  className={cn("h-10 w-10", n === current ? "bg-primary text-primary-foreground" : "hover:bg-accent")}
                 >
                   {n}
                 </button>

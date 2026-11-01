@@ -309,13 +309,13 @@ const Index = () => {
       {template === "bold" ? (
         <section className="relative z-10 -mt-20 pb-6">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-6 rounded-2xl bg-foreground px-6 py-7 text-background shadow-xl md:grid-cols-4 md:px-10">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-6 rounded-2xl bg-band px-6 py-7 text-band-foreground shadow-xl md:grid-cols-4 md:px-10">
               {reasons.slice(0, 4).map((r) => (
                 <div key={r.title} className="flex items-start gap-3">
                   <ReasonIcon name={r.icon} className="mt-0.5 h-6 w-6 shrink-0 text-primary" />
                   <div>
                     <p className="font-semibold leading-snug">{r.title}</p>
-                    <p className="mt-0.5 hidden text-sm text-background/70 sm:block">{r.text}</p>
+                    <p className="mt-0.5 hidden text-sm text-band-foreground/70 sm:block">{r.text}</p>
                   </div>
                 </div>
               ))}
@@ -451,11 +451,11 @@ const Index = () => {
       )}
 
       {/* Your visit, step by step */}
-      <section className="bg-foreground py-16 text-background md:py-24">
+      <section className="bg-band py-16 text-band-foreground md:py-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="font-serif text-3xl font-semibold md:text-4xl">Your visit, planned with care</h2>
-            <p className="mt-3 text-background/70">From booking to aftercare, every step is simple and clear.</p>
+            <p className="mt-3 text-band-foreground/70">From booking to aftercare, every step is simple and clear.</p>
           </div>
           <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {type.steps.map((st, i) => (
@@ -464,7 +464,7 @@ const Index = () => {
                   {i + 1}
                 </span>
                 <h3 className="mt-4 font-semibold">{st.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-background/70">{st.text}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-band-foreground/70">{st.text}</p>
               </li>
             ))}
           </ol>

@@ -78,7 +78,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {order.items.map((i) => `${i.name} x${i.quantity}`).join(", ")}
+                      {order.items.map((i) => `${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity}`).join(", ")}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {format(new Date(order.created_at), "MMM d, yyyy")} ·{" "}

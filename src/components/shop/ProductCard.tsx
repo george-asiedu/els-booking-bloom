@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
-import { ImageOff } from "lucide-react";
+import { Heart, ImageOff } from "lucide-react";
+import { useWishlist } from "@/hooks/useWishlist";
+import { Stars } from "./Stars";
 import type { ProductDTO } from "@/lib/api";
 import { formatGHS } from "@/lib/currency";
 import { cn } from "@/lib/utils";
@@ -16,7 +18,10 @@ export const ProductCard = ({
   // Fill the available height (the big tiles in the new arrivals grid).
   tall?: boolean;
   className?: string;
-}) => (
+}) => {
+  const { has, toggle } = useWishlist();
+  const saved = has(product.id);
+  return (
   <Link to={`/shop/${product.id}`} className={cn("group flex flex-col", className)}>
     <div className={cn("relative overflow-hidden bg-muted", tall ? "min-h-[20rem] flex-1" : "aspect-[4/5]")}>
       {product.image_url ? (
@@ -35,17 +40,27 @@ export const ProductCard = ({
         <span
           className={cn(
             "absolute left-3 top-3 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
-            !product.in_stock ? "bg-muted text-muted-foreground" : "bg-foreground text-background",
+            !product.in_stock ? "bg-muted text-muted-foreground" : "bg-band text-band-foreground",
           )}
         >
           {!product.in_stock ? "Sold out" : product.on_promo ? "Sale" : badge}
         </span>
       )}
+      <button
+        type="button"
+        aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+        aria-pressed={saved}
+        onClick={(e) => { e.preventDefault(); toggle(product.id); }}
+        className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground transition-transform hover:scale-105"
+      >
+        <Heart className={cn("h-4 w-4", saved && "fill-current")} aria-hidden />
+      </button>
     </div>
     <div className="flex items-end justify-between gap-3 border border-t-0 border-border bg-card px-3 py-3">
       <div className="min-w-0">
         <h3 className="line-clamp-1 font-serif text-sm font-semibold">{product.name}</h3>
         <p className="line-clamp-1 text-xs capitalize text-muted-foreground">{product.category.replace(/-/g, " ")}</p>
+        {product.rating_average !== null && <Stars value={product.rating_average} count={product.rating_count} className="mt-1" />}
       </div>
       <p className="shrink-0 text-right text-sm tabular-nums">
         {product.on_promo && (
@@ -55,7 +70,8 @@ export const ProductCard = ({
       </p>
     </div>
   </Link>
-);
+  );
+};
 
 /** A row of up to four products under a heading (similar, recently viewed). */
 export const ProductRow = ({ title, products }: { title: string; products: ProductDTO[] }) =>
@@ -88,4 +104,4 @@ export const Breadcrumbs = ({ items }: { items: { label: string; to?: string }[]
 
 // The shop's main action, solid and square-cornered as in the design.
 export const SHOP_CTA =
-  "inline-flex h-12 items-center justify-center bg-foreground px-8 text-xs font-medium uppercase tracking-[0.14em] text-background transition-opacity hover:opacity-85 disabled:opacity-40";
+  "inline-flex h-12 items-center justify-center bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground transition-opacity hover:opacity-85 disabled:opacity-40";

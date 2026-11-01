@@ -286,7 +286,7 @@ const AdminGallery = () => {
                           )}
                         />
                         {image.media_type === "video" && (
-                          <span className="absolute left-2 top-2 rounded bg-foreground/70 px-1.5 py-0.5 text-[10px] font-medium text-background">
+                          <span className="absolute left-2 top-2 rounded bg-band/70 px-1.5 py-0.5 text-[10px] font-medium text-band-foreground">
                             Video
                           </span>
                         )}
