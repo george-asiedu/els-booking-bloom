@@ -3,30 +3,31 @@ import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ShoppingCart,
+  Check,
   Loader2,
   ImageOff,
   Minus,
   Plus,
-  ArrowLeft,
   Store,
   Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Breadcrumbs, ProductRow, SHOP_CTA } from "@/components/shop/ProductCard";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { productsApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
+import { productsApi, productCategoriesApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { formatGHS } from "@/lib/currency";
+
+const RECENT_KEY = "zuri_recently_viewed";
 
 const ProductDetail = () => {
   const { id = "" } = useParams();
@@ -56,6 +57,29 @@ const ProductDetail = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
+
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ["public-products"],
+    queryFn: () => productsApi.listActive(),
+  });
+  const { data: categories = [] } = useQuery({
+    queryKey: ["public-product-categories"],
+    queryFn: () => productCategoriesApi.listActive(),
+  });
+
+  // Recently viewed, kept in this browser only.
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (!id) return;
+    setQty(1);
+    try {
+      const seen = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as string[];
+      setRecentIds(seen);
+      localStorage.setItem(RECENT_KEY, JSON.stringify([id, ...seen.filter((x) => x !== id)].slice(0, 8)));
+    } catch {
+      /* Storage unavailable: the row just stays hidden. */
+    }
+  }, [id]);
 
   const maxQty = product?.track_stock ? product.stock : 99;
 
@@ -180,229 +204,126 @@ const ProductDetail = () => {
 
   const deliveryFee = commerce?.delivery_fee ?? 0;
   const lineTotal = Math.round(product.effective_price * qty * 100) / 100;
+  const categoryName = categories.find((c) => c.slug === product.category)?.name ?? product.category.replace(/-/g, " ");
+  const others = allProducts.filter((p) => p.id !== product.id);
+  const similar = others.filter((p) => p.category === product.category);
+  const recent = recentIds
+    .filter((x) => x !== product.id)
+    .map((x) => others.find((p) => p.id === x))
+    .filter((p): p is NonNullable<typeof p> => !!p);
 
   return (
     <Layout>
-      <section className="py-10">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <Button variant="ghost" size="sm" asChild className="mb-4">
-            <Link to="/shop">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back to shop
-            </Link>
-          </Button>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Image */}
-            <div className="aspect-square rounded-lg bg-secondary overflow-hidden flex items-center justify-center">
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <ImageOff className="h-16 w-16 text-muted-foreground" />
-              )}
-            </div>
-
-            {/* Info */}
-            <div>
-              <div className="flex gap-2 mb-2">
-                {product.popular && <Badge>Popular</Badge>}
-                {product.on_promo && (
-                  <Badge className="bg-green-600 hover:bg-green-600">Promo</Badge>
-                )}
-                {!product.in_stock && <Badge variant="secondary">Out of stock</Badge>}
-              </div>
-              <h1 className="text-3xl font-serif font-bold text-foreground">
-                {product.name}
-              </h1>
-              <div className="mt-2 mb-4">
-                {product.on_promo ? (
-                  <span className="flex items-baseline gap-2">
-                    <span className="text-muted-foreground line-through">
-                      {formatGHS(product.price)}
-                    </span>
-                    <span className="text-2xl font-bold text-primary">
-                      {formatGHS(product.effective_price)}
-                    </span>
-                  </span>
-                ) : (
-                  <span className="text-2xl font-bold text-primary">
-                    {formatGHS(product.price)}
-                  </span>
-                )}
-              </div>
-              {product.description && (
-                <p className="text-muted-foreground mb-6">{product.description}</p>
-              )}
-
-              {/* Quantity */}
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-sm font-medium text-foreground">Quantity</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={qty <= 1}
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <span className="w-8 text-center">{qty}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={qty >= maxQty}
-                    onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-                {product.track_stock && product.in_stock && product.stock <= 5 && (
-                  <span className="text-xs text-amber-600">
-                    {product.stock} left
-                  </span>
-                )}
-              </div>
-
-              {/* Add to cart */}
-              <Button
-                size="lg"
-                className="w-full"
-                disabled={!product.in_stock || addMutation.isPending}
-                onClick={handleAddToCart}
-              >
-                {addMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                )}
-                {product.in_stock ? "Add to cart" : "Out of stock"}
-              </Button>
-              {isCustomer && (
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Added items are in your <Link to="/cart" className="text-primary underline">cart</Link>.
-                </p>
-              )}
-            </div>
+      <section className="container mx-auto px-4 py-6 md:py-8">
+        <Breadcrumbs
+          items={[
+            { label: "Shop", to: "/shop" },
+            { label: categoryName, to: `/shop/products?category=${product.category}` },
+            { label: product.name },
+          ]}
+        />
+        <div className="mt-6 grid gap-8 md:grid-cols-2 lg:gap-14">
+          <div className="relative aspect-[8/9] overflow-hidden bg-muted">
+            {product.image_url ? (
+              <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground"><ImageOff className="h-12 w-12" /></div>
+            )}
           </div>
 
-          {/* Guest express checkout */}
-          {!isCustomer && product.in_stock && (
-            <Card className="mt-10 max-w-xl">
-              <CardContent className="py-6 space-y-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">
-                    Buy now — no account needed
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Pay securely and we'll get your order ready. Or{" "}
-                    <Link to={`/login?redirect=/shop/${id}`} className="text-primary underline">
-                      log in
-                    </Link>{" "}
-                    to use your cart and loyalty points.
-                  </p>
-                </div>
+          <div>
+            <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">{product.name}</h1>
+            <p className="mt-3 text-2xl font-semibold tabular-nums text-muted-foreground">
+              {product.on_promo && <span className="mr-2 text-lg font-normal line-through">{formatGHS(product.price)}</span>}
+              {formatGHS(product.effective_price)}
+            </p>
+            <hr className="my-6 border-border" />
+            {product.description && <p className="whitespace-pre-line leading-relaxed text-muted-foreground">{product.description}</p>}
 
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Full name"
-                    value={guest.name}
-                    onChange={(e) => setGuest({ ...guest, name: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Phone"
-                    value={guest.phone}
-                    onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
-                  />
+            {product.in_stock ? (
+              <>
+                <div className="mt-7 flex gap-3">
+                  <div className="flex h-12 items-center border border-input">
+                    <button type="button" aria-label="Less" className="h-full px-3.5 disabled:opacity-40" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></button>
+                    <span className="w-8 text-center text-sm tabular-nums">{qty}</span>
+                    <button type="button" aria-label="More" className="h-full px-3.5 disabled:opacity-40" disabled={qty >= maxQty} onClick={() => setQty((q) => Math.min(maxQty, q + 1))}><Plus className="h-4 w-4" /></button>
+                  </div>
+                  <button type="button" className={cn(SHOP_CTA, "flex-1 px-3")} disabled={addMutation.isPending} onClick={handleAddToCart}>
+                    {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Add to bag — {formatGHS(lineTotal)}
+                  </button>
                 </div>
-                <Input
-                  placeholder="Email (for your receipt)"
-                  value={guest.email}
-                  onChange={(e) => setGuest({ ...guest, email: e.target.value })}
-                />
-
-                <div className="grid gap-2">
-                  {commerce?.enable_pickup && (
-                    <button
-                      type="button"
-                      onClick={() => setFulfillment("PICKUP")}
-                      className={cn(
-                        "flex items-center gap-2 rounded-md border p-3 text-left text-sm transition-colors",
-                        fulfillment === "PICKUP"
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50",
-                      )}
-                    >
-                      <Store className="h-4 w-4 text-primary" /> Pickup at studio
-                      <span className="ml-auto text-muted-foreground">Free</span>
-                    </button>
-                  )}
+                <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4" aria-hidden />
+                    {product.track_stock && product.stock <= 5 ? `Only ${product.stock} left in stock` : "In stock"}
+                  </li>
+                  {commerce?.enable_pickup && <li className="flex items-center gap-2"><Check className="h-4 w-4" aria-hidden /> Pick up from us for free</li>}
                   {commerce?.enable_delivery && (
-                    <button
-                      type="button"
-                      onClick={() => setFulfillment("DELIVERY")}
-                      className={cn(
-                        "flex items-center gap-2 rounded-md border p-3 text-left text-sm transition-colors",
-                        fulfillment === "DELIVERY"
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50",
-                      )}
-                    >
-                      <Truck className="h-4 w-4 text-primary" /> Delivery
-                      <span className="ml-auto text-muted-foreground">
-                        {deliveryFee > 0 ? formatGHS(deliveryFee) : "Free"}
-                      </span>
-                    </button>
+                    <li className="flex items-center gap-2"><Check className="h-4 w-4" aria-hidden />
+                      Delivery {deliveryFee > 0 ? `for ${formatGHS(deliveryFee)}` : "available"}
+                    </li>
                   )}
-                </div>
+                </ul>
+              </>
+            ) : (
+              <p className="mt-7 border border-border p-4 text-sm font-medium">Sold out. Check back soon.</p>
+            )}
 
-                {fulfillment === "DELIVERY" && (
-                  <Textarea
-                    placeholder="Delivery address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                )}
-
-                <div className="space-y-1">
-                  <Label htmlFor="ref" className="text-xs text-muted-foreground">
-                    Referral code (optional)
-                  </Label>
-                  <Input
-                    id="ref"
-                    placeholder="Friend's code"
-                    value={referral}
-                    onChange={(e) => setReferral(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <span className="text-sm text-muted-foreground">You'll pay</span>
-                  <span className="text-lg font-bold text-primary">
-                    {formatGHS(
-                      lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0),
-                    )}
-                  </span>
-                </div>
-
-                <Button
-                  className="w-full"
-                  size="lg"
-                  disabled={redirecting}
-                  onClick={handleGuestBuy}
-                >
-                  {redirecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {redirecting ? "Redirecting…" : "Buy now"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+            <Accordion type="multiple" className="mt-6 border-t border-border">
+              <AccordionItem value="delivery">
+                <AccordionTrigger className="hover:no-underline">Delivery and pickup</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  {commerce?.enable_pickup && "Collect your order from us at no charge. "}
+                  {commerce?.enable_delivery && `We can deliver to you${deliveryFee > 0 ? ` for ${formatGHS(deliveryFee)}` : ""}. `}
+                  You choose at checkout.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="pay">
+                <AccordionTrigger className="hover:no-underline">Payment</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Pay securely by Mobile Money or card. You'll get a receipt by email.
+                </AccordionContent>
+              </AccordionItem>
+              {!user && product.in_stock && (
+                <AccordionItem value="guest">
+                  <AccordionTrigger className="hover:no-underline">Buy without an account</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 p-0.5">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Input placeholder="Your name" value={guest.name} onChange={(e) => setGuest({ ...guest, name: e.target.value })} />
+                        <Input placeholder="Phone" value={guest.phone} onChange={(e) => setGuest({ ...guest, phone: e.target.value })} />
+                      </div>
+                      <Input type="email" placeholder="Email" value={guest.email} onChange={(e) => setGuest({ ...guest, email: e.target.value })} />
+                      <div className="flex gap-2">
+                        {commerce?.enable_pickup && (
+                          <Button type="button" variant={fulfillment === "PICKUP" ? "default" : "outline"} size="sm" onClick={() => setFulfillment("PICKUP")}><Store className="mr-2 h-4 w-4" /> Pickup</Button>
+                        )}
+                        {commerce?.enable_delivery && (
+                          <Button type="button" variant={fulfillment === "DELIVERY" ? "default" : "outline"} size="sm" onClick={() => setFulfillment("DELIVERY")}><Truck className="mr-2 h-4 w-4" /> Delivery</Button>
+                        )}
+                      </div>
+                      {fulfillment === "DELIVERY" && (
+                        <Textarea placeholder="Delivery address" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+                      )}
+                      <div>
+                        <Label htmlFor="referral" className="text-xs text-muted-foreground">Referral code (optional)</Label>
+                        <Input id="referral" value={referral} onChange={(e) => setReferral(e.target.value)} />
+                      </div>
+                      <button type="button" className={cn(SHOP_CTA, "w-full")} disabled={redirecting} onClick={handleGuestBuy}>
+                        {redirecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Pay {formatGHS(lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0))}
+                      </button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+            </Accordion>
+          </div>
         </div>
       </section>
+
+      <ProductRow title="Similar items you might like" products={similar.length ? similar : others} />
+      <ProductRow title="Recently viewed" products={recent} />
     </Layout>
   );
 };

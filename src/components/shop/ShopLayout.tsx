@@ -52,7 +52,8 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
   const count = cart?.items.reduce((n, i) => n + i.quantity, 0) ?? 0;
 
   const links = [
-    { label: "Home", to: shopHome },
+    // A studio's shop links back to the studio's own website.
+    ...(booking ? [{ label: "Studio home", to: "/" }, { label: "Shop", to: shopHome }] : [{ label: "Home", to: shopHome }]),
     ...categories.slice(0, 4).map((c) => ({ label: c.name, to: `/shop/products?category=${c.slug}` })),
     { label: "All products", to: "/shop/products" },
   ];
@@ -61,12 +62,12 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
     setOpen(false);
     navigate(`/shop/products${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`);
   };
-  const isActive = (to: string) => pathname + search === to || (to === shopHome && pathname === shopHome);
+  const isActive = (to: string) => pathname + search === to;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Strip: the shop's offer, else what the design promises. */}
-      <div className="bg-foreground px-4 py-2 text-center text-xs font-medium text-background">
+      <div className="bg-primary/15 px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-foreground">
         {promos[0]?.message ?? template.badges.join("  ·  ")}
       </div>
 
@@ -83,7 +84,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <nav className="hidden items-center gap-5 md:flex" aria-label="Shop">
-              {links.slice(0, 5).map((l) => (
+              {links.slice(0, booking ? 6 : 5).map((l) => (
                 <Link
                   key={l.to}
                   to={l.to}
@@ -177,7 +178,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="mt-16 border-t border-border bg-secondary/60">
+      <footer className="mt-10 bg-foreground text-background [&_.border-border]:border-background/15 [&_.text-muted-foreground]:text-background/65 [&_a:hover]:text-background dark:bg-card dark:text-foreground dark:[&_.border-border]:border-border dark:[&_.text-muted-foreground]:text-muted-foreground dark:[&_a:hover]:text-foreground">
         <div className="container mx-auto grid gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className={cn("text-xl font-bold", template.headingStyle === "serif" && "font-serif")}>{name}</p>
@@ -198,8 +199,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to={user ? "/account" : "/login"} className="hover:text-foreground">{user ? "Orders and points" : "Log in"}</Link></li>
               <li><Link to="/cart" className="hover:text-foreground">Your bag</Link></li>
-              {booking && <li><Link to="/" className="hover:text-foreground">Our studio</Link></li>}
-            </ul>
+                          </ul>
           </div>
           <div>
             <p className="mb-3 text-sm font-semibold">Get in touch</p>

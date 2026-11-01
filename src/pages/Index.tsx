@@ -600,7 +600,7 @@ const Index = () => {
 
       {/* Hours and contact */}
       <section className="bg-secondary/70 py-16 md:py-24">
-        <div className="container mx-auto grid grid-cols-1 gap-12 px-4 lg:grid-cols-2">
+        <div className="container mx-auto grid grid-cols-1 gap-12 px-4 md:grid-cols-2 xl:grid-cols-[minmax(0,20rem)_minmax(0,18rem)_1fr]">
           {sortedHours.length > 0 && (
             <div>
               <h2 className="flex items-center gap-2 font-serif text-3xl font-semibold">Opening hours</h2>
@@ -674,6 +674,15 @@ const Index = () => {
               )}
             </div>
           </div>
+          {contact?.showAddress && contact.address && (
+            <iframe
+              title={`Map showing ${contact.address}`}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(contact.address)}&output=embed`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="h-80 w-full rounded-xl border border-border md:col-span-2 xl:col-span-1 xl:h-full xl:min-h-[26rem]"
+            />
+          )}
         </div>
       </section>
 

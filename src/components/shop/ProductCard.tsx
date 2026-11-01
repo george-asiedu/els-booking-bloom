@@ -4,26 +4,27 @@ import type { ProductDTO } from "@/lib/api";
 import { formatGHS } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
-/** One product in a shop grid: photo, name, category, price (with offer). */
+/** A product in a shop grid: photo, then a caption with name, category, price. */
 export const ProductCard = ({
   product,
   badge,
-  large = false,
+  tall = false,
   className,
 }: {
   product: ProductDTO;
   badge?: string;
-  large?: boolean;
+  // Fill the available height (the big tiles in the new arrivals grid).
+  tall?: boolean;
   className?: string;
 }) => (
-  <Link to={`/shop/${product.id}`} className={cn("group flex flex-col bg-card", className)}>
-    <div className={cn("relative overflow-hidden bg-muted", large ? "aspect-[4/5]" : "aspect-square")}>
+  <Link to={`/shop/${product.id}`} className={cn("group flex flex-col", className)}>
+    <div className={cn("relative overflow-hidden bg-muted", tall ? "min-h-[20rem] flex-1" : "aspect-[4/5]")}>
       {product.image_url ? (
         <img
           src={product.image_url}
           alt={product.name}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
         />
       ) : (
         <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -33,7 +34,7 @@ export const ProductCard = ({
       {(badge || product.on_promo || !product.in_stock) && (
         <span
           className={cn(
-            "absolute left-2 top-2 rounded px-2 py-0.5 text-[11px] font-semibold",
+            "absolute left-3 top-3 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
             !product.in_stock ? "bg-muted text-muted-foreground" : "bg-foreground text-background",
           )}
         >
@@ -41,21 +42,50 @@ export const ProductCard = ({
         </span>
       )}
     </div>
-    <div className="flex items-start justify-between gap-3 px-1 pb-1 pt-3">
+    <div className="flex items-end justify-between gap-3 border border-t-0 border-border bg-card px-3 py-3">
       <div className="min-w-0">
-        <h3 className="line-clamp-1 text-sm font-semibold group-hover:underline">{product.name}</h3>
-        {product.category && (
-          <p className="line-clamp-1 text-xs capitalize text-muted-foreground">{product.category.replace(/-/g, " ")}</p>
-        )}
+        <h3 className="line-clamp-1 font-serif text-sm font-semibold">{product.name}</h3>
+        <p className="line-clamp-1 text-xs capitalize text-muted-foreground">{product.category.replace(/-/g, " ")}</p>
       </div>
-      <p className="shrink-0 text-right text-sm font-semibold tabular-nums">
+      <p className="shrink-0 text-right text-sm tabular-nums">
         {product.on_promo && (
-          <span className="mr-1 block text-xs font-normal text-muted-foreground line-through">
-            {formatGHS(product.price)}
-          </span>
+          <span className="block text-xs text-muted-foreground line-through">{formatGHS(product.price)}</span>
         )}
         {formatGHS(product.effective_price)}
       </p>
     </div>
   </Link>
 );
+
+/** A row of up to four products under a heading (similar, recently viewed). */
+export const ProductRow = ({ title, products }: { title: string; products: ProductDTO[] }) =>
+  products.length ? (
+    <section className="container mx-auto px-4 py-10 md:py-14">
+      <h2 className="mb-6 text-2xl font-semibold tracking-tight md:text-3xl">{title}</h2>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 md:gap-x-4">
+        {products.slice(0, 4).map((p) => (
+          <ProductCard key={p.id} product={p} />
+        ))}
+      </div>
+    </section>
+  ) : null;
+
+/** Home / Shop / Current trail at the top of shop pages. */
+export const Breadcrumbs = ({ items }: { items: { label: string; to?: string }[] }) => (
+  <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+    {items.map((c, i) => (
+      <span key={c.label} className="flex items-center gap-1.5">
+        {i > 0 && <span aria-hidden>/</span>}
+        {c.to ? (
+          <Link to={c.to} className="hover:text-foreground">{c.label}</Link>
+        ) : (
+          <span className="text-foreground">{c.label}</span>
+        )}
+      </span>
+    ))}
+  </nav>
+);
+
+// The shop's main action, solid and square-cornered as in the design.
+export const SHOP_CTA =
+  "inline-flex h-12 items-center justify-center bg-foreground px-8 text-xs font-medium uppercase tracking-[0.14em] text-background transition-opacity hover:opacity-85 disabled:opacity-40";

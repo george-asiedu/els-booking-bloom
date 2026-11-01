@@ -33,6 +33,7 @@ const Shop = lazy(() => import("./pages/Shop"));
 const ShopHome = lazy(() => import("./pages/ShopHome"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
 const OrderCallback = lazy(() => import("./pages/OrderCallback"));
 const BookingCallback = lazy(() => import("./pages/BookingCallback"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -240,6 +241,14 @@ const App = () => (
                 element={
                   <FeatureRoute feature="commerce">
                     <Cart />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/checkout"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Checkout />
                   </FeatureRoute>
                 }
               />
