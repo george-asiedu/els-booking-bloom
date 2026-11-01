@@ -46,7 +46,8 @@ function normalizeDomain(v: string | undefined): string {
 // /s/<slug> preview in dev. Opened in a new tab so the landing page is kept.
 export const studioUrl = (slug: string) =>
   PLATFORM.rootDomain
-    ? `${window.location.protocol}//${slug}.${PLATFORM.rootDomain}`
+    ? // The port only appears locally (els.localhost:8080); production has none.
+      `${window.location.protocol}//${slug}.${PLATFORM.rootDomain}${window.location.port ? `:${window.location.port}` : ""}`
     : `/s/${slug}`;
 
 // A yearly plan is priced at 12 months minus this many. The server derives

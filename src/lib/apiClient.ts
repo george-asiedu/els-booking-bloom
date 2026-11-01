@@ -137,8 +137,11 @@ const isCustomHost = (): boolean => {
 
 // A studio's own domain forwards /api to the server, so the session cookie
 // belongs to that domain (browsers block cookies from another site).
-const API_URL: string =
-  isCustomHost() && !window.location.hostname.endsWith(".vercel.app")
+// Locally, els.localhost and localhost are different sites, so the API is
+// called on the same name to keep the session cookie.
+const API_URL: string = window.location.hostname.endsWith(".localhost")
+  ? CONFIGURED_API_URL.replace("//localhost", `//${window.location.hostname}`)
+  : isCustomHost() && !window.location.hostname.endsWith(".vercel.app")
     ? `${window.location.origin}/api`
     : CONFIGURED_API_URL;
 
