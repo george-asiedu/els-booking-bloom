@@ -57,6 +57,11 @@ const Onboarding = () => {
   const [billingMode, setBillingMode] = useState<BillingMode>("SUBSCRIPTION");
   const [cfg, setCfg] = useState<OnboardingConfig | null>(null);
 
+  const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [emailToken, setEmailToken] = useState("");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
@@ -187,6 +192,47 @@ const Onboarding = () => {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
     passwordValid;
 
+  // Email check between the details and payment. A confirmed address stays
+  // confirmed unless the owner changes it.
+  const sendCode = async () => {
+    setCodeBusy(true);
+    try {
+      await onboardingApi.sendEmailCode(email.trim());
+      setCodeSentTo(email.trim().toLowerCase());
+      setCode("");
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "We couldn't send the code",
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setCodeBusy(false);
+    }
+  };
+  const continueFromDetails = () => {
+    if (emailToken && verifiedEmail === email.trim().toLowerCase()) setStep(3);
+    else void sendCode();
+  };
+  const confirmCode = async () => {
+    setCodeBusy(true);
+    try {
+      const token = await onboardingApi.confirmEmailCode(email.trim(), code);
+      setEmailToken(token);
+      setVerifiedEmail(email.trim().toLowerCase());
+      setCodeSentTo(null);
+      setStep(3);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Code not accepted",
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setCodeBusy(false);
+    }
+  };
+
   const pay = async () => {
     setSubmitting(true);
     processing.show(PROCESSING.creatingStudio);
@@ -195,6 +241,7 @@ const Onboarding = () => {
         name: name.trim(),
         slug,
         ownerEmail: email.trim(),
+        emailToken,
         ownerPassword: password,
         ownerFullName: fullName.trim() || undefined,
         plan,
@@ -549,14 +596,45 @@ const Onboarding = () => {
                 </ul>
               </div>
             </div>
-            <div className="mt-8 flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button className="flex-1" disabled={!detailsValid} onClick={() => setStep(3)}>
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
+            {codeSentTo === email.trim().toLowerCase() ? (
+              <div className="mt-6 space-y-3 rounded-lg border p-4">
+                <div>
+                  <Label htmlFor="ob-code">Enter the code we emailed you</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    We sent a 6-digit code to {codeSentTo}. It expires in 15 minutes.
+                  </p>
+                </div>
+                <Input
+                  id="ob-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  className="font-mono tracking-widest"
+                />
+                <div className="flex gap-3">
+                  <Button variant="outline" disabled={codeBusy} onClick={sendCode}>
+                    Send a new code
+                  </Button>
+                  <Button className="flex-1" disabled={codeBusy || code.length !== 6} onClick={confirmCode}>
+                    {codeBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm email
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-8 flex gap-3">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <Button className="flex-1" disabled={!detailsValid || codeBusy} onClick={continueFromDetails}>
+                  {codeBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         ) : step === 3 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
