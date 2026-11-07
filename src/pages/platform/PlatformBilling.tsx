@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { platformApi, PlatformBillingConfig } from "@/lib/platformApi";
+import { BillingPromos } from "@/components/platform/BillingPromos";
 import { PlatformLayout } from "./PlatformLayout";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
@@ -292,6 +293,8 @@ const PlatformBilling = () => {
             </p>
           </CardContent>
         </Card>
+
+        <BillingPromos />
 
         <div className="sticky bottom-4 flex justify-end">
           <Button onClick={() => save.mutate()} disabled={save.isPending} size="lg" className="shadow-lg">

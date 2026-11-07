@@ -262,38 +262,3 @@ export const studioStatsApi = {
     return res.data;
   },
 };
-
-// ---- Image maker (admin) ---------------------------------------------------
-
-export type ImagePurpose = "hero" | "gallery" | "product" | "service";
-export type ImageStyle = "natural" | "bright" | "bold" | "minimal";
-
-export interface GeneratedImageDTO {
-  id: string;
-  prompt: string;
-  purpose: ImagePurpose;
-  url: string;
-  createdAt: string;
-}
-
-export interface ImageMakerDTO {
-  enabled: boolean;
-  used: number;
-  limit: number;
-  images: GeneratedImageDTO[];
-}
-
-export const imageMakerApi = {
-  async list(): Promise<ImageMakerDTO> {
-    const res = await apiRequest<Envelope<ImageMakerDTO>>("/studio/images", { auth: true });
-    return res.data;
-  },
-  async generate(input: { prompt: string; purpose: ImagePurpose; style: ImageStyle }): Promise<GeneratedImageDTO> {
-    const res = await apiRequest<Envelope<GeneratedImageDTO>>("/studio/images", {
-      method: "POST",
-      auth: true,
-      body: input,
-    });
-    return res.data;
-  },
-};

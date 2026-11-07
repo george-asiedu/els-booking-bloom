@@ -30,6 +30,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
 import { YourMoneyCard } from "@/components/admin/YourMoneyCard";
+import { KpiTile, type Tone } from "@/components/dashboard/KpiTile";
 import { ShopDashboard } from "@/components/admin/ShopDashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,29 +123,18 @@ const Stat = ({
   value,
   children,
   to,
+  tone,
 }: {
   label: string;
   value: string;
   children?: React.ReactNode;
   to?: string;
-}) => {
-  const body = (
-    <Card className={cn("h-full", to && "transition-colors hover:border-primary/40")}>
-      <CardContent className="space-y-1.5 p-5">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-        {children}
-      </CardContent>
-    </Card>
-  );
-  return to ? (
-    <Link to={to} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      {body}
-    </Link>
-  ) : (
-    body
-  );
-};
+  tone: Tone;
+}) => (
+  <KpiTile label={label} value={value} to={to} tone={tone}>
+    {children}
+  </KpiTile>
+);
 
 // ---- page ------------------------------------------------------------------
 
@@ -282,7 +272,7 @@ const StudioDashboard = () => {
         {/* Heading */}
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
               {greeting(now)}
             </h1>
             <p className="text-muted-foreground">
@@ -308,6 +298,7 @@ const StudioDashboard = () => {
             {/* Headline numbers */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Stat
+                tone="amber"
                 label="Today"
                 value={`${todays.length} ${todays.length === 1 ? "appointment" : "appointments"}`}
                 to="/admin/appointments"
@@ -321,6 +312,7 @@ const StudioDashboard = () => {
                 </p>
               </Stat>
               <Stat
+                tone="green"
                 label="Money received this month"
                 value={money.data ? formatGHS(money.data.received.thisMonth) : "—"}
                 to="/admin/transactions"
@@ -331,10 +323,11 @@ const StudioDashboard = () => {
                   <p className="text-xs text-muted-foreground">Payments in, minus refunds</p>
                 )}
               </Stat>
-              <Stat label="Bookings this month" value={String(bookingsNow)} to="/admin/analytics">
+              <Stat tone="blue" label="Bookings this month" value={String(bookingsNow)} to="/admin/analytics">
                 <Change now={bookingsNow} before={bookingsBefore} />
               </Stat>
               <Stat
+                tone="rose"
                 label="Waiting on you"
                 value={String(waiting)}
                 to={toConfirm ? "/admin/appointments?status=pending" : undefined}

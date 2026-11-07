@@ -11,6 +11,10 @@ export interface StudioBillingDTO {
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   lapsed?: boolean;
+  // What this account pays per period for each plan (its own price/discount).
+  yourPrices?: Record<"STANDARD" | "PREMIUM" | "STOREFRONT", Record<"MONTHLY" | "YEARLY", number>>;
+  discountPercent?: number;
+  discountEndsAt?: string | null;
   // Only on the reply to a renewal: what was just paid for.
   renewal?: RenewalReceiptDTO | null;
 }
@@ -39,6 +43,7 @@ export const studioBillingApi = {
   async startChange(input: {
     plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
     cadence: "MONTHLY" | "YEARLY";
+    promoCode?: string;
   }): Promise<{ reference: string; accessCode: string; publicKey: string }> {
     const res = await apiRequest<
       Envelope<{ reference: string; accessCode: string; publicKey: string }>
@@ -57,14 +62,14 @@ export const studioBillingApi = {
     return res.data;
   },
   // Manual renewal of the current plan (Mobile Money one-time charge).
-  async startRenewal(): Promise<{
+  async startRenewal(promoCode?: string): Promise<{
     reference: string;
     accessCode: string;
     publicKey: string;
   }> {
     const res = await apiRequest<
       Envelope<{ reference: string; accessCode: string; publicKey: string }>
-    >("/studio/billing/renew", { method: "POST", auth: true });
+    >("/studio/billing/renew", { method: "POST", auth: true, body: { promoCode } });
     return res.data;
   },
   async applyRenewal(input: { reference: string }): Promise<StudioBillingDTO> {

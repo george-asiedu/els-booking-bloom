@@ -38,6 +38,7 @@ export interface OnboardingStartInput {
   ownerEmail: string;
   // Proof from confirmEmailCode that the owner controls ownerEmail.
   emailToken: string;
+  promoCode?: string;
   ownerPassword: string;
   ownerFullName?: string;
   plan: Plan;
@@ -89,6 +90,13 @@ export const onboardingApi = {
     const res = await apiRequest<
       Envelope<{ available: boolean; reason?: string; slug?: string }>
     >(`/onboarding/availability?slug=${encodeURIComponent(slug)}`);
+    return res.data;
+  },
+
+  async checkPromo(code: string, plan: Plan): Promise<{ code: string; percent: number }> {
+    const res = await apiRequest<Envelope<{ code: string; percent: number }>>(
+      `/onboarding/promo?code=${encodeURIComponent(code)}&plan=${plan}`,
+    );
     return res.data;
   },
 

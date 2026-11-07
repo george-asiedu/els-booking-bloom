@@ -57,6 +57,16 @@ const Onboarding = () => {
   const [billingMode, setBillingMode] = useState<BillingMode>("SUBSCRIPTION");
   const [cfg, setCfg] = useState<OnboardingConfig | null>(null);
 
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; percent: number } | null>(null);
+  const checkPromo = async () => {
+    try {
+      setPromo(await onboardingApi.checkPromo(promoInput.trim(), plan));
+    } catch (err) {
+      setPromo(null);
+      toast({ variant: "destructive", title: "Promo not applied", description: err instanceof Error ? err.message : "Please check the code." });
+    }
+  };
   const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
@@ -242,6 +252,7 @@ const Onboarding = () => {
         slug,
         ownerEmail: email.trim(),
         emailToken,
+        promoCode: promo?.code ?? undefined,
         ownerPassword: password,
         ownerFullName: fullName.trim() || undefined,
         plan,
@@ -652,10 +663,30 @@ const Onboarding = () => {
               <Row label="Studio" value={name} />
               <Row label="Web address" value={`${slug}`} mono />
               <Row label="Owner" value={email} />
+              <div className="flex gap-2 border-t border-border pt-3">
+                <Input
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value)}
+                  placeholder="Promo code (optional)"
+                  aria-label="Promo code"
+                  className="uppercase placeholder:normal-case"
+                />
+                <Button type="button" variant="outline" disabled={!promoInput.trim()} onClick={checkPromo}>
+                  Apply
+                </Button>
+              </div>
+              {promo && (
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  {promo.code}: {promo.percent}% off today's payment.
+                </p>
+              )}
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-semibold">Due today</span>
                 <span className="font-serif text-xl font-bold text-primary">
-                  {GHS(dueToday)}
+                  {promo && dueToday > 0 && (
+                    <span className="mr-2 text-sm font-normal text-muted-foreground line-through">{GHS(dueToday)}</span>
+                  )}
+                  {GHS(Math.round(dueToday * (1 - (promo?.percent ?? 0) / 100) * 100) / 100)}
                   {!revShare && !subSetup && (
                     <span className="text-sm font-normal text-muted-foreground">
                       /{cadence === "MONTHLY" ? "mo" : "yr"}

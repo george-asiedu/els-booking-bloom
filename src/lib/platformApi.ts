@@ -279,7 +279,7 @@ export interface EarningsPage {
 
 export interface StudioBillingSummary {
   mode: "SUBSCRIPTION" | "REVENUE_SHARE";
-  plan: "STANDARD" | "PREMIUM";
+  plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
   cadence: "MONTHLY" | "YEARLY";
   status: "active" | "lapsed" | "revenue_share";
   commissionPercent: number | null;
@@ -288,8 +288,44 @@ export interface StudioBillingSummary {
   daysLeft: number | null;
   signup: { reference: string; amount: number; coverageMonths: number | null; date: string } | null;
   lastPayment: EarningEntry | null;
+  // What this customer pays per period now, after its own terms.
+  yourPrice?: { list: number; amount: number; percent: number; custom: boolean };
+  terms?: {
+    customPriceMonthly: number | null;
+    discountPercent: number | null;
+    discountEndsAt: string | null;
+    note: string | null;
+  };
   totalPaid: number;
   payments: EarningEntry[];
+}
+
+export interface StudioBillingInput {
+  customPriceMonthly?: number | null;
+  discountPercent?: number | null;
+  discountEndsAt?: string | null;
+  note?: string | null;
+  plan?: "STANDARD" | "PREMIUM" | "STOREFRONT";
+  cadence?: "MONTHLY" | "YEARLY";
+  currentPeriodEnd?: string | null;
+}
+
+export interface BillingPromo {
+  id: string;
+  code: string;
+  percentOff: number;
+  plans: string[];
+  expiresAt: string | null;
+  maxUses: number | null;
+  usedCount: number;
+  active: boolean;
+}
+export interface BillingPromoInput {
+  code: string;
+  percentOff: number;
+  plans: string[];
+  expiresAt?: string | null;
+  maxUses?: number | null;
 }
 
 export interface ProvisionStudioInput {
@@ -534,6 +570,24 @@ export const platformApi = {
       { method: "PATCH", body: input },
     );
     return res.data;
+  },
+
+  // One customer's billing terms; anything left out is unchanged.
+  async updateStudioBilling(id: string, input: StudioBillingInput): Promise<void> {
+    await platformRequest(`/studios/${id}/billing`, { method: "PATCH", body: input });
+  },
+
+  async listBillingPromos(): Promise<BillingPromo[]> {
+    return (await platformRequest<Envelope<BillingPromo[]>>("/billing-promos")).data;
+  },
+  async createBillingPromo(input: BillingPromoInput): Promise<void> {
+    await platformRequest("/billing-promos", { method: "POST", body: input });
+  },
+  async setBillingPromoActive(id: string, active: boolean): Promise<void> {
+    await platformRequest(`/billing-promos/${id}`, { method: "PATCH", body: { active } });
+  },
+  async deleteBillingPromo(id: string): Promise<void> {
+    await platformRequest(`/billing-promos/${id}`, { method: "DELETE" });
   },
 
   async getStudio(id: string): Promise<StudioDetail> {

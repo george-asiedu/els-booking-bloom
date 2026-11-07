@@ -2,7 +2,6 @@ import { useState } from "react";
 import { planLabel } from "@/config/platform";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePagedList } from "@/hooks/usePagedList";
-import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PlatformLayout } from "./PlatformLayout";
+import { KpiTile, type Tone } from "@/components/dashboard/KpiTile";
 import { platformApi, StudioSummary, StudioStatus } from "@/lib/platformApi";
 import { enterStudioAsAdmin } from "@/lib/impersonate";
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +73,7 @@ const Stat = ({
   compare,
   breakdown,
   to,
+  tone,
 }: {
   title: string;
   hint: string;
@@ -81,36 +82,19 @@ const Stat = ({
   compare?: React.ReactNode;
   breakdown: { label: string; value: string }[];
   to?: string;
-}) => {
-  const body = (
-    <Card className={cn("h-full", to && "transition-colors hover:border-primary/40")}>
-      <CardContent className="flex h-full flex-col gap-1 p-5">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{hint}</p>
-        <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">
-          {value}
-          {period && <span className="ml-1.5 text-sm font-normal text-muted-foreground">{period}</span>}
-        </p>
-        {compare && <p className="text-xs text-muted-foreground">{compare}</p>}
-        <dl className="mt-auto space-y-1 border-t pt-3 text-xs">
-          {breakdown.map((b) => (
-            <div key={b.label} className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">{b.label}</dt>
-              <dd className="font-medium tabular-nums">{b.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </CardContent>
-    </Card>
-  );
-  return to ? (
-    <Link to={to} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      {body}
-    </Link>
-  ) : (
-    body
-  );
-};
+  tone: Tone;
+}) => (
+  <KpiTile label={title} value={period ? `${value}` : value} tone={tone} to={to} hint={<span>{period ? `${period} · ` : ""}{compare ?? hint}</span>}>
+    <dl className="space-y-1 border-t border-foreground/10 pt-3 text-xs">
+      {breakdown.map((b) => (
+        <div key={b.label} className="flex justify-between gap-3">
+          <dt className="text-foreground/65">{b.label}</dt>
+          <dd className="font-medium tabular-nums">{b.value}</dd>
+        </div>
+      ))}
+    </dl>
+  </KpiTile>
+);
 
 const PlatformDashboard = () => {
   const queryClient = useQueryClient();
@@ -172,10 +156,10 @@ const PlatformDashboard = () => {
     <PlatformLayout>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold">Studios</h1>
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Welcome back</h1>
           <p className="text-sm text-muted-foreground">
             {allStudios
-              ? `${allStudios.length} ${allStudios.length === 1 ? "studio" : "studios"} on your platform`
+              ? `${allStudios.length} studios and stores on Zuri Studios`
               : " "}
           </p>
         </div>
@@ -190,8 +174,9 @@ const PlatformDashboard = () => {
       {/* Platform figures. Two kinds of money, kept apart and labelled:
           what studios paid the platform, and what customers paid studios. */}
       {analytics && (
-        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat
+            tone="amber"
             title="Your earnings"
             hint="What studios have paid Zuri Studios"
             value={formatGHS(analytics.platformEarnings.thisMonth)}
@@ -206,6 +191,7 @@ const PlatformDashboard = () => {
             to="/platform/earnings"
           />
           <Stat
+            tone="green"
             title="Customer payments"
             hint="What customers paid studios, after refunds"
             value={formatGHS(analytics.customerPayments.thisMonth)}
@@ -219,6 +205,7 @@ const PlatformDashboard = () => {
             to="/platform/transactions"
           />
           <Stat
+            tone="blue"
             title="Studios"
             hint="Businesses on the platform"
             value={String(analytics.studios.total)}
@@ -231,6 +218,7 @@ const PlatformDashboard = () => {
             ]}
           />
           <Stat
+            tone="violet"
             title="Users"
             hint="Studio customers and admins (not you)"
             value={String(analytics.users.customers + analytics.users.studioAdmins)}

@@ -5,6 +5,7 @@ import PaystackPop from "@paystack/inline-js";
 import { Loader2, CreditCard, Check, Crown } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { studioBillingApi, type RenewalReceiptDTO } from "@/lib/api";
@@ -16,6 +17,7 @@ import { formatGHS } from "@/lib/currency";
 const GHS = formatGHS;
 
 const AdminBilling = () => {
+  const [promoCode, setPromoCode] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const processing = useProcessing();
@@ -41,6 +43,7 @@ const AdminBilling = () => {
       const { reference, accessCode } = await studioBillingApi.startChange({
         plan,
         cadence,
+        promoCode: promoCode.trim() || undefined,
       });
       processing.hide();
       const popup = new PaystackPop();
@@ -90,7 +93,7 @@ const AdminBilling = () => {
     setBusy(true);
     processing.show(PROCESSING.preparing);
     try {
-      const { reference, accessCode } = await studioBillingApi.startRenewal();
+      const { reference, accessCode } = await studioBillingApi.startRenewal(promoCode.trim() || undefined);
       processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(accessCode, {
@@ -238,6 +241,24 @@ const AdminBilling = () => {
               </div>
             </div>
 
+            {(billing.discountPercent ?? 0) > 0 && (
+              <p className="rounded-lg bg-primary/10 p-3 text-center text-sm">
+                Your account has {billing.discountPercent}% off
+                {billing.discountEndsAt ? ` until ${new Date(billing.discountEndsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}` : ""}. Prices below include it.
+              </p>
+            )}
+            <div className="mx-auto flex max-w-sm items-center gap-2">
+              <Input
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                placeholder="Promo code (optional)"
+                aria-label="Promo code"
+                className="uppercase placeholder:normal-case"
+              />
+            </div>
+            <p className="-mt-2 text-center text-xs text-muted-foreground">
+              A promo code applies to your next payment, a renewal or a plan change. It doesn't add to your own discount; the bigger one is used.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Only plans from this account's product: a storefront sees
                   Storefront, a studio sees Standard and Premium. */}
@@ -253,7 +274,7 @@ const AdminBilling = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="font-serif text-3xl font-bold">
-                        {GHS(planPrice(p, cadence))}
+                        {GHS(billing.yourPrices?.[p.id]?.[cadence] ?? planPrice(p, cadence))}
                         <span className="text-sm font-normal text-muted-foreground">
                           /{cadence === "MONTHLY" ? "mo" : "yr"}
                         </span>

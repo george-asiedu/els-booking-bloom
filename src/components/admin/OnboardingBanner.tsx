@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Rocket, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useStudio } from "@/hooks/useStudio";
 
 const KEY = "els_onboarding_dismissed";
 
@@ -10,6 +11,7 @@ const KEY = "els_onboarding_dismissed";
 // per browser; hidden once every step is done.
 export const OnboardingBanner = () => {
   const { allDone, ready, doneCount, total } = useOnboardingStatus();
+  const store = useStudio().features.booking === false;
   const [dismissed, setDismissed] = useState(() => {
     try {
       return localStorage.getItem(KEY) === "1";
@@ -35,11 +37,11 @@ export const OnboardingBanner = () => {
         <Rocket className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div>
           <p className="font-medium text-foreground">
-            Finish setting up your studio
+            Finish setting up your {store ? "store" : "studio"}
           </p>
           <p className="text-sm text-muted-foreground">
-            {doneCount} of {total} steps done — complete setup to start taking
-            bookings.
+            {doneCount} of {total} steps done. Complete setup to start{" "}
+            {store ? "selling" : "taking bookings"}.
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import { DetailsSheet } from "@/components/ui/details-sheet";
 import { EarningDetails, PurposeBadge } from "@/components/platform/EarningDetails";
 import { StudioBillingCard as BillingCard } from "@/components/platform/StudioBillingCard";
+import { StudioBillingTerms } from "@/components/platform/StudioBillingTerms";
 import { UserDirectory, type DirectorySource } from "@/components/users/UserDirectory";
 import type { EarningEntry } from "@/lib/platformApi";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -346,6 +347,7 @@ const PlatformStudioDetail = () => {
       </div>
 
       <BillingCard billing={studio.billing} onOpenPayment={setOpenEarning} />
+      <StudioBillingTerms studioId={studio.id} billing={studio.billing} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

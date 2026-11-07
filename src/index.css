@@ -16,6 +16,11 @@ All colors MUST be HSL.
     --foreground: 214 33% 10%;
 
     --band: 214 33% 10%;
+    --tile-amber: 40 100% 94%;
+    --tile-green: 140 45% 93%;
+    --tile-blue: 214 80% 95%;
+    --tile-rose: 350 70% 95%;
+    --tile-violet: 260 60% 96%;
     --band-foreground: 0 0% 100%;
     --card: 0 0% 100%;
     --card-foreground: 214 33% 10%;
@@ -121,6 +126,11 @@ All colors MUST be HSL.
     --foreground: 0 0% 98%;
 
     --band: 214 30% 14%;
+    --tile-amber: 40 45% 16%;
+    --tile-green: 150 30% 14%;
+    --tile-blue: 214 40% 17%;
+    --tile-rose: 350 30% 16%;
+    --tile-violet: 260 25% 17%;
     --band-foreground: 210 20% 96%;
     --card: 214 30% 11%;
     --card-foreground: 0 0% 98%;

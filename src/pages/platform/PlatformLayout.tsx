@@ -1,85 +1,79 @@
 import { ReactNode } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Users, Wallet, LogOut, Building2, Lightbulb, ScrollText, Quote, CreditCard, Activity, Receipt, Timer, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import {
+  Activity,
+  Building2,
+  CreditCard,
+  Lightbulb,
+  Quote,
+  Receipt,
+  ScrollText,
+  Settings,
+  Timer,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { usePlatformAuth } from "@/hooks/usePlatformAuth";
+import { DashboardShell, type NavGroup } from "@/components/dashboard/DashboardShell";
 
-const navItems = [
-  { name: "Studios", path: "/platform", icon: Building2 },
-  { name: "Users", path: "/platform/users", icon: Users },
-  { name: "Earnings", path: "/platform/earnings", icon: Wallet },
-  { name: "Requests", path: "/platform/requests", icon: Lightbulb },
-  { name: "Testimonials", path: "/platform/reviews", icon: Quote },
-  { name: "Transactions", path: "/platform/transactions", icon: Receipt },
-  { name: "Billing", path: "/platform/billing", icon: CreditCard },
-  { name: "Jobs", path: "/platform/jobs", icon: Timer },
-  { name: "Settings", path: "/platform/settings", icon: Settings },
-  { name: "Activity", path: "/platform/audit", icon: ScrollText },
-  { name: "API logs", path: "/platform/activity", icon: Activity },
+const groups: NavGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      { name: "Studios & stores", path: "/platform", icon: Building2 },
+      { name: "Users", path: "/platform/users", icon: Users },
+    ],
+  },
+  {
+    label: "Money",
+    items: [
+      { name: "Earnings", path: "/platform/earnings", icon: Wallet },
+      { name: "Transactions", path: "/platform/transactions", icon: Receipt },
+      { name: "Billing & promos", path: "/platform/billing", icon: CreditCard },
+    ],
+  },
+  {
+    label: "Community",
+    items: [
+      { name: "Feature requests", path: "/platform/requests", icon: Lightbulb },
+      { name: "Testimonials", path: "/platform/reviews", icon: Quote },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { name: "Jobs", path: "/platform/jobs", icon: Timer },
+      { name: "Activity", path: "/platform/audit", icon: ScrollText },
+      { name: "API logs", path: "/platform/activity", icon: Activity },
+      { name: "Settings", path: "/platform/settings", icon: Settings },
+    ],
+  },
 ];
 
 export const PlatformLayout = ({ children }: { children: ReactNode }) => {
   const { user, signOut } = usePlatformAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
   const handleSignOut = () => {
     signOut();
     navigate("/platform/login", { replace: true });
   };
-
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link to="/platform" className="flex items-center gap-2 min-w-0">
-            <img src="/zuri-mark.png" alt="" className="h-5 w-auto shrink-0" width={54} height={20} />
-            <span className="font-serif text-lg font-semibold truncate">
-              Platform Console
-            </span>
-          </Link>
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="hidden truncate text-sm text-muted-foreground sm:inline">
-              {user?.email}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSignOut}
-              className="shrink-0"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </Button>
-          </div>
-        </div>
-        {/* One line; scrolls sideways when the window is too narrow. */}
-        <nav aria-label="Console" className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]">
-          {navItems.map((item) => {
-            const active =
-              item.path === "/platform"
-                ? location.pathname === "/platform"
-                : location.pathname.startsWith(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
-    </div>
+    <DashboardShell
+      exact={["/platform"]}
+      groups={groups}
+      brand={
+        <span className="flex items-center gap-2.5">
+          <img src="/zuri-mark.png" alt="" className="h-6 w-auto" width={65} height={24} />
+          <span>
+            <span className="block font-semibold">Zuri Studios</span>
+            <span className="block text-xs text-band-foreground/55">Platform console</span>
+          </span>
+        </span>
+      }
+      user={{ name: "Super admin", email: user?.email }}
+      onSignOut={handleSignOut}
+    >
+      <div className="mx-auto max-w-7xl">{children}</div>
+    </DashboardShell>
   );
 };
