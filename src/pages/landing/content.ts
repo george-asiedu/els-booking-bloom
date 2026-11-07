@@ -7,7 +7,7 @@ import lashes1 from "@/assets/gallery/lashes-1.jpg";
 import lashes2 from "@/assets/gallery/lashes-2.jpg";
 import siteEls from "@/assets/landing/site-els.webp";
 import siteZara from "@/assets/landing/site-zara.webp";
-import siteAma from "@/assets/landing/site-ama.webp";
+import siteNoir from "@/assets/landing/site-noir.webp";
 import { formatGHS } from "@/lib/currency";
 
 export const GHS = formatGHS;
@@ -29,7 +29,7 @@ export const STUDIOS: DemoStudio[] = [
     key: "els",
     site: siteEls,
     name: "El's Beauty Studio",
-    slug: "elsbeautystudio",
+    slug: "els",
     accent: "341 53% 50%",
     tags: ["Nails", "Lashes", "Braids", "Facials"],
     featured: { name: "Gel Extensions", price: 180, duration: "60 min" },
@@ -38,21 +38,21 @@ export const STUDIOS: DemoStudio[] = [
   {
     key: "zara",
     site: siteZara,
-    name: "Nailed by Zara",
-    slug: "nailedbyzara",
+    name: "Nailed By Zara",
+    slug: "nailed-by-zara",
     accent: "286 34% 52%",
     tags: ["Acrylics", "Gel", "Nail art", "Pedicure"],
     featured: { name: "Full Set Acrylics", price: 160, duration: "75 min" },
     gallery: [nails2, nails1, lashes2],
   },
   {
-    key: "ama",
-    site: siteAma,
-    name: "Glow by Ama",
-    slug: "glowbyama",
+    key: "noir",
+    site: siteNoir,
+    name: "Noir & Co",
+    slug: "noir",
     accent: "18 58% 52%",
-    tags: ["Facials", "Makeup", "Waxing", "Brows"],
-    featured: { name: "Glow Facial", price: 220, duration: "50 min" },
+    tags: ["Clothing", "Watches", "Perfumes", "Accessories"],
+    featured: { name: "Outbound Top-Handle Bag", price: 690, duration: "In stock" },
     gallery: [lashes1, lashes2, nails1],
   },
 ];
