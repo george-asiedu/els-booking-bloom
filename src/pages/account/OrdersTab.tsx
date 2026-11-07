@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { Download, Package, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatGHS } from "@/lib/currency";
@@ -65,46 +67,53 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <Card key={order.id}>
-              <CardContent className="py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-foreground">{order.order_number}</p>
-                      <Badge className={orderStatusColors[order.status]}>
-                        {orderStatusLabel[order.status]}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {order.items.map((i) => `${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity}`).join(", ")}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {format(new Date(order.created_at), "MMM d, yyyy")} ·{" "}
-                      {order.fulfillment === "delivery" ? "Delivery" : "Pickup"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-bold text-foreground tabular-nums">
-                      {formatGHS(order.total)}
-                    </span>
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Fulfilment</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell className="whitespace-nowrap font-medium">{order.order_number}</TableCell>
+                  <TableCell className="min-w-[12rem] text-sm text-muted-foreground">
+                    {order.items.map((i) => `${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity}`).join(", ")}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{format(new Date(order.created_at), "d MMM yyyy")}</TableCell>
+                  <TableCell>{order.fulfillment === "delivery" ? "Delivery" : "Pickup"}</TableCell>
+                  <TableCell>
+                    <Badge className={cn("whitespace-nowrap", orderStatusColors[order.status])}>
+                      {orderStatusLabel[order.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">{formatGHS(order.total)}</TableCell>
+                  <TableCell className="text-right">
                     {order.status === "pending_payment" ? (
                       <Button size="sm" asChild>
                         <Link to="/cart">Pay</Link>
                       </Button>
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => downloadOrderReceipt(order, brand)}>
-                        <Download className="h-4 w-4 mr-1" />
+                        <Download className="mr-1 h-4 w-4" />
                         Receipt
                       </Button>
                     )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
       <LoadMore query={pager} label="Load more orders" />
     </div>
