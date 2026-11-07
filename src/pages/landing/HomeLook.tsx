@@ -25,7 +25,8 @@ import bookingPhone from "@/assets/landing/booking-phone.webp";
 import paymentsPhone from "@/assets/landing/payments-phone.webp";
 import shopOwner from "@/assets/landing/shop-owner.webp";
 import loyaltyRobe from "@/assets/landing/loyalty-robe.webp";
-import barberAtWork from "@/assets/landing/barber-at-work.webp";
+import barberAtWork from "@/assets/landing/barber-busy.webp";
+import barberShop from "@/assets/landing/barber-shop.webp";
 import typeNails from "@/assets/landing/type-nails.webp";
 import typeLashes from "@/assets/landing/type-lashes.webp";
 import typeBraids from "@/assets/landing/type-braids.webp";
@@ -66,10 +67,10 @@ const Eyebrow = ({ children, light = false }: { children: React.ReactNode; light
 
 /** Full-width photo with the headline over it. */
 export const PhotoHero = () => (
-  <section className="relative isolate flex min-h-[88svh] items-end overflow-hidden md:items-center">
-    <HeroSlides images={[hero, barberAtWork, typeBraids, typeNails, typeLashes]} className="absolute inset-0 -z-20" imgClassName="object-[60%_30%]" />
+  <section className="relative isolate flex min-h-[calc(100svh-19rem)] items-end overflow-hidden md:min-h-[calc(100svh-14rem)] md:items-center">
+    <HeroSlides images={[hero, barberShop, typeBraids, salonOwner]} className="absolute inset-0 -z-20" imgClassName="object-[60%_30%]" />
     <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/45 to-black/30 md:bg-gradient-to-r md:from-black/80 md:via-black/45 md:to-black/10" />
-    <div className="container mx-auto px-4 pb-14 pt-40 md:py-40">
+    <div className="container mx-auto px-4 pb-10 pt-24 md:pb-10 md:pt-24">
       <div className="max-w-xl text-white">
         <div className="hero-rise [animation-delay:100ms]">
           <Eyebrow light>BOOKINGS · PAYMENTS · YOUR OWN WEBSITE</Eyebrow>
@@ -105,12 +106,12 @@ const WHY = [
 
 /** A single row of reasons, right under the hero. */
 export const WhyRow = () => (
-  <section className="border-b border-border py-12 md:py-14">
+  <section className="border-b border-border py-8 md:py-9">
     <div className="container mx-auto px-4">
       <Reveal>
         <h2 className="text-center font-serif text-2xl font-semibold md:text-3xl">Why businesses choose Zuri</h2>
       </Reveal>
-      <div className="mx-auto mt-8 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-6 md:grid-cols-4">
+      <div className="mx-auto mt-6 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
         {WHY.map((w, i) => (
           <Reveal key={w.title} delay={i * 90} className="flex items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border">
