@@ -1,3 +1,4 @@
+import { HeroSlides } from "@/components/HeroSlides";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ShopLayout } from "@/components/shop/ShopLayout";
@@ -52,7 +53,7 @@ const ShopHome = () => {
     <ShopLayout>
       {/* Hero */}
       <section className="relative isolate flex min-h-[70svh] items-center overflow-hidden md:min-h-[640px]">
-        <img src={heroImg} alt="" className="hero-zoom absolute inset-0 -z-20 h-full w-full object-cover object-[50%_20%]" />
+        <HeroSlides images={[heroImg, ...withPhotos.map((p) => p.image_url!)]} className="absolute inset-0 -z-20" imgClassName="object-[50%_20%]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
         <div className="container mx-auto px-4 py-16 text-white md:px-12">
           <p className="hero-rise text-xs tracking-wider text-white/80 [animation-delay:80ms]">{content?.heroEyebrow || t.eyebrow}</p>

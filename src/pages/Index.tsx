@@ -1,3 +1,4 @@
+import { HeroSlides } from "@/components/HeroSlides";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -192,6 +193,7 @@ const Index = () => {
     .filter((g) => g.media_type === "image")
     .map((g) => ({ src: g.image_url, alt: g.title || studioName }));
   const heroBg = content?.heroImageUrl ?? galleryImgs[0]?.src ?? heroFallback;
+  const heroSlides = [heroBg, ...galleryImgs.map((g) => g.src)];
   const aboutImg =
     content?.aboutImageUrl ?? galleryImgs[1]?.src ?? galleryImgs[0]?.src ?? heroFallback;
   const offerImg = galleryImgs[3]?.src ?? galleryImgs[0]?.src ?? heroFallback;
@@ -246,13 +248,9 @@ const Index = () => {
                 </Button>
               </div>
             </div>
-            <img
-              src={heroBg}
-              alt=""
-              onLoad={() => setHeroLoaded(heroBg)}
-              onError={() => setHeroLoaded(heroBg)}
-              className="aspect-[4/5] w-full rounded-2xl object-cover sm:aspect-[4/3] lg:aspect-[4/5]"
-            />
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl sm:aspect-[4/3] lg:aspect-[4/5]">
+              <HeroSlides images={heroSlides} onFirstLoad={() => setHeroLoaded(heroBg)} className="absolute inset-0" />
+            </div>
           </div>
         </section>
       ) : (
@@ -263,13 +261,7 @@ const Index = () => {
             template === "bold" ? "min-h-[92svh] items-center pb-28 md:pb-24" : "min-h-[86svh] items-end pb-16 md:items-center md:pb-0",
           )}
         >
-          <img
-            src={heroBg}
-            alt=""
-            className="hero-zoom absolute inset-0 h-full w-full object-cover"
-            onLoad={() => setHeroLoaded(heroBg)}
-            onError={() => setHeroLoaded(heroBg)}
-          />
+          <HeroSlides images={heroSlides} onFirstLoad={() => setHeroLoaded(heroBg)} className="absolute inset-0" />
           {/* Dark wash so white text reads on any photo. */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />

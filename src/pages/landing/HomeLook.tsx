@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
 import { PLATFORM, studioUrl } from "@/config/platform";
 import { cn } from "@/lib/utils";
+import { HeroSlides } from "@/components/HeroSlides";
 // Photos: Unsplash (free to use under the Unsplash License).
 import hero from "@/assets/landing/hero-salon.webp";
 import ownerDesk from "@/assets/landing/owner-desk.webp";
@@ -66,7 +67,7 @@ const Eyebrow = ({ children, light = false }: { children: React.ReactNode; light
 /** Full-width photo with the headline over it. */
 export const PhotoHero = () => (
   <section className="relative isolate flex min-h-[88svh] items-end overflow-hidden md:items-center">
-    <img src={hero} alt="" className="hero-zoom absolute inset-0 -z-20 h-full w-full object-cover object-[60%_30%]" />
+    <HeroSlides images={[hero, barberAtWork, typeBraids, typeNails, typeLashes]} className="absolute inset-0 -z-20" imgClassName="object-[60%_30%]" />
     <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/45 to-black/30 md:bg-gradient-to-r md:from-black/80 md:via-black/45 md:to-black/10" />
     <div className="container mx-auto px-4 pb-14 pt-40 md:py-40">
       <div className="max-w-xl text-white">
