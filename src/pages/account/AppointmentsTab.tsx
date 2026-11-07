@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Calendar, CalendarClock, CreditCard, Download, Loader2, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { DetailsSheet } from "@/components/ui/details-sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -15,6 +15,7 @@ import { downloadBookingDocument, type DocumentBrand } from "@/lib/receipt";
 import type { AppointmentDTO } from "@/lib/api";
 import { statusColors, statusLabels } from "./accountFormat";
 import { ListSkeleton, LoadMore, PaymentBadge } from "./AccountParts";
+import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
 
 const day = (apt: AppointmentDTO) => format(new Date(`${apt.appointment_date}T00:00:00`), "d MMM yyyy");
 
@@ -80,6 +81,12 @@ export const AppointmentsTab = ({
   onReschedule,
 }: AppointmentsTabProps) => {
   const [open, setOpen] = useState<AppointmentDTO | null>(null);
+  const [tab, setTab] = useState<"upcoming" | "past" | "cancelled">("upcoming");
+  const groups = {
+    upcoming: upcoming.filter((a) => a.status !== "cancelled"),
+    past: past.filter((a) => a.status !== "cancelled"),
+    cancelled: [...upcoming, ...past].filter((a) => a.status === "cancelled"),
+  };
   const isUpcoming = open ? upcoming.some((a) => a.id === open.id) : false;
   const canChange = open && open.status !== "cancelled" && open.status !== "completed";
   const canPay = open?.payment && open.payment.status !== "paid" && open.status !== "cancelled";
@@ -87,30 +94,37 @@ export const AppointmentsTab = ({
   return (
     <>
       <div>
-        <h2 className="mb-4 text-xl font-semibold text-foreground">Upcoming appointments</h2>
+        <h2 className="mb-4 text-xl font-semibold text-foreground">My appointments</h2>
+        <StatusTabs<"upcoming" | "past" | "cancelled">
+          className="mb-4"
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { key: "upcoming" as const, label: "Upcoming", count: groups.upcoming.length },
+            { key: "past" as const, label: "Past", count: groups.past.length },
+            { key: "cancelled" as const, label: "Cancelled", count: groups.cancelled.length },
+          ]}
+        />
         {loading ? (
           <ListSkeleton />
-        ) : upcoming.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="mb-4 text-muted-foreground">No upcoming appointments</p>
-              <Button asChild>
-                <Link to="/book">Book now</Link>
-              </Button>
-            </CardContent>
-          </Card>
+        ) : groups[tab].length === 0 ? (
+          <TabEmpty
+            icon={<Calendar />}
+            title={
+              tab === "upcoming" ? "No upcoming appointments" : tab === "past" ? "No past appointments yet" : "No cancelled appointments"
+            }
+            action={
+              tab === "upcoming" ? (
+                <Button asChild>
+                  <Link to="/book">Book now</Link>
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
-          <AppointmentTable rows={upcoming} onOpen={setOpen} />
+          <AppointmentTable key={tab} rows={groups[tab]} onOpen={setOpen} faded={tab !== "upcoming"} />
         )}
       </div>
-
-      {past.length > 0 && (
-        <div>
-          <h2 className="mb-4 text-xl font-semibold text-foreground">Past appointments</h2>
-          <AppointmentTable rows={past} onOpen={setOpen} faded />
-        </div>
-      )}
       <LoadMore query={pager} label="Load more appointments" />
 
       {open && (

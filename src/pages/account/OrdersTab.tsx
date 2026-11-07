@@ -13,6 +13,14 @@ import { downloadOrderReceipt, type DocumentBrand } from "@/lib/receipt";
 import type { CartDTO, OrderDTO } from "@/lib/api";
 import { orderStatusColors, orderStatusLabel } from "./accountFormat";
 import { LoadMore } from "./AccountParts";
+import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
+
+const ORDER_TABS = [
+  { key: "paid", label: "Paid", empty: "No paid orders being prepared" },
+  { key: "fulfilled", label: "Fulfilled", empty: "No fulfilled orders yet" },
+  { key: "pending_payment", label: "Awaiting payment", empty: "Nothing waiting for payment" },
+  { key: "cancelled", label: "Cancelled", empty: "No cancelled orders" },
+];
 
 interface OrdersTabProps {
   cart: CartDTO | undefined;
@@ -25,6 +33,8 @@ interface OrdersTabProps {
 export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTabProps) => {
   // The order whose details drawer is open.
   const [open, setOpen] = useState<OrderDTO | null>(null);
+  const [tab, setTab] = useState("paid");
+  const shown = orders.filter((o) => o.status === tab);
   return (
   <>
     {/* Current cart */}
@@ -59,18 +69,24 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
     {/* Order history */}
     <div>
       <h2 className="text-xl font-semibold text-foreground mb-4">My Orders</h2>
-      {orders.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">You haven't placed any orders yet.</p>
-            {shopEnabled && (
+      <StatusTabs
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={ORDER_TABS.map((t) => ({ key: t.key, label: t.label, count: orders.filter((o) => o.status === t.key).length }))}
+      />
+      {shown.length === 0 ? (
+        <TabEmpty
+          icon={<Package />}
+          title={orders.length === 0 ? "You haven't placed any orders yet" : ORDER_TABS.find((t) => t.key === tab)!.empty}
+          action={
+            orders.length === 0 && shopEnabled ? (
               <Button asChild>
                 <Link to="/shop">Start shopping</Link>
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            ) : undefined
+          }
+        />
       ) : (
         <Card className="overflow-hidden">
           <Table>
@@ -88,7 +104,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => (
+              {shown.map((order) => (
                 <TableRow key={order.id} onOpen={() => setOpen(order)}>
                   <TableCell className="whitespace-nowrap font-medium">{order.order_number}</TableCell>
                   <TableCell className="min-w-[12rem] text-sm text-muted-foreground">

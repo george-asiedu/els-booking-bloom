@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,13 +135,22 @@ const statusConfig = {
   cancelled: { label: "Cancelled", variant: "destructive" as const, icon: XCircle },
 };
 
+const APPOINTMENT_TABS = [
+  { key: "pending", label: "Pending", empty: "No bookings waiting for confirmation" },
+  { key: "pending_reschedule", label: "New time requested", empty: "No reschedule requests" },
+  { key: "confirmed", label: "Confirmed", empty: "No confirmed appointments" },
+  { key: "completed", label: "Completed", empty: "No completed appointments yet" },
+  { key: "cancelled", label: "Cancelled", empty: "No cancelled appointments" },
+  { key: "all", label: "All", empty: "No appointments yet" },
+];
+
 const AdminAppointments = () => {
   // The row whose details drawer is open.
   const [details, setDetails] = useState<AppointmentDTO | null>(null);
   // The dashboard links here with ?status=pending etc.
   const [searchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<string>(
-    () => searchParams.get("status") ?? "all",
+    () => searchParams.get("status") ?? "pending",
   );
   const [pendingDelete, setPendingDelete] = useState<AppointmentDTO | null>(
     null,
@@ -240,9 +250,8 @@ const AdminAppointments = () => {
     return true;
   });
   const aFiltersActive =
-    statusFilter !== "all" || q !== "" || aPayment !== "all" || aFrom !== "" || aTo !== "";
+    q !== "" || aPayment !== "all" || aFrom !== "" || aTo !== "";
   const clearA = () => {
-    setStatusFilter("all");
     setASearch("");
     setAPayment("all");
     setAFrom("");
@@ -310,17 +319,6 @@ const AdminAppointments = () => {
           active={aFiltersActive}
           count={filteredAppointments.length}
         >
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="pending_reschedule">New time requested</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={aPayment} onValueChange={setAPayment}>
             <SelectTrigger className="w-[150px]"><SelectValue placeholder="Payment" /></SelectTrigger>
             <SelectContent>
@@ -341,18 +339,27 @@ const AdminAppointments = () => {
           />
         </FilterBar>
 
+        <StatusTabs
+          value={statusFilter}
+          onChange={setStatusFilter}
+          tabs={APPOINTMENT_TABS.map((t) => ({
+            key: t.key,
+            label: t.label,
+            count: t.key === "all" ? appointments?.length ?? 0 : appointments?.filter((a) => a.status === t.key).length ?? 0,
+          }))}
+        />
+
         {/* Appointments Table */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filteredAppointments?.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No appointments found</p>
-            </CardContent>
-          </Card>
+          <TabEmpty
+            icon={<Calendar />}
+            title={aFiltersActive ? "No appointments match these filters" : APPOINTMENT_TABS.find((t) => t.key === statusFilter)?.empty ?? "No appointments yet"}
+            hint={aFiltersActive ? "Try clearing the search, payment or date range." : undefined}
+          />
         ) : (
           <Card>
             <Table>

@@ -27,6 +27,7 @@ import { FilterBar } from "@/components/admin/FilterBar";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
 import { DateRangeField } from "@/components/admin/DateRangeFilter";
+import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
 
 const statusColors: Record<string, string> = {
   pending_payment: "secondary",
@@ -41,10 +42,18 @@ const statusLabel: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
+const ORDER_TABS = [
+  { key: "paid", label: "Paid", empty: "No paid orders waiting to be fulfilled" },
+  { key: "fulfilled", label: "Fulfilled", empty: "No fulfilled orders yet" },
+  { key: "pending_payment", label: "Awaiting payment", empty: "No orders awaiting payment" },
+  { key: "cancelled", label: "Cancelled", empty: "No cancelled orders" },
+  { key: "all", label: "All", empty: "No orders yet" },
+];
+
 const AdminOrders = () => {
   // The row whose details drawer is open.
   const [details, setDetails] = useState<OrderDTO | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("paid");
   const [oSearch, setOSearch] = useState("");
   const [oFulfil, setOFulfil] = useState("all");
   const [oFrom, setOFrom] = useState("");
@@ -90,9 +99,8 @@ const AdminOrders = () => {
     return true;
   });
   const oFiltersActive =
-    statusFilter !== "all" || oFulfil !== "all" || oq !== "" || oFrom !== "" || oTo !== "";
+    oFulfil !== "all" || oq !== "" || oFrom !== "" || oTo !== "";
   const clearO = () => {
-    setStatusFilter("all");
     setOFulfil("all");
     setOSearch("");
     setOFrom("");
@@ -142,16 +150,6 @@ const AdminOrders = () => {
           active={oFiltersActive}
           count={filtered.length}
         >
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any status</SelectItem>
-              <SelectItem value="pending_payment">Payment pending</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="fulfilled">Fulfilled</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={oFulfil} onValueChange={setOFulfil}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Fulfilment" /></SelectTrigger>
             <SelectContent>
@@ -170,17 +168,26 @@ const AdminOrders = () => {
           />
         </FilterBar>
 
+        <StatusTabs
+          value={statusFilter}
+          onChange={setStatusFilter}
+          tabs={ORDER_TABS.map((t) => ({
+            key: t.key,
+            label: t.label,
+            count: t.key === "all" ? orders?.length ?? 0 : orders?.filter((o) => o.status === t.key).length ?? 0,
+          }))}
+        />
+
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filtered?.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No orders found</p>
-            </CardContent>
-          </Card>
+          <TabEmpty
+            icon={<Package />}
+            title={oFiltersActive ? "No orders match these filters" : ORDER_TABS.find((t) => t.key === statusFilter)?.empty ?? "No orders yet"}
+            hint={oFiltersActive ? "Try clearing the search or date range." : undefined}
+          />
         ) : (
           <Card>
             <Table>

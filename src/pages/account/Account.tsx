@@ -269,9 +269,10 @@ const Account = () => {
             }
           />
 
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {features.loyalty && (
               <KpiTile
+                compact
                 tone="amber"
                 label="Loyalty points"
                 value={String(loyaltyData?.points || 0)}
@@ -282,6 +283,7 @@ const Account = () => {
             )}
             {booking && (
               <KpiTile
+                compact
                 tone="blue"
                 label="Upcoming appointments"
                 value={String(upcomingAppointments.length)}
@@ -292,6 +294,7 @@ const Account = () => {
             )}
             {features.commerce && (
               <KpiTile
+                compact
                 tone="violet"
                 label="Orders"
                 value={String(orders.length)}
@@ -302,6 +305,7 @@ const Account = () => {
             )}
             {booking && (
               <KpiTile
+                compact
                 tone="rose"
                 label="Paid for bookings"
                 value={formatGHS(transactions.filter((t) => t.payment?.status === "paid").reduce((n, t) => n + (t.payment?.amount ?? 0), 0))}
@@ -312,6 +316,7 @@ const Account = () => {
             )}
             {features.referrals && (
               <KpiTile
+                compact
                 tone="green"
                 label="Your referral code"
                 value={referralCode?.code || "—"}

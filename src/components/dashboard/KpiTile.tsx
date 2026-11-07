@@ -37,6 +37,7 @@ export const KpiTile = ({
   icon,
   to,
   children,
+  compact,
 }: {
   label: string;
   value: string;
@@ -46,14 +47,16 @@ export const KpiTile = ({
   icon?: ReactNode;
   to?: string;
   children?: ReactNode;
+  /** Smaller padding and value, for a row of five. */
+  compact?: boolean;
 }) => {
   const body = (
-    <div className={cn("flex h-full flex-col rounded-2xl p-5 transition-transform", TONES[tone], to && "hover:-translate-y-0.5")}>
+    <div className={cn("flex h-full min-w-0 flex-col rounded-2xl transition-transform", compact ? "p-4" : "p-5", TONES[tone], to && "hover:-translate-y-0.5")}>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-foreground/75">{label}</p>
+        <p className={cn("text-foreground/75", compact ? "text-xs" : "text-sm")}>{label}</p>
         {icon && <span className="text-foreground/60">{icon}</span>}
       </div>
-      <p className="mt-3 text-2xl font-semibold tabular-nums tracking-tight md:text-3xl">{value}</p>
+      <p className={cn("font-semibold tabular-nums tracking-tight", compact ? "mt-2 truncate text-xl xl:text-2xl" : "mt-3 text-2xl md:text-3xl")}>{value}</p>
       {(change || hint) && (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-foreground/65">
           {change}
