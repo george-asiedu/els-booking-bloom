@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { DetailsSheet } from "@/components/ui/details-sheet";
 import { format } from "date-fns";
 import { Download, Package, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +22,10 @@ interface OrdersTabProps {
   brand: DocumentBrand;
 }
 
-export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTabProps) => (
+export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTabProps) => {
+  // The order whose details drawer is open.
+  const [open, setOpen] = useState<OrderDTO | null>(null);
+  return (
   <>
     {/* Current cart */}
     {cart && cart.items.length > 0 && (
@@ -84,7 +89,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow key={order.id} onOpen={() => setOpen(order)}>
                   <TableCell className="whitespace-nowrap font-medium">{order.order_number}</TableCell>
                   <TableCell className="min-w-[12rem] text-sm text-muted-foreground">
                     {order.items.map((i) => `${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity}`).join(", ")}
@@ -117,5 +122,61 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
       )}
       <LoadMore query={pager} label="Load more orders" />
     </div>
+    {open && (
+      <DetailsSheet
+        open
+        onClose={() => setOpen(null)}
+        title={`Order ${open.order_number}`}
+        subtitle={format(new Date(open.created_at), "d MMMM yyyy, HH:mm")}
+        badges={
+          <Badge className={cn("whitespace-nowrap", orderStatusColors[open.status])}>
+            {orderStatusLabel[open.status]}
+          </Badge>
+        }
+        sections={[
+          {
+            title: "Items",
+            items: open.items.map((i) => ({
+              label: `${i.name}${[i.color, i.size && `Size ${i.size}`].filter(Boolean).length ? ` (${[i.color, i.size && `Size ${i.size}`].filter(Boolean).join(", ")})` : ""} × ${i.quantity}`,
+              value: formatGHS(i.line_total),
+            })),
+          },
+          {
+            title: "Payment",
+            items: [
+              { label: "Subtotal", value: formatGHS(open.subtotal) },
+              ...(open.discount_amount > 0 ? [{ label: "Discount", value: `-${formatGHS(open.discount_amount)}` }] : []),
+              ...(open.delivery_fee > 0 ? [{ label: "Delivery", value: formatGHS(open.delivery_fee) }] : []),
+              { label: "Total", value: <span className="font-semibold">{formatGHS(open.total)}</span> },
+              { label: "Paid on", value: open.paid_at ? format(new Date(open.paid_at), "d MMM yyyy, HH:mm") : "Not paid yet" },
+              { label: "Reference", value: open.reference, mono: true },
+            ],
+          },
+          {
+            title: open.fulfillment === "delivery" ? "Delivery" : "Pickup",
+            items:
+              open.fulfillment === "delivery"
+                ? [
+                    { label: "Address", value: open.delivery_address },
+                    { label: "Phone", value: open.delivery_phone },
+                  ]
+                : [{ label: "Collect from", value: "The studio, once it's ready" }],
+          },
+        ]}
+        footer={
+          open.status === "pending_payment" ? (
+            <Button className="w-full" asChild>
+              <Link to="/cart">Pay for this order</Link>
+            </Button>
+          ) : (
+            <Button className="w-full" variant="outline" onClick={() => downloadOrderReceipt(open, brand)}>
+              <Download className="mr-2 h-4 w-4" />
+              Download receipt
+            </Button>
+          )
+        }
+      />
+    )}
   </>
-);
+  );
+};
