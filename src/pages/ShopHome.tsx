@@ -52,12 +52,12 @@ const ShopHome = () => {
   return (
     <ShopLayout>
       {/* Hero */}
-      <section className="relative isolate flex min-h-[70svh] items-center overflow-hidden md:min-h-[640px]">
+      <section className="relative isolate flex min-h-[calc(100svh-22rem)] items-center overflow-hidden md:min-h-[calc(100svh-20rem)]">
         <HeroSlides images={[heroImg, ...withPhotos.map((p) => p.image_url!)]} className="absolute inset-0 -z-20" imgClassName="object-[50%_20%]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
-        <div className="container mx-auto px-4 py-16 text-white md:px-12">
+        <div className="container mx-auto px-4 py-10 text-white md:px-12 md:py-12">
           <p className="hero-rise text-xs tracking-wider text-white/80 [animation-delay:80ms]">{content?.heroEyebrow || t.eyebrow}</p>
-          <h1 className={cn("hero-rise mt-4 max-w-xl text-balance text-5xl leading-[1.05] [animation-delay:180ms] md:text-7xl", heading)}>
+          <h1 className={cn("hero-rise mt-4 max-w-xl text-balance text-5xl leading-[1.05] [animation-delay:180ms] md:text-5xl lg:text-6xl [@media(min-width:1280px)_and_(min-height:820px)]:text-7xl", heading)}>
             {content?.heroHeadline || t.headline}
           </h1>
           <p className="hero-rise mt-5 max-w-md text-white/85 [animation-delay:280ms]">{content?.heroSubtext || t.subtext}</p>
@@ -71,7 +71,7 @@ const ShopHome = () => {
       {/* Categories */}
       {catTiles.length > 0 && (
         <section className="bg-secondary/60">
-          <div className="container mx-auto flex snap-x justify-between overflow-x-auto px-4 py-10 [scrollbar-width:none] md:py-12">
+          <div className="container mx-auto flex snap-x justify-between overflow-x-auto px-4 py-6 [scrollbar-width:none] md:py-8">
             {catTiles.map((c, i) => (
               <Link
                 key={c.id}

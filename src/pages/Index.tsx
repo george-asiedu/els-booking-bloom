@@ -258,14 +258,17 @@ const Index = () => {
           data-no-reveal
           className={cn(
             "relative flex overflow-hidden",
-            template === "bold" ? "min-h-[92svh] items-center pb-28 md:pb-24" : "min-h-[86svh] items-end pb-16 md:items-center md:pb-0",
+            // Short enough that the "Why clients choose" strip shows on first view.
+            template === "bold"
+              ? "min-h-[calc(100svh-7rem)] items-center pb-28 md:pb-24"
+              : "min-h-[calc(100svh-17rem)] items-end pb-10 md:min-h-[calc(100svh-17rem)] md:items-center md:pb-0",
           )}
         >
           <HeroSlides images={heroSlides} onFirstLoad={() => setHeroLoaded(heroBg)} className="absolute inset-0" />
           {/* Dark wash so white text reads on any photo. */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-          <div className="container relative z-10 mx-auto px-4 pt-32">
+          <div className="container relative z-10 mx-auto px-4 pt-28 md:pt-24">
             <div className="max-w-xl text-white">
               <p className="hero-rise mb-4 text-sm font-medium tracking-wide text-white/80 [animation-delay:80ms]">{copy("heroEyebrow")}</p>
               <h1
@@ -273,7 +276,7 @@ const Index = () => {
                   "hero-rise text-balance leading-[1.05] [animation-delay:180ms]",
                   template === "bold"
                     ? "text-4xl font-bold sm:text-5xl md:text-6xl"
-                    : "font-serif text-4xl font-semibold sm:text-5xl md:text-6xl",
+                    : "font-serif text-4xl font-semibold sm:text-5xl md:text-5xl [@media(min-width:768px)_and_(min-height:820px)]:text-6xl",
                 )}
               >
                 {copy("heroHeadline")}
@@ -310,20 +313,20 @@ const Index = () => {
           </div>
         </section>
       ) : (
-        <section className="py-14 md:py-20">
+        <section className="py-8 md:py-10">
           <div className="container mx-auto px-4">
-            <h2 className="mb-10 text-center font-serif text-2xl font-semibold md:text-3xl">
+            <h2 className="mb-6 text-center font-serif text-2xl font-semibold md:text-3xl">
               {content?.featuresHeading || `Why clients choose ${studioName}`}
             </h2>
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4 lg:gap-8">
               {reasons.slice(0, 4).map((r) => (
-                <div key={r.title} className="flex items-start gap-4 lg:flex-col lg:items-center lg:text-center">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-card">
+                <div key={r.title} className="flex items-center gap-3 lg:flex-col lg:items-center lg:text-center">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card">
                     <ReasonIcon name={r.icon} className="h-5 w-5 text-primary" />
                   </span>
                   <div>
-                    <h3 className="font-semibold">{r.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{r.text}</p>
+                    <h3 className="text-sm font-semibold leading-snug md:text-base">{r.title}</h3>
+                    <p className="mt-1 hidden text-sm leading-relaxed text-muted-foreground lg:block">{r.text}</p>
                   </div>
                 </div>
               ))}
