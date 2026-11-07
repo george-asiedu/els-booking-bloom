@@ -92,7 +92,7 @@ export const ShopDashboard = () => {
   const siteUrl = config?.slug ? studioUrl(config.slug) : null;
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-screen-2xl">
       <OnboardingBanner />
       <DashboardHeading
         title="Welcome back"

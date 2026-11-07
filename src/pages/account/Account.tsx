@@ -251,7 +251,7 @@ const Account = () => {
         />
       }
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-screen-2xl">
           <DashboardHeading
             title={profileLoading ? "Welcome back" : `Welcome back${firstName ? `, ${firstName}` : ""}`}
             subtitle={`Your ${booking ? "bookings, orders" : "orders"} and rewards at ${studioName}.`}

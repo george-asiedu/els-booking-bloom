@@ -131,7 +131,7 @@ export const DashboardShell = ({
         {banner}
         {/* relative: chart tooltips and screen-reader text position against
             this scrolling area. */}
-        <main className="relative min-w-0 flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+        <main className="relative min-w-0 flex-1 overflow-y-auto p-4 md:p-5 lg:px-6">{children}</main>
       </div>
     </div>
   );

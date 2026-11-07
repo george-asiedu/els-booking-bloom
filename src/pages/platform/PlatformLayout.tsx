@@ -73,7 +73,7 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
       user={{ name: "Super admin", email: user?.email }}
       onSignOut={handleSignOut}
     >
-      <div className="mx-auto max-w-7xl">{children}</div>
+      <div className="mx-auto max-w-screen-2xl">{children}</div>
     </DashboardShell>
   );
 };
