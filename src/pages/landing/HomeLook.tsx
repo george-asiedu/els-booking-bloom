@@ -25,7 +25,7 @@ import bookingPhone from "@/assets/landing/booking-phone.webp";
 import paymentsPhone from "@/assets/landing/payments-phone.webp";
 import shopOwner from "@/assets/landing/shop-owner.webp";
 import loyaltyRobe from "@/assets/landing/loyalty-robe.webp";
-import barberAtWork from "@/assets/landing/barber-busy.webp";
+import barberAtWork from "@/assets/landing/barber-shave.webp";
 import barberShop from "@/assets/landing/barber-shop.webp";
 import typeNails from "@/assets/landing/type-nails.webp";
 import typeLashes from "@/assets/landing/type-lashes.webp";
@@ -216,7 +216,7 @@ export const DifferenceBand = () => (
         </ul>
       </Reveal>
       <Reveal delay={120}>
-        <img src={barberAtWork} alt="A barber at work" loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover md:aspect-[5/4]" />
+        <img src={barberAtWork} alt="A barber giving a straight-razor shave" loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover md:aspect-[5/4]" />
       </Reveal>
     </div>
   </section>
