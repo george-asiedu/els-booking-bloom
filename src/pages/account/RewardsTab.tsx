@@ -3,6 +3,9 @@ import { format } from "date-fns";
 import { Gift, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePagedList } from "@/hooks/usePagedList";
 import type { LoyaltyPointsDTO, LoyaltyTransactionDTO, ReferralCodeDTO } from "@/lib/api";
 
 interface RewardsTabProps {
@@ -14,6 +17,37 @@ interface RewardsTabProps {
   history: LoyaltyTransactionDTO[];
   onCopyReferralLink: () => void;
 }
+
+// Ten at a time, so a long history doesn't stretch the page.
+const PointsHistory = ({ history }: { history: LoyaltyTransactionDTO[] }) => {
+  const paged = usePagedList(history, 10);
+  return (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>What for</TableHead>
+            <TableHead className="text-right">Points</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {paged.rows.map((tx) => (
+            <TableRow key={tx.id}>
+              <TableCell className="whitespace-nowrap text-muted-foreground">{format(new Date(tx.created_at), "d MMM yyyy")}</TableCell>
+              <TableCell>{tx.description}</TableCell>
+              <TableCell className={`whitespace-nowrap text-right font-semibold tabular-nums ${tx.points > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                {tx.points > 0 ? "+" : ""}
+                {tx.points} pts
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onPageChange={paged.setPage} noun="entries" />
+    </>
+  );
+};
 
 export const RewardsTab = ({
   loyaltyEnabled,
@@ -108,27 +142,7 @@ export const RewardsTab = ({
           <CardTitle>Points History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {history.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between py-2 border-b border-border last:border-0"
-              >
-                <div>
-                  <p className="font-medium text-foreground">{tx.description}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(tx.created_at), "MMM d, yyyy")}
-                  </p>
-                </div>
-                <span
-                  className={`font-bold tabular-nums ${tx.points > 0 ? "text-green-600" : "text-red-600"}`}
-                >
-                  {tx.points > 0 ? "+" : ""}
-                  {tx.points} pts
-                </span>
-              </div>
-            ))}
-          </div>
+          <PointsHistory history={history} />
         </CardContent>
       </Card>
     )}
