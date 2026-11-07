@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardShell, type NavGroup } from "@/components/dashboard/DashboardShell";
 import { DashboardHeading, KpiTile } from "@/components/dashboard/KpiTile";
+import { formatGHS } from "@/lib/currency";
 import { StudioMark } from "@/components/StudioMark";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
@@ -268,7 +269,7 @@ const Account = () => {
             }
           />
 
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {features.loyalty && (
               <KpiTile
                 tone="amber"
@@ -289,14 +290,24 @@ const Account = () => {
                 to="/account?tab=appointments"
               />
             )}
-            {!booking && features.commerce && (
+            {features.commerce && (
               <KpiTile
-                tone="blue"
+                tone="violet"
                 label="Orders"
                 value={String(orders.length)}
                 icon={<Package className="h-5 w-5" />}
                 hint={cart?.items.length ? `${cart.count} in your bag` : "Nothing in your bag"}
                 to="/account?tab=orders"
+              />
+            )}
+            {booking && (
+              <KpiTile
+                tone="rose"
+                label="Paid for bookings"
+                value={formatGHS(transactions.filter((t) => t.payment?.status === "paid").reduce((n, t) => n + (t.payment?.amount ?? 0), 0))}
+                icon={<Receipt className="h-5 w-5" />}
+                hint={`${transactions.length} ${transactions.length === 1 ? "payment" : "payments"}`}
+                to="/account?tab=transactions"
               />
             )}
             {features.referrals && (
