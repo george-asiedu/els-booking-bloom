@@ -189,16 +189,16 @@ export const ShopDashboard = () => {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[34rem] text-sm">
-                    <thead className="text-left text-xs text-muted-foreground">
+                    <thead className="bg-band text-left text-xs text-band-foreground dark:bg-primary/15 dark:text-foreground/80">
                       <tr>
-                        <th className="pb-2 font-medium">Product</th>
-                        <th className="pb-2 font-medium">Customer</th>
-                        <th className="pb-2 font-medium">Date</th>
-                        <th className="pb-2 font-medium">Status</th>
-                        <th className="pb-2 text-right font-medium">Amount</th>
+                        <th className="px-3 py-2.5 font-medium">Product</th>
+                        <th className="px-3 py-2.5 font-medium">Customer</th>
+                        <th className="px-3 py-2.5 font-medium">Date</th>
+                        <th className="px-3 py-2.5 font-medium">Status</th>
+                        <th className="px-3 py-2.5 text-right font-medium">Amount</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody className="divide-y divide-border [&>tr:nth-child(even)]:bg-muted/70 dark:[&>tr:nth-child(even)]:bg-transparent [&_td]:px-3">
                       {recent.map((o) => {
                         const first = o.items[0];
                         const img = first ? photoOf(first.name) : null;

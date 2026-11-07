@@ -9,6 +9,8 @@ export interface NavItem {
   path: string;
   icon: LucideIcon;
   badge?: string | number;
+  // Overrides path matching, e.g. for sections chosen by a query string.
+  active?: boolean;
 }
 export interface NavGroup {
   label: string;
@@ -62,7 +64,7 @@ export const DashboardShell = ({
             <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-band-foreground/45">{g.label}</p>
             <ul className="space-y-0.5">
               {g.items.map((item) => {
-                const active = isActive(item.path);
+                const active = item.active ?? isActive(item.path);
                 return (
                   <li key={item.path}>
                     <Link

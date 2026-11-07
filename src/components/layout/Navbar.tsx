@@ -181,9 +181,11 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
               </Link>
             </Button>
             <ThemeToggle />
-            <Button size="sm" className="ml-2" asChild>
-              <Link to="/book">Book an appointment</Link>
-            </Button>
+            {features.booking !== false && (
+              <Button size="sm" className="ml-2" asChild>
+                <Link to="/book">Book an appointment</Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}

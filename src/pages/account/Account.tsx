@@ -3,13 +3,13 @@ import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
-import { Calendar, Gift, Share2, User, LogOut, Receipt, ShoppingBag, Package } from "lucide-react";
+import { Calendar, CalendarPlus, Gift, Heart, Home, Package, Receipt, Share2, ShoppingBag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Layout as StudioLayout } from "@/components/layout/Layout";
-import { ShopLayout } from "@/components/shop/ShopLayout";
+import { DashboardShell, type NavGroup } from "@/components/dashboard/DashboardShell";
+import { DashboardHeading, KpiTile } from "@/components/dashboard/KpiTile";
+import { StudioMark } from "@/components/StudioMark";
 import { PaymentDialog } from "@/components/payment/PaymentDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
@@ -24,7 +24,6 @@ import {
   type AppointmentDTO,
   type PaymentTarget,
 } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { useToast } from "@/hooks/use-toast";
 import type { DocumentBrand } from "@/lib/receipt";
@@ -40,12 +39,11 @@ const Account = () => {
   const { features, config, name: studioName } = useStudio();
   const loyaltyCap = config?.settings.loyaltyCapPercent ?? 30;
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const processing = useProcessing();
   // A Zuri Storefront has no bookings: its customers see orders first.
   const booking = features.booking !== false;
-  const Layout = booking ? StudioLayout : ShopLayout;
   const initialTab = searchParams.get("tab") || (booking ? "appointments" : "orders");
   const [payingId, setPayingId] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState<AppointmentDTO | null>(
@@ -190,119 +188,138 @@ const Account = () => {
 
   if (!user) return null;
 
+  const sections = [
+    ...(booking ? [{ id: "appointments", name: "Appointments", icon: Calendar }] : []),
+    ...(features.commerce ? [{ id: "orders", name: "Orders", icon: Package }] : []),
+    // Booking payments; a store's payments are its orders.
+    ...(booking ? [{ id: "transactions", name: "Transactions", icon: Receipt }] : []),
+    ...(features.loyalty || features.referrals ? [{ id: "rewards", name: "Rewards", icon: Gift }] : []),
+  ];
+  const tab = sections.some((x) => x.id === searchParams.get("tab")) ? searchParams.get("tab")! : initialTab;
+  const groups: NavGroup[] = [
+    {
+      label: "My account",
+      items: sections.map((x) => ({ name: x.name, path: `/account?tab=${x.id}`, icon: x.icon, active: tab === x.id })),
+    },
+    {
+      label: studioName,
+      items: [
+        { name: booking ? "Our website" : "Home", path: "/", icon: Home, active: false },
+        ...(booking ? [{ name: "Book an appointment", path: "/book", icon: CalendarPlus, active: false }] : []),
+        ...(shopEnabled ? [{ name: "Shop", path: booking ? "/shop" : "/shop/products", icon: ShoppingBag, active: false }] : []),
+        ...(shopEnabled ? [{ name: "Wishlist", path: "/wishlist", icon: Heart, active: false }] : []),
+      ],
+    },
+  ];
+  const firstName = profile?.full_name?.split(" ")[0];
+
   return (
-    <Layout>
-      <section className="py-16 bg-secondary">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4 min-w-0">
-              <Avatar className="w-16 h-16 shrink-0">
-                <AvatarImage src={profile?.avatar_url || undefined} alt="Avatar" />
-                <AvatarFallback className="bg-primary/10">
-                  <User className="h-8 w-8 text-primary" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <h1 className="text-2xl font-serif font-bold text-foreground truncate">
-                  {profileLoading ? <Skeleton className="h-8 w-40" /> : profile?.full_name || "My Account"}
-                </h1>
-                <p className="text-muted-foreground truncate">{profile?.email || user.email}</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {shopEnabled && (
-                <Button variant="outline" asChild>
-                  <Link to="/shop">
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Shop
-                  </Link>
+    <DashboardShell
+      groups={groups}
+      brand={
+        <Link to="/" className="flex min-w-0 items-center gap-2.5">
+          <StudioMark name={studioName} logoUrl={config?.branding.logoUrl} />
+          <span className="min-w-0">
+            <span className="block truncate font-semibold">{studioName}</span>
+            <span className="block text-xs text-band-foreground/55">My account</span>
+          </span>
+        </Link>
+      }
+      user={{
+        name: profile?.full_name || user.email,
+        email: profile?.email || user.email,
+        avatar: (
+          <Avatar className="h-9 w-9 shrink-0">
+            <AvatarImage src={profile?.avatar_url || undefined} alt="" />
+            <AvatarFallback className="bg-primary font-semibold text-primary-foreground">
+              {(profile?.full_name || user.email).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        ),
+      }}
+      onSignOut={handleSignOut}
+      topBar={
+        <ProfileEditDialog
+          userId={user.id}
+          profile={profile}
+          trigger={
+            <Button variant="ghost" size="sm">
+              <User className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Edit profile</span>
+            </Button>
+          }
+        />
+      }
+    >
+      <div className="mx-auto max-w-6xl">
+          <DashboardHeading
+            title={profileLoading ? "Welcome back" : `Welcome back${firstName ? `, ${firstName}` : ""}`}
+            subtitle={`Your ${booking ? "bookings, orders" : "orders"} and rewards at ${studioName}.`}
+            actions={
+              booking ? (
+                <Button asChild>
+                  <Link to="/book">Book an appointment</Link>
                 </Button>
-              )}
-              <ProfileEditDialog
-                userId={user.id}
-                profile={profile}
-                trigger={<Button variant="outline">Edit Profile</Button>}
-              />
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+              ) : shopEnabled ? (
+                <Button asChild>
+                  <Link to="/shop/products">Continue shopping</Link>
+                </Button>
+              ) : undefined
+            }
+          />
 
-      <section className="py-8">
-        <div className="container mx-auto px-4">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.loyalty && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Loyalty Points
-                </CardTitle>
-                <Gift className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {loyaltyData?.points || 0}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {loyaltyData?.lifetime_points || 0} lifetime points
-                </p>
-              </CardContent>
-            </Card>
+              <KpiTile
+                tone="amber"
+                label="Loyalty points"
+                value={String(loyaltyData?.points || 0)}
+                icon={<Gift className="h-5 w-5" />}
+                hint={`${loyaltyData?.lifetime_points || 0} earned in total`}
+                to="/account?tab=rewards"
+              />
             )}
-
             {booking && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Upcoming Appointments
-                </CardTitle>
-                <Calendar className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {upcomingAppointments.length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {appointments.length} total bookings
-                </p>
-              </CardContent>
-            </Card>
+              <KpiTile
+                tone="blue"
+                label="Upcoming appointments"
+                value={String(upcomingAppointments.length)}
+                icon={<Calendar className="h-5 w-5" />}
+                hint={`${appointments.length} bookings in total`}
+                to="/account?tab=appointments"
+              />
             )}
-
+            {!booking && features.commerce && (
+              <KpiTile
+                tone="blue"
+                label="Orders"
+                value={String(orders.length)}
+                icon={<Package className="h-5 w-5" />}
+                hint={cart?.items.length ? `${cart.count} in your bag` : "Nothing in your bag"}
+                to="/account?tab=orders"
+              />
+            )}
             {features.referrals && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Referral Code
-                </CardTitle>
-                <Share2 className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl font-bold text-primary font-mono">
-                    {referralCode?.code || "—"}
-                  </span>
-                  <Button size="sm" variant="outline" onClick={copyReferralLink}>
-                    Copy Link
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {referralCode?.uses || 0} friends referred
-                </p>
-              </CardContent>
-            </Card>
+              <KpiTile
+                tone="green"
+                label="Your referral code"
+                value={referralCode?.code || "—"}
+                icon={<Share2 className="h-5 w-5" />}
+                hint={`${referralCode?.uses || 0} friends referred`}
+              >
+                <Button size="sm" variant="outline" className="bg-background/70" onClick={copyReferralLink}>
+                  Copy invite link
+                </Button>
+              </KpiTile>
             )}
           </div>
 
           {user.role === "CUSTOMER" && <VerifyEmailCard email={user.email} />}
 
-          <Tabs defaultValue={initialTab} className="space-y-6">
-            <TabsList className="flex w-full flex-wrap h-auto sm:inline-flex sm:w-auto sm:flex-nowrap">
+          {/* The sidebar picks the section; this row is for phones and
+              mirrors it. */}
+          <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })} className="space-y-6">
+            <TabsList className="flex h-auto w-full flex-wrap md:hidden">
               {booking && (
                 <TabsTrigger value="appointments">
                   <Calendar className="h-4 w-4 mr-2" />
@@ -315,10 +332,12 @@ const Account = () => {
                   Orders
                 </TabsTrigger>
               )}
-              <TabsTrigger value="transactions">
-                <Receipt className="h-4 w-4 mr-2" />
-                Transactions
-              </TabsTrigger>
+              {booking && (
+                <TabsTrigger value="transactions">
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Transactions
+                </TabsTrigger>
+              )}
               {(features.loyalty || features.referrals) && (
                 <TabsTrigger value="rewards">
                   <Gift className="h-4 w-4 mr-2" />
@@ -384,8 +403,7 @@ const Account = () => {
         invalidateKeys={["my-appointments"]}
       />
 
-        </div>
-      </section>
+      </div>
 
       <PaymentDialog
         open={paymentOpen}
@@ -407,7 +425,7 @@ const Account = () => {
           navigate(`/payment/callback?reference=${encodeURIComponent(reference)}`)
         }
       />
-    </Layout>
+    </DashboardShell>
   );
 };
 
