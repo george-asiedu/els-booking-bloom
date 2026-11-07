@@ -1,12 +1,10 @@
-import { BackToTop } from "@/components/BackToTop";
-import { ReactNode } from "react";
+import { ReactNode, useRef } from "react";
+import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { MobileBookingBar } from "./MobileBookingBar";
-import { WhatsappChatButton } from "./WhatsappChatButton";
-import { PromoMarquee } from "@/components/PromoMarquee";
+import { FloatingActions } from "./FloatingActions";
 import { StudioPreviewExit } from "@/components/StudioPreviewExit";
-import { cn } from "@/lib/utils";
 
 interface LayoutProps {
   children: ReactNode;
@@ -16,19 +14,18 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children, heroOverlay = false }: LayoutProps) => {
+  const mainRef = useRef<HTMLElement>(null);
+  useRevealOnScroll(mainRef);
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar overlay={heroOverlay} />
-      <main className={cn("flex-1", !heroOverlay && "pt-20")}>
-        {/* Studio promo strip — site-wide, below the navbar. Skipped on the
-            home page's transparent-overlay hero. */}
-        {!heroOverlay && <PromoMarquee />}
+      {/* The fixed header (with its info strip) sets --site-header-h. */}
+      <main ref={mainRef} className="flex-1" style={heroOverlay ? undefined : { paddingTop: "var(--site-header-h, 5rem)" }}>
         {children}
       </main>
       <Footer />
       <MobileBookingBar />
-      <WhatsappChatButton />
-      <BackToTop />
+      <FloatingActions />
       <StudioPreviewExit />
     </div>
   );

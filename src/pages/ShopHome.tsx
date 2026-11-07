@@ -155,7 +155,7 @@ const ShopHome = () => {
             <h2 className={cn("text-3xl", heading)}>{t.joinTitle}</h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">{t.joinText}</p>
             <Link to="/signup" className="mt-6 inline-flex h-10 items-center rounded-full bg-primary px-6 text-sm text-primary-foreground hover:opacity-85">
-              Become a member →
+              Become a customer →
             </Link>
           </div>
         </section>

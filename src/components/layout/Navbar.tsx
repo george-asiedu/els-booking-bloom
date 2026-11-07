@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, User, ShoppingBag, MapPin, Phone } from "lucide-react";
 import { StudioMark } from "@/components/StudioMark";
@@ -38,16 +38,28 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   // solid + blur + border once scrolled (and on every non-overlay page).
   const transparent = overlay && !scrolled && !isOpen;
 
+  // Pages pad their content by the header's real height (it grows with the
+  // info strip and shrinks on scroll), so nothing hides beneath it.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const set = () =>
+      document.documentElement.style.setProperty("--site-header-h", `${el.offsetHeight}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // For the homepage info strip.
   const { data: contact } = useQuery({
     queryKey: ["contact-info"],
     queryFn: () => contactInfoApi.get(),
-    enabled: overlay,
   });
   const { data: promos = [] } = useQuery({
     queryKey: ["promo-banners", "booking"],
     queryFn: () => promoApi.listActive("booking"),
-    enabled: overlay,
     staleTime: 5 * 60 * 1000,
   });
   const offer = promos[0];
@@ -92,6 +104,7 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
 
   return (
     <header
+      ref={headerRef}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color,box-shadow] duration-300",
         transparent
@@ -100,10 +113,17 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
           : "border-b border-border bg-background/80 shadow-sm backdrop-blur-md",
       )}
     >
-      {/* Info strip on the homepage, before scrolling: address, the current
-          offer, phone. On phones just the offer. */}
-      {overlay && !scrolled && (offer || contact?.address || contact?.phone) && (
-        <div className="border-b border-white/15 bg-black/35 text-xs text-white backdrop-blur-sm">
+      {/* Info strip on every page, scrolling with the header: address, the
+          current offer, phone. On phones just the offer. */}
+      {(offer || contact?.address || contact?.phone) && (
+        <div
+          className={cn(
+            "text-xs",
+            transparent
+              ? "border-b border-white/15 bg-black/35 text-white backdrop-blur-sm"
+              : "bg-band text-band-foreground",
+          )}
+        >
           <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-2">
             <span className="hidden min-w-0 items-center gap-1.5 truncate md:flex">
               {contact?.showAddress && contact.address && (

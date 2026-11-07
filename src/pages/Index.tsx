@@ -44,6 +44,7 @@ import {
 } from "@/lib/api";
 import { STUDIO_TYPES, studioTypeOf, templateOf, type ReasonItem } from "@/lib/studioTemplates";
 import { cn } from "@/lib/utils";
+import { socialHref } from "@/lib/social";
 import { useStudio } from "@/hooks/useStudio";
 import heroFallback from "@/assets/hero-beauty.jpg";
 import { formatGHS } from "@/lib/currency";
@@ -69,14 +70,6 @@ const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
   calendar: CalendarCheck,
 };
 
-// Turn a stored handle (or full URL) into a working social profile link.
-const socialHref = (kind: "instagram" | "tiktok" | "facebook", v: string) => {
-  if (v.startsWith("http")) return v;
-  const handle = v.replace(/^@/, "").trim();
-  if (kind === "instagram") return `https://instagram.com/${handle}`;
-  if (kind === "tiktok") return `https://www.tiktok.com/@${handle}`;
-  return `https://facebook.com/${handle}`;
-};
 const to12h = (t: string | null) => {
   if (!t) return "";
   const [h, m] = t.split(":").map(Number);
@@ -201,6 +194,7 @@ const Index = () => {
   const heroBg = content?.heroImageUrl ?? galleryImgs[0]?.src ?? heroFallback;
   const aboutImg =
     content?.aboutImageUrl ?? galleryImgs[1]?.src ?? galleryImgs[0]?.src ?? heroFallback;
+  const offerImg = galleryImgs[3]?.src ?? galleryImgs[0]?.src ?? heroFallback;
   const ctaBg = content?.ctaImageUrl ?? galleryImgs[2]?.src ?? galleryImgs[0]?.src ?? heroFallback;
   const serviceImg = (s: ServiceDTO, i: number) =>
     s.image_url ?? galleryImgs[(i + 2) % Math.max(galleryImgs.length, 1)]?.src ?? heroFallback;
@@ -235,15 +229,15 @@ const Index = () => {
     <Layout heroOverlay={template !== "minimal"}>
       {/* Hero */}
       {template === "minimal" ? (
-        <section className="pb-12 pt-8 md:pb-20 md:pt-14">
+        <section data-no-reveal className="pb-12 pt-8 md:pb-20 md:pt-14">
           <div className="container mx-auto grid items-center gap-10 px-4 lg:grid-cols-2 lg:gap-16">
-            <div className="animate-fade-in">
-              <p className="mb-4 text-sm font-medium text-primary">{copy("heroEyebrow")}</p>
-              <h1 className="text-balance font-serif text-4xl font-semibold leading-[1.08] sm:text-5xl md:text-6xl">
+            <div>
+              <p className="hero-rise mb-4 text-sm font-medium text-primary [animation-delay:80ms]">{copy("heroEyebrow")}</p>
+              <h1 className="hero-rise text-balance font-serif text-4xl [animation-delay:180ms] font-semibold leading-[1.08] sm:text-5xl md:text-6xl">
                 {copy("heroHeadline")}
               </h1>
-              <p className="mt-5 max-w-md text-lg text-muted-foreground">{copy("heroSubtext")}</p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <p className="hero-rise mt-5 max-w-md text-lg text-muted-foreground [animation-delay:280ms]">{copy("heroSubtext")}</p>
+              <div className="hero-rise mt-8 flex flex-col gap-3 [animation-delay:380ms] sm:flex-row">
                 <Button size="lg" asChild>
                   <Link to="/book">Book an appointment</Link>
                 </Button>
@@ -263,6 +257,7 @@ const Index = () => {
         </section>
       ) : (
         <section
+          data-no-reveal
           className={cn(
             "relative flex overflow-hidden",
             template === "bold" ? "min-h-[92svh] items-center pb-28 md:pb-24" : "min-h-[86svh] items-end pb-16 md:items-center md:pb-0",
@@ -271,7 +266,7 @@ const Index = () => {
           <img
             src={heroBg}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="hero-zoom absolute inset-0 h-full w-full object-cover"
             onLoad={() => setHeroLoaded(heroBg)}
             onError={() => setHeroLoaded(heroBg)}
           />
@@ -279,11 +274,11 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
           <div className="container relative z-10 mx-auto px-4 pt-32">
-            <div className="max-w-xl animate-fade-in text-white">
-              <p className="mb-4 text-sm font-medium tracking-wide text-white/80">{copy("heroEyebrow")}</p>
+            <div className="max-w-xl text-white">
+              <p className="hero-rise mb-4 text-sm font-medium tracking-wide text-white/80 [animation-delay:80ms]">{copy("heroEyebrow")}</p>
               <h1
                 className={cn(
-                  "text-balance leading-[1.05]",
+                  "hero-rise text-balance leading-[1.05] [animation-delay:180ms]",
                   template === "bold"
                     ? "text-4xl font-bold sm:text-5xl md:text-6xl"
                     : "font-serif text-4xl font-semibold sm:text-5xl md:text-6xl",
@@ -291,12 +286,12 @@ const Index = () => {
               >
                 {copy("heroHeadline")}
               </h1>
-              <p className="mt-5 max-w-md text-lg text-white/85">{copy("heroSubtext")}</p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <p className="hero-rise mt-5 max-w-md text-lg text-white/85 [animation-delay:280ms]">{copy("heroSubtext")}</p>
+              <div className="hero-rise mt-8 flex flex-col gap-3 [animation-delay:380ms] sm:flex-row">
                 <Button size="lg" asChild>
                   <Link to="/book">Book an appointment</Link>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/70 bg-transparent text-white hover:bg-white hover:text-black" asChild>
+                <Button size="lg" variant="outline" className="border-white/70 bg-transparent text-white hover:bg-white/15 hover:text-white" asChild>
                   <Link to="/services">See prices</Link>
                 </Button>
               </div>
@@ -431,21 +426,25 @@ const Index = () => {
         </section>
       )}
 
-      {/* Offer band (the studio's first booking promotion) */}
+      {/* Special offer (the studio's first booking promotion), as in promo-banner */}
       {offer && (
-        <section className="py-12 md:py-16">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col items-start gap-6 rounded-2xl bg-accent px-6 py-10 md:flex-row md:items-center md:justify-between md:px-12">
-              <div>
-                <p className="text-sm font-medium text-accent-foreground">Special offer</p>
-                <p className="mt-2 max-w-xl text-balance font-serif text-2xl font-semibold md:text-3xl">
-                  {offer.message}
-                </p>
-              </div>
-              <Button size="lg" className="shrink-0" asChild>
-                {offer.linkUrl ? <a href={offer.linkUrl}>Book now</a> : <Link to="/book">Book now</Link>}
-              </Button>
+        <section className="relative overflow-hidden bg-secondary">
+          <div className="container mx-auto grid items-center gap-8 px-4 md:grid-cols-[1fr_auto_minmax(0,22rem)] md:gap-12">
+            <div className="py-12 md:py-16">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Special offer</p>
+              <p className="mt-3 max-w-xl text-balance font-serif text-3xl font-semibold leading-tight md:text-4xl">
+                {offer.message}
+              </p>
             </div>
+            <Button size="lg" className="w-fit shrink-0" asChild>
+              {offer.linkUrl ? <a href={offer.linkUrl}>Book now →</a> : <Link to="/book">Book now →</Link>}
+            </Button>
+            <img
+              src={offerImg}
+              alt=""
+              loading="lazy"
+              className="hidden h-full max-h-72 w-full self-end object-cover md:block md:[mask-image:linear-gradient(to_right,transparent,black_30%)]"
+            />
           </div>
         </section>
       )}
@@ -488,10 +487,10 @@ const Index = () => {
                 <button
                   key={i}
                   onClick={() => setLightbox(i)}
-                  className="mb-3 block w-full overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:mb-4"
+                  className="group mb-3 block w-full overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:mb-4"
                   aria-label={`View ${img.alt}`}
                 >
-                  <img src={img.src} alt={img.alt} loading="lazy" className="w-full object-cover transition-opacity hover:opacity-90" />
+                  <img src={img.src} alt={img.alt} loading="lazy" className="w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]" />
                 </button>
               ))}
             </div>
@@ -582,7 +581,7 @@ const Index = () => {
                 <Link key={product.id} to={`/shop/${product.id}`} className="group block">
                   <div className="aspect-square overflow-hidden rounded-md bg-muted">
                     {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} loading="lazy" className="h-full w-full object-cover" />
+                      <img src={product.image_url} alt={product.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No photo yet</div>
                     )}

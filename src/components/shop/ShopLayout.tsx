@@ -1,4 +1,3 @@
-import { BackToTop } from "@/components/BackToTop";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +8,7 @@ import { cartApi, contactInfoApi, productCategoriesApi, promoApi } from "@/lib/a
 import { shopTemplateFor } from "@/lib/shopTemplates";
 import { StudioMark } from "@/components/StudioMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { WhatsappChatButton } from "@/components/layout/WhatsappChatButton";
+import { FloatingActions } from "@/components/layout/FloatingActions";
 import { StudioPreviewExit } from "@/components/StudioPreviewExit";
 import { cn } from "@/lib/utils";
 
@@ -67,11 +66,11 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Strip: the shop's offer, else what the design promises. */}
-      <div className="bg-primary/15 px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-foreground">
+      <div className="sticky top-0 z-40 bg-primary/15 px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-foreground">
         {promos[0]?.message ?? template.badges.join("  ·  ")}
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+      <header className="sticky top-8 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="container mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-3 md:py-4">
           {/* Left: categories (desktop) or menu (mobile) */}
           <div className="flex items-center gap-1">
@@ -216,12 +215,11 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
         <div className="border-t border-border">
           <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
             <span>© {new Date().getFullYear()} {name}</span>
-            <a href="https://zuristudios.com" target="_blank" rel="noreferrer" className="hover:text-foreground">Made with Zuri Storefront</a>
+            <a href="https://zuristudios.com" target="_blank" rel="noreferrer" className="hover:text-foreground">Powered by Zuri Studios</a>
           </div>
         </div>
       </footer>
-      <WhatsappChatButton />
-      <BackToTop />
+      <FloatingActions />
       <StudioPreviewExit />
     </div>
   );

@@ -140,7 +140,7 @@ export const Footer = () => {
               rel="noreferrer"
               className="text-xs transition-colors hover:text-primary"
             >
-              Made with Zuri Studios
+              Powered by Zuri Studios
             </a>
           </div>
         </div>
