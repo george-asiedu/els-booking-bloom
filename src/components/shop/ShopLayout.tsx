@@ -66,7 +66,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Strip: the shop's offer, else what the design promises. */}
-      <div className="sticky top-0 z-40 bg-primary/15 px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-foreground">
+      <div className="sticky top-0 z-40 bg-[linear-gradient(hsl(var(--primary)/0.15),hsl(var(--primary)/0.15)),linear-gradient(hsl(var(--background)),hsl(var(--background)))] px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-foreground">
         {promos[0]?.message ?? template.badges.join("  ·  ")}
       </div>
 
