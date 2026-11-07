@@ -60,14 +60,32 @@ const Checkout = () => {
   const deliveryFee = fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
   const total = Math.round((subtotal - (coupon?.discount ?? 0) + deliveryFee) * 100) / 100;
 
+  // The pin shows on the map; the address box gets the place's name (from
+  // OpenStreetMap), falling back to the coordinates if the lookup fails.
   const useMyLocation = () => {
     if (!navigator.geolocation) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
+      async ({ coords }) => {
         const pin = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
-        setAddress((a) => (a.trim() ? `${a.trim()} (${pin})` : pin));
         setMapQuery(pin);
+        let place = pin;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=en&lat=${coords.latitude}&lon=${coords.longitude}`,
+          );
+          const data = (await res.json()) as { address?: Record<string, string>; display_name?: string };
+          const a = data.address ?? {};
+          const parts = [
+            [a.house_number, a.road].filter(Boolean).join(" "),
+            a.neighbourhood ?? a.suburb ?? a.quarter,
+            a.city ?? a.town ?? a.village ?? a.county,
+          ].filter(Boolean);
+          place = parts.length ? [...new Set(parts)].join(", ") : data.display_name ?? pin;
+        } catch {
+          /* Offline or blocked: the coordinates still find the place. */
+        }
+        setAddress((cur) => (cur.trim() ? `${cur.trim()}, ${place}` : place));
         setLocating(false);
       },
       () => {
@@ -76,6 +94,7 @@ const Checkout = () => {
       },
     );
   };
+
 
   const proceed = async () => {
     if (fulfillment === "DELIVERY" && (!address.trim() || !phone.trim())) {
