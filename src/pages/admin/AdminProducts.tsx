@@ -1,3 +1,4 @@
+import { type ProductAudience } from "@/lib/api/products";
 import { useState } from "react";
 import { ProductDetails } from "@/components/admin/RowDetails";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -68,6 +69,9 @@ interface ProductFormData {
   sizes: string;
   colors: { name: string; hex: string }[];
   images: string[];
+  audience: ProductAudience;
+  brand: string;
+  attributes: { label: string; value: string }[];
 }
 
 const emptyForm: ProductFormData = {
@@ -83,6 +87,9 @@ const emptyForm: ProductFormData = {
   sizes: "",
   colors: [],
   images: [],
+  audience: "UNISEX",
+  brand: "",
+  attributes: [],
 };
 
 const AdminProducts = () => {
@@ -138,6 +145,11 @@ const AdminProducts = () => {
         images: data.images,
         sizes: data.sizes.split(",").map((x) => x.trim()).filter(Boolean),
         colors: data.colors.filter((c) => c.name.trim()).map((c) => `${c.name.trim()}|${c.hex}`),
+        audience: data.audience,
+        brand: data.brand.trim() || null,
+        attributes: data.attributes
+          .filter((a) => a.label.trim() && a.value.trim())
+          .map((a) => `${a.label.trim().replace(/\|/g, "/")}|${a.value.trim().replace(/\|/g, "/")}`),
       };
       if (data.id) await productsApi.update(data.id, payload);
       else await productsApi.create(payload);
@@ -203,6 +215,9 @@ const AdminProducts = () => {
       popular: p.popular,
       sizes: p.sizes.join(", "),
       colors: p.colors,
+      audience: p.audience,
+      brand: p.brand ?? "",
+      attributes: p.attributes,
       // The first photo is the main image, edited by its own field.
       images: p.images.slice(p.image_url ? 1 : 0),
     });
@@ -548,6 +563,55 @@ const AdminProducts = () => {
                 </div>
               )}
               <Input id="more-images" type="file" accept="image/*" multiple onChange={(e) => setNewImages([...(e.target.files ?? [])])} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="audience">Who it's for</Label>
+                <Select value={form.audience} onValueChange={(v) => setForm({ ...form, audience: v as ProductAudience })}>
+                  <SelectTrigger id="audience"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UNISEX">Everyone</SelectItem>
+                    <SelectItem value="WOMEN">Women</SelectItem>
+                    <SelectItem value="MEN">Men</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Puts it under Men or Women in your shop. Everyone shows in both.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand">Brand (optional)</Label>
+                <Input id="brand" value={form.brand} maxLength={60} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g. Levi's" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Product details (optional)</Label>
+              <p className="text-xs text-muted-foreground">Shown as a table on the product page, e.g. Fabric: Cotton, Fit: Regular.</p>
+              {form.attributes.map((a, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    aria-label="Detail"
+                    value={a.label}
+                    maxLength={30}
+                    placeholder="Fabric"
+                    className="w-36"
+                    onChange={(e) => setForm({ ...form, attributes: form.attributes.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
+                  />
+                  <Input
+                    aria-label="Value"
+                    value={a.value}
+                    maxLength={60}
+                    placeholder="Bio-washed cotton"
+                    onChange={(e) => setForm({ ...form, attributes: form.attributes.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)) })}
+                  />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove detail" onClick={() => setForm({ ...form, attributes: form.attributes.filter((_, j) => j !== i) })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {form.attributes.length < 12 && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, attributes: [...form.attributes, { label: "", value: "" }] })}>
+                  <Plus className="mr-2 h-4 w-4" /> Add detail
+                </Button>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="sizes">Sizes (optional)</Label>

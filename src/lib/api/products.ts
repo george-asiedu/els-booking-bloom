@@ -26,7 +26,14 @@ export interface ProductDTO {
   in_stock: boolean;
   active: boolean;
   popular: boolean;
+  audience: ProductAudience;
+  brand: string | null;
+  /** Facts for the product page table, e.g. { label: "Fabric", value: "Cotton" }. */
+  attributes: { label: string; value: string }[];
+  created_at: string | null;
 }
+
+export type ProductAudience = "MEN" | "WOMEN" | "UNISEX";
 
 interface RawProduct {
   id: string;
@@ -46,6 +53,10 @@ interface RawProduct {
   trackStock: boolean;
   active: boolean;
   popular: boolean;
+  audience?: string;
+  brand?: string | null;
+  attributes?: string[];
+  createdAt?: string;
 }
 
 const normalizeProduct = (p: RawProduct): ProductDTO => {
@@ -74,6 +85,13 @@ const normalizeProduct = (p: RawProduct): ProductDTO => {
     in_stock: !p.trackStock || p.stock > 0,
     active: p.active,
     popular: p.popular,
+    audience: p.audience === "MEN" || p.audience === "WOMEN" ? p.audience : "UNISEX",
+    brand: p.brand ?? null,
+    attributes: (p.attributes ?? []).map((a) => {
+      const [label, value] = a.split("|");
+      return { label, value };
+    }),
+    created_at: p.createdAt ?? null,
   };
 };
 
@@ -95,6 +113,9 @@ export interface ProductInput {
   newImages?: File[];
   sizes?: string[];
   colors?: string[];
+  audience?: ProductAudience;
+  brand?: string | null;
+  attributes?: string[];
 }
 
 const productForm = (input: Partial<ProductInput>): FormData => {
