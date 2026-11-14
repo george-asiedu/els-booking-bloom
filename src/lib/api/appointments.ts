@@ -69,6 +69,12 @@ export const appointmentsApi = {
     return res.data.map(normalizeAppointment);
   },
 
+  /** Every booking between two dates (yyyy-MM-dd, inclusive), for the calendar. */
+  async calendar(from: string, to: string): Promise<AppointmentDTO[]> {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments/calendar?from=${from}&to=${to}`, { auth: true });
+    return res.data.map(normalizeAppointment);
+  },
+
   async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<AppointmentDTO>> {
     const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeAppointment) };

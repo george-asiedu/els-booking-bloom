@@ -11,6 +11,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   Lightbulb,
+  CalendarDays,
   ShieldCheck,
   Megaphone,
   Package,
@@ -33,6 +34,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
 import { studioUrl } from "@/config/platform";
 import { profileApi } from "@/lib/api";
+import { TwoFactorGate } from "@/components/security/TwoFactorGate";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { StudioMark } from "@/components/StudioMark";
 import { BillingBadge, BillingMarquee } from "@/components/admin/BillingReminder";
@@ -55,6 +57,7 @@ const studioNav = (f: Features): NavGroup[] => [
     label: "Bookings",
     items: [
       { name: "Appointments", path: "/admin/appointments", icon: Calendar },
+      { name: "Calendar", path: "/admin/calendar", icon: CalendarDays },
       { name: "Services", path: "/admin/services", icon: Scissors },
       { name: "Categories", path: "/admin/categories", icon: Tag },
       { name: "Hours", path: "/admin/hours", icon: Clock },
@@ -198,7 +201,9 @@ export const AdminLayout = ({ children }: { children: ReactNode }) => {
         </>
       }
     >
-      {children}
+      <TwoFactorGate client="studio" label={studioName}>
+        {children}
+      </TwoFactorGate>
     </DashboardShell>
   );
 };

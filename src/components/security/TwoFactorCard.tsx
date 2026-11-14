@@ -74,6 +74,9 @@ export const TwoFactorCard = ({ client, label = "Zuri Studios" }: { client: Secu
   const [dialog, setDialog] = useState<null | "setup" | "disable" | "regenerate">(null);
 
   const close = () => {
+    // Refreshed only now, so a dashboard gate doesn't swap this card out
+    // while the recovery codes are still on screen.
+    if (codes) void qc.invalidateQueries({ queryKey: key });
     setDialog(null);
     setSetup(null);
     setCodes(null);
@@ -96,7 +99,6 @@ export const TwoFactorCard = ({ client, label = "Zuri Studios" }: { client: Secu
     onSuccess: (r) => {
       setCodes(r.recoveryCodes);
       setCode("");
-      refresh();
       toast({ title: "Two-step sign-in is on" });
     },
     onError: fail,

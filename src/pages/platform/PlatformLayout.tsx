@@ -1,3 +1,4 @@
+import { TwoFactorGate } from "@/components/security/TwoFactorGate";
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -73,7 +74,9 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
       user={{ name: "Super admin", email: user?.email }}
       onSignOut={handleSignOut}
     >
-      <div className="mx-auto max-w-screen-2xl">{children}</div>
+      <div className="mx-auto max-w-screen-2xl">
+        <TwoFactorGate client="platform">{children}</TwoFactorGate>
+      </div>
     </DashboardShell>
   );
 };
