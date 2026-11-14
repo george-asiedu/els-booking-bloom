@@ -1,3 +1,4 @@
+import { ZuriMark } from "@/components/ZuriMark";
 import { SignInCodeStep } from "@/components/auth/SignInCodeStep";
 import { useState } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
@@ -75,7 +76,7 @@ const PlatformLogin = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mb-4 flex items-center justify-center gap-2">
-            <img src="/zuri-mark.png" alt="" className="h-7 w-auto" width={76} height={28} />
+            <ZuriMark className="h-7 w-7" />
             <span className="font-serif text-2xl font-semibold">
               Platform Console
             </span>

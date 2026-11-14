@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   createContext,
   useCallback,
@@ -28,7 +29,7 @@ export interface ProcessingCopy {
 const BrandMark = () => {
   const { name, config } = useStudio();
   if (!studioStore.getSlug()) {
-    return <img src="/zuri-lockup.png" alt="Zuri Studios" className="h-24 w-auto" />;
+    return <BrandLogo stacked />;
   }
   const logo = config?.branding.logoUrl;
   return (

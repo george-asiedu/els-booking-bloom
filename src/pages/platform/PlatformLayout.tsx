@@ -1,3 +1,4 @@
+import { ZuriMark } from "@/components/ZuriMark";
 import { TwoFactorGate } from "@/components/security/TwoFactorGate";
 import { NotificationBell } from "@/components/security/NotificationBell";
 import { ReactNode } from "react";
@@ -65,7 +66,7 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
       groups={groups}
       brand={
         <span className="flex items-center gap-2.5">
-          <img src="/zuri-mark.png" alt="" className="h-6 w-auto" width={65} height={24} />
+          <ZuriMark className="h-6 w-6" />
           <span>
             <span className="block font-semibold">Zuri Studios</span>
             <span className="block text-xs text-band-foreground/55">Platform console</span>
