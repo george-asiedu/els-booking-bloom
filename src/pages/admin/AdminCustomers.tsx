@@ -1,12 +1,14 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { UserDirectory, type DirectorySource } from "@/components/users/UserDirectory";
 import { studioUsersApi } from "@/lib/api";
+import { apiRequest } from "@/lib/apiClient";
 
 // Read-only: changing or deleting accounts is for the super admin.
 const source: DirectorySource = {
   key: "studio-users",
   list: (q) => studioUsersApi.list(q),
   detail: (id) => studioUsersApi.detail(id),
+  saveNotes: (id, notes) => apiRequest(`/studio/users/${id}/notes`, { method: "PUT", auth: true, body: { notes } }),
 };
 
 /** Everyone with an account at the studio: customers and admins. */

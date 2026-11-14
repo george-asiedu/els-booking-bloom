@@ -1,3 +1,4 @@
+import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useId, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -39,6 +40,8 @@ export interface DirectorySource {
   // Super admin only.
   update?: (id: string, input: { fullName?: string | null; phone?: string | null; location?: string | null; email?: string }) => Promise<DirectoryUserDetail>;
   remove?: (id: string) => Promise<void>;
+  // Studio admin only: the business's private notes about a customer.
+  saveNotes?: (id: string, notes: string) => Promise<unknown>;
 }
 
 const PAGE_SIZE = 20;
@@ -489,6 +492,18 @@ const UserSheet = ({
                   )}
                 </dl>
 
+                {user.role === "CUSTOMER" && (user.favouriteService || user.lastVisit || user.noShows) ? (
+                  <dl className="divide-y">
+                    {user.favouriteService && <Field label="Favourite service">{user.favouriteService}</Field>}
+                    {user.lastVisit && <Field label="Last visit">{format(parseISO(user.lastVisit), "d MMM yyyy")}</Field>}
+                    {user.noShows ? <Field label="Missed bookings">{user.noShows}</Field> : null}
+                  </dl>
+                ) : null}
+
+                {source.saveNotes && user.role === "CUSTOMER" && (
+                  <CustomerNotes key={user.id} initial={user.notes ?? ""} save={(text) => source.saveNotes!(user.id, text)} />
+                )}
+
                 {user.recentAppointments.length > 0 && (
                   <section>
                     <h3 className="mb-2 text-sm font-semibold">Recent bookings</h3>
@@ -590,5 +605,27 @@ const UserSheet = ({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+};
+
+/** Private notes about a customer, seen only by the business's team. */
+const CustomerNotes = ({ initial, save }: { initial: string; save: (text: string) => Promise<unknown> }) => {
+  const { toast } = useToast();
+  const [text, setText] = useState(initial);
+  const mutation = useMutation({
+    mutationFn: () => save(text),
+    onSuccess: () => toast({ title: "Notes saved" }),
+    onError: (e) => toast({ variant: "destructive", title: "Couldn't save the notes", description: (e as Error).message }),
+  });
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold">Notes</h3>
+      <p className="text-xs text-muted-foreground">Only your team sees these, for example allergies or how they like their hair done.</p>
+      <Textarea rows={4} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
+      <Button size="sm" variant="outline" disabled={mutation.isPending || text === initial} onClick={() => mutation.mutate()}>
+        {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save notes
+      </Button>
+    </section>
   );
 };
