@@ -3,8 +3,11 @@ import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Check,
+  CreditCard,
   Heart,
+  MessageSquare,
+  PackageCheck,
+  ShoppingCart,
   Star,
   Loader2,
   ImageOff,
@@ -15,7 +18,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Breadcrumbs, ProductRow, SHOP_CTA } from "@/components/shop/ProductCard";
+import { Breadcrumbs, ProductCard, ProductRow } from "@/components/shop/ProductCard";
+import { SectionTitle } from "@/components/shop/HomeSections";
 import { Stars } from "@/components/shop/Stars";
 import { useWishlist } from "@/hooks/useWishlist";
 import { Input } from "@/components/ui/input";
@@ -46,6 +50,7 @@ const ProductDetail = () => {
   const [photo, setPhoto] = useState(0);
   const [size, setSize] = useState("");
   const [color, setColor] = useState("");
+  const [tab, setTab] = useState<"description" | "comments">("description");
   const [myRating, setMyRating] = useState(0);
   const [myReview, setMyReview] = useState("");
   const [redirecting, setRedirecting] = useState(false);
@@ -245,27 +250,66 @@ const ProductDetail = () => {
   const lineTotal = Math.round(product.effective_price * qty * 100) / 100;
   const categoryName = categories.find((c) => c.slug === product.category)?.name ?? product.category.replace(/-/g, " ");
   const others = allProducts.filter((p) => p.id !== product.id);
-  const similar = others.filter((p) => p.category === product.category);
+  // Same category first, then pieces for the same audience, eight in all.
+  const similarPicks = [
+    ...others.filter((p) => p.category === product.category),
+    ...others.filter((p) => p.category !== product.category && p.audience === product.audience),
+  ].slice(0, 8);
   const recent = recentIds
     .filter((x) => x !== product.id)
     .map((x) => others.find((p) => p.id === x))
     .filter((p): p is NonNullable<typeof p> => !!p);
 
+  const audienceCrumb =
+    product.audience === "MEN"
+      ? { label: "Men", to: "/shop/products?audience=men" }
+      : product.audience === "WOMEN"
+        ? { label: "Women", to: "/shop/products?audience=women" }
+        : null;
+  const photos = product.images;
+  const current = photos[Math.min(photo, Math.max(photos.length - 1, 0))];
+  const feature = photos[1] ?? photos[0];
+  const perks = [
+    { icon: CreditCard, label: "Secure payment", hint: "Mobile Money or card" },
+    ...(commerce?.enable_pickup ? [{ icon: Store, label: "Free pickup", hint: "Collect it from us" }] : []),
+    ...(commerce?.enable_delivery
+      ? [{ icon: Truck, label: deliveryFee > 0 ? `Delivery ${formatGHS(deliveryFee)}` : "Free delivery", hint: "Choose at checkout" }]
+      : []),
+    {
+      icon: PackageCheck,
+      label: product.in_stock ? (product.track_stock && product.stock <= 5 ? `Only ${product.stock} left` : "In stock") : "Sold out",
+      hint: product.in_stock ? "Ready to send" : "Check back soon",
+    },
+  ];
+
   return (
     <Layout>
-      <section className="container mx-auto px-4 py-6 md:py-8">
-        <Breadcrumbs
-          items={[
-            { label: "Shop", to: "/shop" },
-            { label: categoryName, to: `/shop/products?category=${product.category}` },
-            { label: product.name },
-          ]}
-        />
-        <div className="mt-6 grid gap-8 md:grid-cols-2 lg:gap-14">
-          <div>
-            <div className="relative aspect-[8/9] overflow-hidden bg-muted">
-              {product.images.length ? (
-                <img src={product.images[Math.min(photo, product.images.length - 1)]} alt={product.name} className="h-full w-full object-cover" />
+      <section className="border-b border-border">
+        <div className="container mx-auto grid gap-8 px-4 py-6 md:grid-cols-2 md:gap-12 md:py-10">
+          {/* Photos: thumbnails beside the main one on wide screens, below it on phones. */}
+          <div className="flex flex-col-reverse gap-3 rounded-3xl bg-muted/60 p-3 md:flex-row md:p-4">
+            {photos.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto md:max-h-[34rem] md:flex-col md:overflow-y-auto [scrollbar-width:none]">
+                {photos.slice(0, 8).map((src, i) => (
+                  <button
+                    key={src}
+                    type="button"
+                    aria-label={`Photo ${i + 1}`}
+                    aria-current={photo === i}
+                    onClick={() => setPhoto(i)}
+                    className={cn(
+                      "h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 bg-background transition-opacity md:h-20 md:w-20",
+                      photo === i ? "border-foreground" : "border-transparent opacity-70 hover:opacity-100",
+                    )}
+                  >
+                    <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-2xl bg-muted">
+              {current ? (
+                <img src={current} alt={product.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground"><ImageOff className="h-12 w-12" /></div>
               )}
@@ -274,45 +318,58 @@ const ProductDetail = () => {
                 aria-pressed={wishlist.has(product.id)}
                 aria-label={wishlist.has(product.id) ? "Remove from wishlist" : "Save to wishlist"}
                 onClick={() => wishlist.toggle(product.id)}
-                className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground"
+                className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm"
               >
-                <Heart className={cn("h-5 w-5", wishlist.has(product.id) && "fill-current")} aria-hidden />
+                <Heart className={cn("h-5 w-5", wishlist.has(product.id) && "fill-current text-rose-500")} aria-hidden />
               </button>
             </div>
-            {product.images.length > 1 && (
-              <div className="mt-3 grid grid-cols-4 gap-3">
-                {product.images.slice(0, 8).map((src, i) => (
-                  <button
-                    key={src}
-                    type="button"
-                    aria-label={`Photo ${i + 1}`}
-                    aria-current={photo === i}
-                    onClick={() => setPhoto(i)}
-                    className={cn("aspect-square overflow-hidden border-2", photo === i ? "border-foreground" : "border-transparent")}
-                  >
-                    <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
-          <div>
-            <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">{product.name}</h1>
-            {product.rating_average !== null && (
-              <a href="#reviews" className="mt-2 block"><Stars value={product.rating_average} count={product.rating_count} className="text-sm" /></a>
-            )}
-            <p className="mt-3 text-2xl font-semibold tabular-nums text-muted-foreground">
-              {product.on_promo && <span className="mr-2 text-lg font-normal line-through">{formatGHS(product.price)}</span>}
-              {formatGHS(product.effective_price)}
-            </p>
-            <hr className="my-6 border-border" />
-            {product.description && <p className="whitespace-pre-line leading-relaxed text-muted-foreground">{product.description}</p>}
+          <div className="md:py-2">
+            <Breadcrumbs
+              items={[
+                { label: "Shop", to: "/shop/products" },
+                ...(audienceCrumb ? [audienceCrumb] : []),
+                { label: categoryName, to: `/shop/products?category=${product.category}` },
+              ]}
+            />
+            <h1 className="mt-4 max-w-md text-balance text-3xl font-semibold leading-tight tracking-tight md:text-4xl">{product.name}</h1>
+            {product.brand && <p className="mt-1 text-sm text-muted-foreground">{product.brand}</p>}
+            <a href="#description" onClick={() => setTab("comments")} className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              {product.rating_average !== null && <Stars value={product.rating_average} className="text-sm" />}
+              {product.rating_average !== null && <span className="tabular-nums">{product.rating_average.toFixed(1)}</span>}
+              <span className="flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4" aria-hidden /> {reviews.length} {reviews.length === 1 ? "comment" : "comments"}
+              </span>
+            </a>
 
+            {product.sizes.length > 0 && (
+              <div className="mt-7">
+                <p className="text-sm font-semibold">Select size</p>
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  {product.sizes.map((sz) => (
+                    <button
+                      key={sz}
+                      type="button"
+                      aria-pressed={size === sz}
+                      onClick={() => setSize(sz)}
+                      className={cn(
+                        "h-10 min-w-10 rounded-xl border px-3 text-sm transition-colors",
+                        size === sz ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                      )}
+                    >
+                      {sz}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {product.colors.length > 0 && (
               <div className="mt-6">
-                <p className="text-sm font-medium">Colour{color && ` — ${color}`}</p>
-                <div className="mt-2 flex flex-wrap gap-3">
+                <p className="text-sm font-semibold">
+                  Colours available{color && <span className="font-normal text-muted-foreground"> · {color}</span>}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
                   {product.colors.map((c) => (
                     <button
                       key={c.name}
@@ -321,77 +378,54 @@ const ProductDetail = () => {
                       aria-label={c.name}
                       aria-pressed={color === c.name}
                       onClick={() => setColor(c.name)}
-                      className={cn("h-9 w-9 rounded-full border border-border ring-offset-2 ring-offset-background", color === c.name && "ring-2 ring-foreground")}
+                      className={cn(
+                        "h-8 w-8 rounded-full border border-border ring-offset-2 ring-offset-background transition-shadow",
+                        color === c.name && "ring-2 ring-foreground",
+                      )}
                       style={{ backgroundColor: c.hex }}
                     />
                   ))}
                 </div>
               </div>
             )}
-            {product.sizes.length > 0 && (
-              <div className="mt-5">
-                <p className="text-sm font-medium">Size</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {product.sizes.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      aria-pressed={size === s}
-                      onClick={() => setSize(s)}
-                      className={cn("h-11 min-w-11 border px-3 text-sm", size === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-foreground")}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {product.in_stock ? (
-              <>
-                <div className="mt-7 flex gap-3">
-                  <div className="flex h-12 items-center border border-input">
-                    <button type="button" aria-label="Less" className="h-full px-3.5 disabled:opacity-40" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></button>
-                    <span className="w-8 text-center text-sm tabular-nums">{qty}</span>
-                    <button type="button" aria-label="More" className="h-full px-3.5 disabled:opacity-40" disabled={qty >= maxQty} onClick={() => setQty((q) => Math.min(maxQty, q + 1))}><Plus className="h-4 w-4" /></button>
-                  </div>
-                  <button type="button" className={cn(SHOP_CTA, "flex-1 px-3")} disabled={addMutation.isPending} onClick={handleAddToCart}>
-                    {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Add to bag — {formatGHS(lineTotal)}
-                  </button>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <div className="flex h-12 items-center rounded-xl border border-input">
+                  <button type="button" aria-label="Less" className="h-full px-3.5 disabled:opacity-40" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></button>
+                  <span className="w-8 text-center text-sm tabular-nums">{qty}</span>
+                  <button type="button" aria-label="More" className="h-full px-3.5 disabled:opacity-40" disabled={qty >= maxQty} onClick={() => setQty((q) => Math.min(maxQty, q + 1))}><Plus className="h-4 w-4" /></button>
                 </div>
-                <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4" aria-hidden />
-                    {product.track_stock && product.stock <= 5 ? `Only ${product.stock} left in stock` : "In stock"}
-                  </li>
-                  {commerce?.enable_pickup && <li className="flex items-center gap-2"><Check className="h-4 w-4" aria-hidden /> Pick up from us for free</li>}
-                  {commerce?.enable_delivery && (
-                    <li className="flex items-center gap-2"><Check className="h-4 w-4" aria-hidden />
-                      Delivery {deliveryFee > 0 ? `for ${formatGHS(deliveryFee)}` : "available"}
-                    </li>
-                  )}
-                </ul>
-              </>
+                <Button className="h-12 flex-1 rounded-xl px-6 sm:flex-none" disabled={addMutation.isPending} onClick={handleAddToCart}>
+                  {addMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+                  Add to cart
+                </Button>
+                <span className="flex h-12 items-center rounded-xl border border-foreground/80 px-5 text-sm font-semibold tabular-nums">
+                  {product.on_promo && <span className="mr-2 font-normal text-muted-foreground line-through">{formatGHS(product.price * qty)}</span>}
+                  {formatGHS(lineTotal)}
+                </span>
+              </div>
             ) : (
-              <p className="mt-7 border border-border p-4 text-sm font-medium">Sold out. Check back soon.</p>
+              <p className="mt-8 rounded-xl border border-border p-4 text-sm font-medium">Sold out. Check back soon.</p>
             )}
 
-            <Accordion type="multiple" className="mt-6 border-t border-border">
-              <AccordionItem value="delivery">
-                <AccordionTrigger className="hover:no-underline">Delivery and pickup</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
-                  {commerce?.enable_pickup && "Collect your order from us at no charge. "}
-                  {commerce?.enable_delivery && `We can deliver to you${deliveryFee > 0 ? ` for ${formatGHS(deliveryFee)}` : ""}. `}
-                  You choose at checkout.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="pay">
-                <AccordionTrigger className="hover:no-underline">Payment</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
-                  Pay securely by Mobile Money or card. You'll get a receipt by email.
-                </AccordionContent>
-              </AccordionItem>
-              {!user && product.in_stock && (
+            <hr className="my-7 border-border" />
+            <ul className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+              {perks.map((k) => (
+                <li key={k.label} className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <k.icon className="h-4 w-4" aria-hidden />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-medium">{k.label}</span>
+                    <span className="block text-xs text-muted-foreground">{k.hint}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            {!user && product.in_stock && (
+              <Accordion type="single" collapsible className="mt-7 border-t border-border">
                 <AccordionItem value="guest">
                   <AccordionTrigger className="hover:no-underline">Buy without an account</AccordionTrigger>
                   <AccordionContent>
@@ -416,54 +450,123 @@ const ProductDetail = () => {
                         <Label htmlFor="referral" className="text-xs text-muted-foreground">Referral code (optional)</Label>
                         <Input id="referral" value={referral} onChange={(e) => setReferral(e.target.value)} />
                       </div>
-                      <button type="button" className={cn(SHOP_CTA, "w-full")} disabled={redirecting} onClick={handleGuestBuy}>
+                      <Button type="button" className="h-11 w-full rounded-xl" disabled={redirecting} onClick={handleGuestBuy}>
                         {redirecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Pay {formatGHS(lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0))}
-                      </button>
+                      </Button>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-              )}
-            </Accordion>
+              </Accordion>
+            )}
           </div>
         </div>
       </section>
 
-      <section id="reviews" className="container mx-auto scroll-mt-24 px-4 py-10">
-        <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Reviews</h2>
-        {reviews.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">No reviews yet.</p>
-        ) : (
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            {reviews.map((r) => (
-              <figure key={r.id} className="border border-border p-5">
-                <Stars value={r.rating} />
-                {r.content && <blockquote className="mt-2 text-sm">{r.content}</blockquote>}
-                <figcaption className="mt-3 text-xs text-muted-foreground">{r.user.profile?.fullName ?? "Customer"}</figcaption>
-              </figure>
-            ))}
-          </div>
-        )}
-        {isCustomer && (
-          <form
-            className="mt-6 max-w-lg space-y-3"
-            onSubmit={(e) => { e.preventDefault(); reviewMutation.mutate(); }}
-          >
-            <p className="text-sm font-medium">Bought this? Tell others what you think.</p>
-            <div className="flex gap-1" role="radiogroup" aria-label="Your rating">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} type="button" role="radio" aria-checked={myRating === n} aria-label={`${n} stars`} onClick={() => setMyRating(n)} className="p-1">
-                  <Star className={cn("h-6 w-6", n <= myRating ? "fill-current" : "opacity-30")} aria-hidden />
+      {/* Product description: tabs for the write-up and the comments, a photo beside. */}
+      <section id="description" className="container mx-auto scroll-mt-24 px-4 py-12 md:py-16">
+        <SectionTitle>Product description</SectionTitle>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-12">
+          <div>
+            <div className="flex gap-6 border-b border-border text-sm" role="tablist">
+              {(
+                [
+                  ["description", "Description", null],
+                  ["comments", "User comments", reviews.length],
+                ] as const
+              ).map(([key, label, count]) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === key}
+                  onClick={() => setTab(key)}
+                  className={cn(
+                    "-mb-px flex items-center gap-2 border-b-2 pb-3 font-medium",
+                    tab === key ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                  {count !== null && <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] tabular-nums text-primary-foreground">{count}</span>}
                 </button>
               ))}
             </div>
-            <Textarea value={myReview} onChange={(e) => setMyReview(e.target.value)} rows={3} maxLength={1000} placeholder="Your review (optional)" />
-            <Button type="submit" variant="outline" className="rounded-none" disabled={!myRating || reviewMutation.isPending}>Send review</Button>
-          </form>
-        )}
+
+            {tab === "description" ? (
+              <div className="pt-6">
+                <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                  {product.description || "The owner hasn't added a description yet."}
+                </p>
+                {product.attributes.length > 0 && (
+                  <dl className="mt-6 grid grid-cols-2 overflow-hidden rounded-2xl bg-muted/60 sm:grid-cols-3">
+                    {product.attributes.map((a) => (
+                      <div key={a.label} className="border-b border-r border-border/70 px-5 py-4">
+                        <dt className="text-xs text-muted-foreground">{a.label}</dt>
+                        <dd className="mt-1 text-sm font-medium">{a.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            ) : (
+              <div className="pt-6">
+                {reviews.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No comments yet. Customers who buy it can leave one.</p>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {reviews.map((r) => (
+                      <figure key={r.id} className="rounded-2xl border border-border p-5">
+                        <Stars value={r.rating} />
+                        {r.content && <blockquote className="mt-2 text-sm">{r.content}</blockquote>}
+                        <figcaption className="mt-3 text-xs text-muted-foreground">{r.user.profile?.fullName ?? "Customer"}</figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                )}
+                {isCustomer && (
+                  <form
+                    className="mt-6 max-w-lg space-y-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      reviewMutation.mutate();
+                    }}
+                  >
+                    <p className="text-sm font-medium">Bought this? Tell others what you think.</p>
+                    <div className="flex gap-1" role="radiogroup" aria-label="Your rating">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} type="button" role="radio" aria-checked={myRating === n} aria-label={`${n} stars`} onClick={() => setMyRating(n)} className="p-1">
+                          <Star className={cn("h-6 w-6", n <= myRating ? "fill-current text-amber-400" : "opacity-30")} aria-hidden />
+                        </button>
+                      ))}
+                    </div>
+                    <Textarea value={myReview} onChange={(e) => setMyReview(e.target.value)} rows={3} maxLength={1000} placeholder="Your comment (optional)" />
+                    <Button type="submit" variant="outline" disabled={!myRating || reviewMutation.isPending}>Send comment</Button>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+
+          {feature && (
+            <figure className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-muted lg:aspect-auto lg:min-h-[18rem]">
+              <img src={feature} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+              <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+              <figcaption className="absolute inset-x-0 bottom-0 p-5 text-center text-sm font-medium text-white md:text-base">{product.name}</figcaption>
+            </figure>
+          )}
+        </div>
       </section>
 
-      <ProductRow title="Similar items you might like" products={similar.length ? similar : others} />
+      {similarPicks.length > 0 && (
+        <section className="container mx-auto px-4 pb-12 md:pb-16">
+          <SectionTitle action={{ label: "View all", to: `/shop/products?category=${product.category}` }}>Similar products</SectionTitle>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6">
+            {similarPicks.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
       <ProductRow title="Recently viewed" products={recent} />
     </Layout>
   );

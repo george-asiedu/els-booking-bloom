@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { useStudio } from "@/hooks/useStudio";
 import { useAuth } from "@/hooks/useAuth";
-import { cartApi, contactInfoApi, productCategoriesApi, promoApi } from "@/lib/api";
+import { cartApi, contactInfoApi, productCategoriesApi, productsApi, promoApi } from "@/lib/api";
 import { shopTemplateFor } from "@/lib/shopTemplates";
 import { StudioMark } from "@/components/StudioMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -50,11 +50,22 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
   });
   const count = cart?.items.reduce((n, i) => n + i.quantity, 0) ?? 0;
 
+  const { data: products = [] } = useQuery({
+    queryKey: ["public-products"],
+    queryFn: () => productsApi.listActive(),
+    staleTime: 5 * 60 * 1000,
+  });
+  // Men and Women appear once the owner has marked pieces for them.
+  const audiences = [
+    ...(products.some((p) => p.audience === "MEN") ? [{ label: "Men", to: "/shop/products?audience=men" }] : []),
+    ...(products.some((p) => p.audience === "WOMEN") ? [{ label: "Women", to: "/shop/products?audience=women" }] : []),
+  ];
   const links = [
     // A studio's shop links back to the studio's own website.
-    ...(booking ? [{ label: "Studio home", to: "/" }, { label: "Shop", to: shopHome }] : [{ label: "Home", to: shopHome }]),
-    ...categories.slice(0, 4).map((c) => ({ label: c.name, to: `/shop/products?category=${c.slug}` })),
-    { label: "All products", to: "/shop/products" },
+    ...(booking ? [{ label: "Studio home", to: "/" }] : []),
+    { label: "Shop", to: "/shop/products" },
+    ...audiences,
+    ...categories.slice(0, audiences.length ? 3 : 4).map((c) => ({ label: c.name, to: `/shop/products?category=${c.slug}` })),
   ];
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +94,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <nav className="hidden items-center gap-5 md:flex" aria-label="Shop">
-              {links.slice(0, booking ? 6 : 5).map((l) => (
+              {links.slice(0, booking ? 7 : 6).map((l) => (
                 <Link
                   key={l.to}
                   to={l.to}

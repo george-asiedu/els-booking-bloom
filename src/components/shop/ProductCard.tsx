@@ -6,7 +6,10 @@ import type { ProductDTO } from "@/lib/api";
 import { formatGHS } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
-/** A product in a shop grid: photo, then a caption with name, category, price. */
+/**
+ * A product in a shop grid: a rounded photo with the wishlist heart, then the
+ * name and brand beside the price in a pill.
+ */
 export const ProductCard = ({
   product,
   badge,
@@ -15,61 +18,65 @@ export const ProductCard = ({
 }: {
   product: ProductDTO;
   badge?: string;
-  // Fill the available height (the big tiles in the new arrivals grid).
+  // Fill the available height (a big tile in a grid).
   tall?: boolean;
   className?: string;
 }) => {
   const { has, toggle } = useWishlist();
   const saved = has(product.id);
+  const label = !product.in_stock ? "Sold out" : product.on_promo ? "Sale" : badge;
   return (
-  <Link to={`/shop/${product.id}`} className={cn("group flex flex-col", className)}>
-    <div className={cn("relative overflow-hidden bg-muted", tall ? "min-h-[20rem] flex-1" : "aspect-[4/5]")}>
-      {product.image_url ? (
-        <img
-          src={product.image_url}
-          alt={product.name}
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-        />
-      ) : (
-        <div className="flex h-full items-center justify-center text-muted-foreground">
-          <ImageOff className="h-8 w-8" aria-hidden />
-        </div>
-      )}
-      {(badge || product.on_promo || !product.in_stock) && (
-        <span
-          className={cn(
-            "absolute left-3 top-3 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
-            !product.in_stock ? "bg-muted text-muted-foreground" : "bg-band text-band-foreground",
-          )}
-        >
-          {!product.in_stock ? "Sold out" : product.on_promo ? "Sale" : badge}
-        </span>
-      )}
-      <button
-        type="button"
-        aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
-        aria-pressed={saved}
-        onClick={(e) => { e.preventDefault(); toggle(product.id); }}
-        className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground transition-transform hover:scale-105"
-      >
-        <Heart className={cn("h-4 w-4", saved && "fill-current")} aria-hidden />
-      </button>
-    </div>
-    <div className="flex items-end justify-between gap-3 border border-t-0 border-border bg-card px-3 py-3">
-      <div className="min-w-0">
-        <h3 className="line-clamp-1 font-serif text-sm font-semibold">{product.name}</h3>
-        <p className="line-clamp-1 text-xs capitalize text-muted-foreground">{product.category.replace(/-/g, " ")}</p>
-        {product.rating_average !== null && <Stars value={product.rating_average} count={product.rating_count} className="mt-1" />}
-      </div>
-      <p className="shrink-0 text-right text-sm tabular-nums">
-        {product.on_promo && (
-          <span className="block text-xs text-muted-foreground line-through">{formatGHS(product.price)}</span>
+    <Link to={`/shop/${product.id}`} className={cn("group flex flex-col", className)}>
+      <div className={cn("relative overflow-hidden rounded-2xl bg-muted", tall ? "min-h-[20rem] flex-1" : "aspect-[3/4]")}>
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            <ImageOff className="h-8 w-8" aria-hidden />
+          </div>
         )}
-        {formatGHS(product.effective_price)}
-      </p>
-    </div>
-  </Link>
+        {label && (
+          <span
+            className={cn(
+              "absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider",
+              !product.in_stock ? "bg-background/90 text-muted-foreground" : product.on_promo ? "bg-primary text-primary-foreground" : "bg-band text-band-foreground",
+            )}
+          >
+            {label}
+          </span>
+        )}
+        <button
+          type="button"
+          aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+          aria-pressed={saved}
+          onClick={(e) => {
+            e.preventDefault();
+            toggle(product.id);
+          }}
+          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm transition-transform hover:scale-105 active:scale-[0.96]"
+        >
+          <Heart className={cn("h-4 w-4", saved && "fill-current text-rose-500")} aria-hidden />
+        </button>
+      </div>
+      <div className="flex items-start justify-between gap-3 pt-3">
+        <div className="min-w-0">
+          <h3 className="line-clamp-1 text-sm font-semibold">{product.name}</h3>
+          <p className="line-clamp-1 text-xs text-muted-foreground">
+            {product.brand ?? product.category.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase())}
+          </p>
+          {product.rating_average !== null && <Stars value={product.rating_average} count={product.rating_count} className="mt-1" />}
+        </div>
+        <p className="shrink-0 rounded-lg bg-muted px-2.5 py-1.5 text-right text-xs font-semibold tabular-nums">
+          {product.on_promo && <span className="mr-1 font-normal text-muted-foreground line-through">{formatGHS(product.price)}</span>}
+          {formatGHS(product.effective_price)}
+        </p>
+      </div>
+    </Link>
   );
 };
 

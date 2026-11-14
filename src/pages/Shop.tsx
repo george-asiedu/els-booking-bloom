@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
@@ -10,20 +10,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { Breadcrumbs, ProductCard } from "@/components/shop/ProductCard";
-import { commerceApi, productCategoriesApi, productsApi } from "@/lib/api";
+import { commerceApi, productCategoriesApi, productsApi, type ProductDTO } from "@/lib/api";
 import { useHideSplashWhen } from "@/lib/splash";
 import { useStudio } from "@/hooks/useStudio";
 import { formatGHS } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 const PER_PAGE = 12;
-type Sort = "newest" | "low" | "high" | "name";
+type Sort = "newest" | "recommended" | "low" | "high";
+
+const AUDIENCES = { men: "MEN", women: "WOMEN" } as const;
+type AudienceParam = keyof typeof AUDIENCES;
+/** Men's pages show men's and everyone's pieces; women's likewise. */
+const forAudience = (p: ProductDTO, a: AudienceParam | null) => !a || p.audience === "UNISEX" || p.audience === AUDIENCES[a];
+// Best rated, then marked popular, then newest.
+const recommended = (a: ProductDTO, b: ProductDTO) =>
+  (b.rating_average ?? 0) - (a.rating_average ?? 0) || Number(b.popular) - Number(a.popular);
 
 /** All products (categories-design): filters beside a paged grid. */
 const Shop = () => {
   const { isLoading: studioLoading } = useStudio();
   const [params] = useSearchParams();
   const query = (params.get("q") ?? "").trim().toLowerCase();
+  const brand = params.get("brand");
+  const audienceRaw = params.get("audience");
+  const audience: AudienceParam | null = audienceRaw === "men" || audienceRaw === "women" ? audienceRaw : null;
   const [cats, setCats] = useState<string[]>([]);
   const [range, setRange] = useState<[number, number] | null>(null);
   const [size, setSize] = useState<string | null>(null);
@@ -37,6 +48,7 @@ const Shop = () => {
   useEffect(() => {
     const c = params.get("category");
     setCats(c ? [c] : []);
+    setOnSale(params.get("sale") === "1");
     setPage(1);
   }, [params]);
 
@@ -62,6 +74,8 @@ const Shop = () => {
 
   const matches = products.filter(
     (p) =>
+      forAudience(p, audience) &&
+      (!brand || p.brand === brand) &&
       (!query || p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)) &&
       p.effective_price >= lo &&
       p.effective_price <= hi &&
@@ -70,23 +84,37 @@ const Shop = () => {
       (!inStock || p.in_stock) &&
       (!onSale || p.on_promo),
   );
-  const allSizes = [...new Set(products.flatMap((p) => p.sizes))];
-  const allColors = [...new Map(products.flatMap((p) => p.colors).map((c) => [c.name, c])).values()];
+  const pool = products.filter((p) => forAudience(p, audience));
+  const allSizes = [...new Set(pool.flatMap((p) => p.sizes))];
+  const allColors = [...new Map(pool.flatMap((p) => p.colors).map((c) => [c.name, c])).values()];
+  // Only categories with something in them for this audience.
+  const shownCategories = categories.filter((c) => pool.some((p) => p.category === c.slug));
   const filtered = matches.filter((p) => !cats.length || cats.includes(p.category));
   const sorted = [...filtered].sort((a, b) =>
     sort === "low"
       ? a.effective_price - b.effective_price
       : sort === "high"
         ? b.effective_price - a.effective_price
-        : sort === "name"
-          ? a.name.localeCompare(b.name)
-          : 0,
+        : sort === "recommended"
+          ? recommended(a, b)
+          : (b.created_at ?? "").localeCompare(a.created_at ?? ""),
   );
   const pages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
   const current = Math.min(page, pages);
   const shown = sorted.slice((current - 1) * PER_PAGE, current * PER_PAGE);
   const single = cats.length === 1 ? categories.find((c) => c.slug === cats[0]) : null;
-  const title = query ? `Results for "${query}"` : single?.name ?? "All products";
+  const who = audience === "men" ? "Men's" : audience === "women" ? "Women's" : null;
+  const title = query
+    ? `Results for "${query}"`
+    : brand
+      ? brand
+    : single
+      ? who
+        ? `${who} ${single.name.toLowerCase()}`
+        : single.name
+      : who
+        ? `${who} collection`
+        : "All products";
   const clear = () => {
     setCats([]);
     setRange(null);
@@ -114,71 +142,47 @@ const Shop = () => {
     );
   }
 
+  const section = "border-b border-border px-5 py-5";
+  const heading = "mb-4 text-sm font-semibold text-foreground";
   const filters = (
-    <div className="space-y-7 text-sm">
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">Filters</span>
-        <button type="button" onClick={clear} className="text-xs text-muted-foreground hover:text-foreground">Clear all</button>
+    <div className="overflow-hidden rounded-2xl border border-border bg-card text-sm">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <span className="font-semibold">Filter</span>
+        <button type="button" onClick={clear} className="text-xs text-muted-foreground hover:text-foreground">
+          Clear all
+        </button>
       </div>
-      {categories.length > 0 && (
-        <fieldset className="border-b border-border pb-6">
-          <legend className="mb-3 font-serif font-semibold">Category</legend>
-          <div className="space-y-2.5">
-            {categories.map((c) => (
-              <label key={c.id} className="flex cursor-pointer items-center gap-2.5">
-                <Checkbox
-                  checked={cats.includes(c.slug)}
-                  onCheckedChange={(on) =>
-                    changed(() => setCats(on ? [...cats, c.slug] : cats.filter((x) => x !== c.slug)))
-                  }
-                />
-                <span className="flex-1">{c.name}</span>
-                <span className="text-xs tabular-nums text-muted-foreground">{matches.filter((p) => p.category === c.slug).length}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      )}
-      {allSizes.length > 0 && (
-        <div className="border-b border-border pb-6">
-          <p className="mb-3 font-serif font-semibold">Size</p>
-          <div className="flex flex-wrap gap-1.5">
-            {allSizes.map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={size === s}
-                onClick={() => changed(() => setSize(size === s ? null : s))}
-                className={cn("h-9 min-w-9 border px-2 text-xs", size === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-foreground")}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      {allColors.length > 0 && (
-        <div className="border-b border-border pb-6">
-          <p className="mb-3 font-serif font-semibold">Colour</p>
-          <div className="flex flex-wrap gap-2">
-            {allColors.map((c) => (
-              <button
-                key={c.name}
-                type="button"
-                title={c.name}
-                aria-label={c.name}
-                aria-pressed={color === c.name}
-                onClick={() => changed(() => setColor(color === c.name ? null : c.name))}
-                className={cn("h-7 w-7 rounded-full border border-border ring-offset-2 ring-offset-background", color === c.name && "ring-2 ring-foreground")}
-                style={{ backgroundColor: c.hex }}
-              />
-            ))}
-          </div>
+      {shownCategories.length > 0 && (
+        <div className={section}>
+          <ul className="space-y-1">
+            {shownCategories.map((c) => {
+              const on = cats.includes(c.slug);
+              return (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => changed(() => setCats(on ? cats.filter((x) => x !== c.slug) : [...cats, c.slug]))}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent",
+                      on ? "font-medium text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    <span>{c.name}</span>
+                    <span className="flex items-center gap-1 text-xs tabular-nums">
+                      {matches.filter((p) => p.category === c.slug).length}
+                      <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
       {maxPrice > 0 && (
-        <div className="border-b border-border pb-6">
-          <p className="mb-4 font-serif font-semibold">Price</p>
+        <div className={section}>
+          <p className={heading}>Price</p>
           <Slider
             min={0}
             max={maxPrice}
@@ -187,14 +191,60 @@ const Shop = () => {
             onValueChange={(v) => changed(() => setRange([v[0], v[1]]))}
             aria-label="Price range"
           />
-          <div className="mt-3 flex justify-between text-xs tabular-nums text-muted-foreground">
-            <span>{formatGHS(lo)}</span>
-            <span>{formatGHS(hi)}</span>
+          <div className="mt-4 flex justify-between gap-3 text-xs tabular-nums">
+            <span className="rounded-lg border border-border px-3 py-1.5">{formatGHS(lo)}</span>
+            <span className="rounded-lg border border-border px-3 py-1.5">{formatGHS(hi)}</span>
           </div>
         </div>
       )}
-      <fieldset>
-        <legend className="mb-3 font-serif font-semibold">Availability</legend>
+      {allColors.length > 0 && (
+        <div className={section}>
+          <p className={heading}>Colours</p>
+          <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+            {allColors.map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                aria-pressed={color === c.name}
+                onClick={() => changed(() => setColor(color === c.name ? null : c.name))}
+                className="flex flex-col items-center gap-1"
+              >
+                <span
+                  className={cn(
+                    "h-8 w-8 rounded-lg border border-border ring-offset-2 ring-offset-card",
+                    color === c.name && "ring-2 ring-foreground",
+                  )}
+                  style={{ backgroundColor: c.hex }}
+                />
+                <span className="line-clamp-1 text-[11px] text-muted-foreground">{c.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {allSizes.length > 0 && (
+        <div className={section}>
+          <p className={heading}>Size</p>
+          <div className="grid grid-cols-3 gap-2">
+            {allSizes.map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                aria-pressed={size === sz}
+                onClick={() => changed(() => setSize(size === sz ? null : sz))}
+                className={cn(
+                  "h-9 rounded-lg border text-xs",
+                  size === sz ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                )}
+              >
+                {sz}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="px-5 py-5">
+        <p className={heading}>Availability</p>
         <div className="space-y-2.5">
           <label className="flex cursor-pointer items-center gap-2.5">
             <Checkbox checked={inStock} onCheckedChange={(on) => changed(() => setInStock(!!on))} /> In stock
@@ -203,51 +253,58 @@ const Shop = () => {
             <Checkbox checked={onSale} onCheckedChange={(on) => changed(() => setOnSale(!!on))} /> On sale
           </label>
         </div>
-      </fieldset>
+      </div>
     </div>
   );
 
   return (
     <Layout>
-      <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-8">
-          <Breadcrumbs items={[{ label: "Shop", to: "/shop" }, { label: title }]} />
-          <h1 className="mt-5 font-serif text-4xl">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "piece" : "pieces"}, ready to order.
-          </p>
-        </div>
-      </section>
-
-      <section className="container mx-auto grid gap-10 px-4 py-8 lg:grid-cols-[240px_1fr]">
+      <section className="container mx-auto grid gap-8 px-4 py-8 lg:grid-cols-[260px_1fr]">
         <aside className="hidden lg:block">{filters}</aside>
         <div>
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <Breadcrumbs items={[{ label: "Shop", to: "/shop/products" }, ...(who ? [{ label: who.replace("'s", "") , to: `/shop/products?audience=${audience}` }] : []), { label: title }]} />
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {filtered.length} {filtered.length === 1 ? "piece" : "pieces"}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-none lg:hidden">
-                    <SlidersHorizontal className="mr-2 h-4 w-4" /> Filters
+                  <Button variant="outline" size="sm" className="lg:hidden">
+                    <SlidersHorizontal className="mr-2 h-4 w-4" /> Filter
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="overflow-y-auto">
-                  <SheetHeader><SheetTitle>Filters</SheetTitle></SheetHeader>
+                  <SheetHeader><SheetTitle>Filter</SheetTitle></SheetHeader>
                   <div className="mt-6">{filters}</div>
                 </SheetContent>
               </Sheet>
-              <p className="hidden text-sm text-muted-foreground sm:block">
-                Showing {sorted.length ? (current - 1) * PER_PAGE + 1 : 0}–{Math.min(current * PER_PAGE, sorted.length)} of {sorted.length}
-              </p>
+              {/* New and Recommended as text tabs, as in the design; price sorts in the menu. */}
+              <div className="flex items-center gap-4 text-sm" role="tablist" aria-label="Sort">
+                {(["newest", "recommended"] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="tab"
+                    aria-selected={sort === k}
+                    onClick={() => setSort(k)}
+                    className={cn("font-medium", sort === k ? "text-foreground underline decoration-primary decoration-2 underline-offset-8" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    {k === "newest" ? "New" : "Recommended"}
+                  </button>
+                ))}
+              </div>
+              <Select value={sort === "low" || sort === "high" ? sort : ""} onValueChange={(v) => setSort(v as Sort)}>
+                <SelectTrigger className="h-9 w-32" aria-label="Sort by price"><SelectValue placeholder="Price" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Price: low to high</SelectItem>
+                  <SelectItem value="high">Price: high to low</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-              <SelectTrigger className="h-9 w-44 rounded-none" aria-label="Sort products"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Sort: Newest first</SelectItem>
-                <SelectItem value="low">Price: Low to high</SelectItem>
-                <SelectItem value="high">Price: High to low</SelectItem>
-                <SelectItem value="name">Name: A to Z</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {isLoading ? (
@@ -257,10 +314,10 @@ const Shop = () => {
           ) : shown.length === 0 ? (
             <div className="py-20 text-center">
               <p className="font-serif text-xl">Nothing matches those filters</p>
-              <Button variant="outline" className="mt-4 rounded-none" onClick={clear}>Clear filters</Button>
+              <Button variant="outline" className="mt-4" onClick={clear}>Clear filters</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 md:gap-x-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6">
               {shown.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
@@ -273,7 +330,7 @@ const Shop = () => {
                   type="button"
                   aria-current={n === current ? "page" : undefined}
                   onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                  className={cn("h-10 w-10", n === current ? "bg-primary text-primary-foreground" : "hover:bg-accent")}
+                  className={cn("h-10 w-10 rounded-lg", n === current ? "bg-primary text-primary-foreground" : "hover:bg-accent")}
                 >
                   {n}
                 </button>
