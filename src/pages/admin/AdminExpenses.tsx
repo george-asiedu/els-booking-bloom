@@ -1,3 +1,4 @@
+import { ExportButton } from "@/components/admin/ExportButton";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addMonths, format, parseISO } from "date-fns";
@@ -66,9 +67,12 @@ const AdminExpenses = () => {
         title="Expenses"
         subtitle="Record what you spend to see your real profit. Income is what customers paid you in the app."
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add expense
-          </Button>
+          <div className="flex gap-2">
+            <ExportButton kind="expenses" />
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add expense
+            </Button>
+          </div>
         }
       />
 

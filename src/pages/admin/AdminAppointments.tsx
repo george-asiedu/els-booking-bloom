@@ -1,3 +1,4 @@
+import { ExportButton } from "@/components/admin/ExportButton";
 import { useState } from "react";
 import { CancellationActions } from "@/components/admin/CancellationActions";
 import { AppointmentDetails } from "@/components/admin/RowDetails";
@@ -274,9 +275,12 @@ const AdminAppointments = () => {
     <AdminLayout>
       <div className="space-y-6">
         <OnboardingBanner />
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Appointments</h1>
-          <p className="text-muted-foreground">Manage your appointment bookings</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Appointments</h1>
+            <p className="text-muted-foreground">Manage your appointment bookings</p>
+          </div>
+          <ExportButton kind="bookings" />
         </div>
 
         {/* Stats */}

@@ -1,3 +1,4 @@
+import { ExportButton } from "@/components/admin/ExportButton";
 import { useState } from "react";
 import { CancellationActions } from "@/components/admin/CancellationActions";
 import { OrderDetails } from "@/components/admin/RowDetails";
@@ -127,9 +128,12 @@ const AdminOrders = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Orders</h1>
-          <p className="text-muted-foreground">Manage product orders</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+            <p className="text-muted-foreground">Manage product orders</p>
+          </div>
+          <ExportButton kind="orders" />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
