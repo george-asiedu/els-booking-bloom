@@ -1,3 +1,4 @@
+import { ClosureDaysCard } from "@/components/admin/ClosureDaysCard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Clock } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -154,6 +155,7 @@ const AdminHours = () => {
             </CardContent>
           </Card>
         )}
+        <ClosureDaysCard />
       </div>
     </AdminLayout>
   );

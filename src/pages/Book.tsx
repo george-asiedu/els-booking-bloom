@@ -1,3 +1,4 @@
+import { businessHoursApi } from "@/lib/api";
 import { apiRequest } from "@/lib/apiClient";
 import { doesService, staffApi } from "@/lib/api/staff";
 import { vouchersApi, type VoucherCheck } from "@/lib/api/vouchers";
@@ -335,6 +336,15 @@ const Book = () => {
     if (mustPayInFull && paymentMethod === "partial") setPaymentMethod("full");
   }, [mustPayInFull, paymentMethod]);
 
+  // Days the studio is closed: its weekly closed days and one-off closures.
+  const { data: weekHours = [] } = useQuery({ queryKey: ["business-hours"], queryFn: () => businessHoursApi.list() });
+  const { data: closures = [] } = useQuery({
+    queryKey: ["closures"],
+    queryFn: async () => (await apiRequest<{ data: { date: string }[] }>("/business-hours/closures")).data,
+  });
+  const closedWeekdays = new Set(weekHours.filter((h) => h.is_closed).map((h) => h.day_of_week));
+  const closedDates = new Set(closures.map((c) => c.date));
+
   // Waitlist for a full day: uses the name and contact details already typed.
   const joinWaitlist = useMutation({
     mutationFn: () =>
@@ -654,9 +664,11 @@ const Book = () => {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date() || date.getDay() === 0
-                            }
+                            disabled={(date) => {
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              return date < today || closedWeekdays.has(date.getDay()) || closedDates.has(format(date, "yyyy-MM-dd"));
+                            }}
                             initialFocus
                           />
                         </PopoverContent>
