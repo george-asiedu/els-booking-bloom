@@ -268,16 +268,19 @@ export const TopBrands = ({ products }: { products: ProductDTO[] }) => {
   );
 };
 
-/** What customers love: best rated, then the owner's popular picks. */
-export const InTheLimelight = ({ products }: { products: ProductDTO[] }) => {
-  const picks = [...products]
+/** What customers love: best rated and most reviewed. */
+export const limelightPicks = (products: ProductDTO[]) =>
+  [...products]
     .sort(
       (a, b) =>
-        Number(b.popular) - Number(a.popular) ||
         (b.rating_average ?? 0) - (a.rating_average ?? 0) ||
-        b.rating_count - a.rating_count,
+        b.rating_count - a.rating_count ||
+        Number(b.popular) - Number(a.popular),
     )
     .slice(0, 4);
+
+export const InTheLimelight = ({ products }: { products: ProductDTO[] }) => {
+  const picks = limelightPicks(products);
   if (!picks.length) return null;
   return (
     <section id="limelight" className="container mx-auto scroll-mt-24 px-4 py-12 md:py-16">

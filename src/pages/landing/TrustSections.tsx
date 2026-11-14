@@ -6,7 +6,7 @@ interface PlatformStats {
   studiosLive: number;
   bookingsMade: number;
   customers: number;
-  paymentsProcessed: number;
+  ordersPlaced: number;
 }
 
 /** Real platform numbers, counting up as they scroll into view. */
@@ -22,7 +22,7 @@ export const PlatformMetricsSection = () => {
     { value: data.studiosLive, label: "Businesses on Zuri" },
     { value: data.bookingsMade, label: "Bookings made" },
     { value: data.customers, label: "Customers served" },
-    { value: data.paymentsProcessed, label: "Paid to businesses", prefix: "GH₵ " },
+    { value: data.ordersPlaced, label: "Shop orders placed" },
   ];
   return (
     <section className="border-y border-border bg-band py-14 text-band-foreground">
@@ -30,7 +30,7 @@ export const PlatformMetricsSection = () => {
         {items.map((m) => (
           <div key={m.label} className="text-center">
             <p className="font-serif text-3xl font-semibold tabular-nums text-primary md:text-4xl">
-              <CountUp value={m.value ?? 0} prefix={m.prefix} />
+              <CountUp value={m.value ?? 0} />
             </p>
             <p className="mt-1 text-sm text-band-foreground/70">{m.label}</p>
           </div>
