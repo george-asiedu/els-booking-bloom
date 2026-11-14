@@ -47,17 +47,17 @@ const Discover = () => {
   });
   useHideSplashWhen(!isLoading);
   useSeo({
-    title: "Find a beauty business near you · Zuri Studios",
-    description: "Salons, barbers, nail and lash studios, and shops on Zuri Studios. Book or buy directly, and pay by Mobile Money or card.",
+    title: "Find a business on Zuri · Zuri Studios",
+    description: "Studios you can book and shops you can buy from, all on Zuri Studios. Pay directly by Mobile Money or card.",
   });
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <NavSection solid />
       <main className="container mx-auto px-4 pb-20 pt-36">
-        <h1 className="max-w-2xl text-balance font-serif text-4xl font-semibold leading-tight md:text-5xl">Find a beauty business near you</h1>
+        <h1 className="max-w-2xl text-balance font-serif text-4xl font-semibold leading-tight md:text-5xl">Find a business on Zuri</h1>
         <p className="mt-3 max-w-xl text-muted-foreground">
-          Salons, barbers, nail and lash studios, and shops on Zuri. Book or buy directly, and pay by Mobile Money or card.
+          Studios you can book and shops you can buy from, all on Zuri. Pay directly by Mobile Money or card.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-center">
@@ -66,7 +66,7 @@ const Discover = () => {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Try “braids East Legon” or “nails”"
+              placeholder="Search by name, area, service or product"
               aria-label="Search businesses"
               className="h-11 pl-9"
             />
