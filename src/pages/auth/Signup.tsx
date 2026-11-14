@@ -80,8 +80,8 @@ const Signup = () => {
     }
 
     toast({
-      title: "Account created!",
-      description: `Welcome to ${studioName}!`,
+      title: "Account created",
+      description: `Welcome to ${studioName}.`,
     });
     navigate("/account");
   };
@@ -98,7 +98,7 @@ const Signup = () => {
                 </div>
               </div>
               <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
-                Create Account
+                Create account
               </h1>
               <p className="text-muted-foreground">
                 Join us and earn rewards with every visit
@@ -113,7 +113,7 @@ const Signup = () => {
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormLabel>Full name</FormLabel>
                         <FormControl>
                           <Input placeholder="Your name" {...field} />
                         </FormControl>
@@ -145,7 +145,7 @@ const Signup = () => {
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>Phone number</FormLabel>
                         <FormControl>
                           <Input placeholder="(555) 123-4567" {...field} />
                         </FormControl>

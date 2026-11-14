@@ -77,7 +77,10 @@ export const WebsiteDesignPicker = ({
               <SelectContent>
                 {SHOP_CATEGORIES.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.emoji} {c.label}
+                    <span className="flex items-center gap-2">
+                      <c.icon className="h-4 w-4 text-muted-foreground" aria-hidden />
+                      {c.label}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

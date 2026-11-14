@@ -98,7 +98,7 @@ const AdminLogin = () => {
     }
 
     toast({
-      title: "Welcome back!",
+      title: "Signed in",
       description: "You've successfully logged in.",
     });
     navigate("/admin");
@@ -126,7 +126,7 @@ const AdminLogin = () => {
               </>
             )}
           </div>
-          <CardTitle>Admin Login</CardTitle>
+          <CardTitle>Admin login</CardTitle>
           <CardDescription>Sign in to manage {studioName}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -171,7 +171,7 @@ const AdminLogin = () => {
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                Sign in
               </Button>
             </form>
           </Form>

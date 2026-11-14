@@ -35,7 +35,7 @@ const AdminTestimonial = () => {
       setContent("");
       queryClient.invalidateQueries({ queryKey: ["my-testimonials"] });
       toast({
-        title: "Thank you!",
+        title: "Thank you",
         description: `We'll review it before featuring it on the ${PLATFORM.name} site.`,
       });
     },

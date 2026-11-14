@@ -463,7 +463,7 @@ const Onboarding = () => {
                           : "border-border hover:border-primary/40"
                       }`}
                     >
-                      <span aria-hidden>{c.emoji}</span>
+                      <c.icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                       {c.label}
                     </button>
                   ))}

@@ -218,7 +218,7 @@ const Index = () => {
   const metrics = [
     stats?.clientsServed && { value: stats.clientsServed.toLocaleString(), label: "Clients served" },
     stats?.appointmentsCompleted && { value: stats.appointmentsCompleted.toLocaleString(), label: "Appointments done" },
-    stats?.averageRating && { value: `${stats.averageRating.toFixed(1)}★`, label: `From ${stats.reviewCount} reviews` },
+    stats?.averageRating && { value: `${stats.averageRating.toFixed(1)} / 5`, label: `Average rating from ${stats.reviewCount} reviews` },
     stats?.servicesOffered && { value: String(stats.servicesOffered), label: "Services to choose from" },
   ].filter(Boolean) as { value: string; label: string }[];
 

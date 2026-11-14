@@ -96,7 +96,7 @@ const AdminContact = () => {
     <AdminLayout>
       <div className="space-y-6 max-w-2xl">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Contact Information</h1>
+          <h1 className="text-2xl font-bold text-foreground">Contact information</h1>
           <p className="text-muted-foreground">
             Manage the details shown on your public contact page. Toggle each item
             to control whether it appears.

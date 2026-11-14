@@ -101,7 +101,7 @@ const Contact = () => {
             {/* Contact Cards */}
             <div>
               <h2 className="text-2xl font-serif font-bold text-foreground mb-6">
-                Contact Information
+                Contact information
               </h2>
 
               {isLoading ? (
@@ -178,14 +178,14 @@ const Contact = () => {
             {/* Business Hours */}
             <div>
               <h2 className="text-2xl font-serif font-bold text-foreground mb-6">
-                Business Hours
+                Business hours
               </h2>
               <div className="bg-card border border-border rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
                     <Clock className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="font-medium text-foreground">Weekly Schedule</span>
+                  <span className="font-medium text-foreground">Weekly schedule</span>
                 </div>
                 <div className="space-y-3">
                   {hours.map((item) => (
@@ -221,7 +221,7 @@ const Contact = () => {
                     <Button variant="outline" asChild className="flex-1">
                       <a href={telHref(info.phone)}>
                         <Phone className="mr-2 h-4 w-4" />
-                        Call Now
+                        Call now
                       </a>
                     </Button>
                   )}
@@ -236,7 +236,7 @@ const Contact = () => {
       <section className="py-16 bg-secondary">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-serif font-bold text-foreground mb-8 text-center">
-            Frequently Asked Questions
+            Frequently asked questions
           </h2>
           <Accordion
             type="single"

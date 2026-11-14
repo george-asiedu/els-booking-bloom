@@ -27,7 +27,7 @@ const base: ShopTemplate = {
   headingStyle: "sans",
   badges: ["Secure Mobile Money & card", "Delivery or pickup", "Real people on WhatsApp"],
   newTitle: "New arrivals",
-  bestTitle: "Best sellers",
+  bestTitle: "Customer favourites",
   joinTitle: "Join and earn points",
   joinText: "Create an account to earn points on every order and hear about offers first.",
 };

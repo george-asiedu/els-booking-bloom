@@ -595,7 +595,7 @@ const Book = () => {
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Additional Notes</FormLabel>
+                      <FormLabel>Additional notes</FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Any design ideas, references, or special requests..."

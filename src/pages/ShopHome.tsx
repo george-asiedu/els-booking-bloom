@@ -59,7 +59,7 @@ const ShopHome = () => {
           <p className="hero-rise mt-5 max-w-md text-white/85 [animation-delay:280ms]">{content?.heroSubtext || t.subtext}</p>
           <div className="hero-rise mt-8 flex flex-wrap items-center gap-6 [animation-delay:380ms]">
             <Link to="/shop/products" className={SHOP_CTA}>{t.cta}</Link>
-            <a href="#limelight" className="text-sm hover:underline">{t.bestTitle} →</a>
+            <a href="#best" className="text-sm hover:underline">{t.bestTitle} →</a>
           </div>
         </div>
       </section>
@@ -88,7 +88,7 @@ const ShopHome = () => {
       <TopBrands products={products} />
       <InTheLimelight products={products} />
 
-      {/* Best sellers: popular pieces not already in the limelight. */}
+      {/* Customer favourites: popular pieces not already in the limelight. */}
       {bestSellers.length > 0 && (
         <section id="best" className="container mx-auto scroll-mt-24 px-4 py-12 md:py-16">
           <SectionTitle action={{ label: "View all", to: "/shop/products" }}>{t.bestTitle}</SectionTitle>

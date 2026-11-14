@@ -245,7 +245,7 @@ export const ReviewDetails = ({ item, onClose }: { item: ReviewDTO | null } & Cl
   <DetailsSheet
     open={Boolean(item)}
     onClose={onClose}
-    title={item ? `${"★".repeat(item.rating)}${"☆".repeat(5 - item.rating)}` : ""}
+    title={item ? `${item.rating} out of 5 stars` : ""}
     subtitle={item ? `${item.profiles?.full_name ?? "Anonymous"} · ${when(item.created_at, false)}` : undefined}
     badges={item && <Badge variant={item.approved ? "secondary" : "outline"}>{item.approved ? "Shown on your site" : "Waiting for approval"}</Badge>}
     sections={

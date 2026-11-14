@@ -80,7 +80,7 @@ const PlatformLogin = () => {
               Platform Console
             </span>
           </div>
-          <CardTitle>Super Admin Login</CardTitle>
+          <CardTitle>Super admin login</CardTitle>
           <CardDescription>
             Manage the studios on your platform
           </CardDescription>
@@ -131,7 +131,7 @@ const PlatformLogin = () => {
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                Sign in
               </Button>
             </form>
           </Form>

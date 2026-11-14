@@ -150,7 +150,7 @@ const OrderCallback = () => {
       status={status}
       successMessage={
         order
-          ? `Thank you! A receipt has been sent to your email. Order ${order.order_number}.`
+          ? `Thank you. A receipt has been sent to your email. Order ${order.order_number}.`
           : undefined
       }
       onRetry={canRetry ? retryPayment : undefined}

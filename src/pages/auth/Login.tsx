@@ -67,7 +67,7 @@ const Login = () => {
     }
 
     toast({
-      title: "Welcome back!",
+      title: "Signed in",
       description: "You've successfully logged in.",
     });
     // Admins land on the dashboard; customers go to their account (or redirect).
@@ -86,7 +86,7 @@ const Login = () => {
                 </div>
               </div>
               <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
-                Welcome Back
+                Welcome back
               </h1>
               <p className="text-muted-foreground">
                 Sign in to view your appointments and rewards
@@ -147,7 +147,7 @@ const Login = () => {
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign In
+                    Sign in
                   </Button>
                 </form>
               </Form>

@@ -42,7 +42,7 @@ const AdminOnboarding = () => {
             <CardContent className="flex items-center gap-3 py-5">
               <PartyPopper className="h-6 w-6 text-green-600" />
               <div>
-                <p className="font-semibold text-foreground">You're all set!</p>
+                <p className="font-semibold text-foreground">You're all set</p>
                 <p className="text-sm text-muted-foreground">
                   Your studio is ready. Share your booking page with customers.
                 </p>

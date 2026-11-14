@@ -146,7 +146,7 @@ export const ProfileEditDialog = ({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Profile</DialogTitle>
+          <DialogTitle>Edit profile</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -186,7 +186,7 @@ export const ProfileEditDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
+            <Label htmlFor="fullName">Full name</Label>
             <Input
               id="fullName"
               value={fullName}
@@ -250,7 +250,7 @@ export const ProfileEditDialog = ({
         >
           <div className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-primary" />
-            <p className="font-medium text-sm">Change Password</p>
+            <p className="font-medium text-sm">Change password</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="currentPassword">Current password</Label>

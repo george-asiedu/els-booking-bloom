@@ -218,7 +218,7 @@ const AdminGallery = () => {
           </div>
           <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Media
+            Add media
           </Button>
         </div>
 
@@ -232,7 +232,7 @@ const AdminGallery = () => {
               <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No media in your gallery</p>
               <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
-                Upload Your First Media
+                Upload your first media
               </Button>
             </CardContent>
           </Card>
@@ -342,7 +342,7 @@ const AdminGallery = () => {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload Media</DialogTitle>
+            <DialogTitle>Upload media</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

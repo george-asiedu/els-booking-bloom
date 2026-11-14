@@ -186,7 +186,7 @@ const AdminReviews = () => {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Review</AlertDialogTitle>
+                              <AlertDialogTitle>Delete review</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Are you sure you want to delete this review? This action cannot be undone.
                               </AlertDialogDescription>

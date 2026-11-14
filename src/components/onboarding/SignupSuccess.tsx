@@ -57,7 +57,7 @@ export const SignupSuccess = ({
           <PartyPopper className="h-7 w-7" aria-hidden />
         </div>
         <h1 className="mt-5 text-balance font-serif text-3xl font-bold">
-          {summary ? `${summary.studioName} is live!` : "Your studio is live!"}
+          {summary ? `${summary.studioName} is live` : "Your studio is live"}
         </h1>
         <p className="mx-auto mt-2 max-w-md text-pretty text-muted-foreground">
           Welcome to {PLATFORM.name}. Sign in with the email and password you just set to add

@@ -68,7 +68,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
 
     {/* Order history */}
     <div>
-      <h2 className="text-xl font-semibold text-foreground mb-4">My Orders</h2>
+      <h2 className="text-xl font-semibold text-foreground mb-4">My orders</h2>
       <StatusTabs
         className="mb-4"
         value={tab}

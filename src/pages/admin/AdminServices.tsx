@@ -243,7 +243,7 @@ const AdminServices = () => {
           </div>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Service
+            Add service
           </Button>
         </div>
 
@@ -257,7 +257,7 @@ const AdminServices = () => {
               <Scissors className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No services yet</p>
               <Button className="mt-4" onClick={openCreateDialog}>
-                Add Your First Service
+                Add your first service
               </Button>
             </CardContent>
           </Card>
@@ -515,7 +515,7 @@ const AdminServices = () => {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Service</AlertDialogTitle>
+            <AlertDialogTitle>Delete service</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this service? This action cannot be undone.
             </AlertDialogDescription>

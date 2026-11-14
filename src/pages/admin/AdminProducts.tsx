@@ -268,7 +268,7 @@ const AdminProducts = () => {
           </div>
           <Button onClick={openCreate} disabled={categories.length === 0}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Product
+            Add product
           </Button>
         </div>
 
@@ -686,7 +686,7 @@ const AdminProducts = () => {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogTitle>Delete product</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure? This action cannot be undone.
             </AlertDialogDescription>

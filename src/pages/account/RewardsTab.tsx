@@ -66,7 +66,7 @@ export const RewardsTab = ({
           <CardContent className="py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">Your Points Balance</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Your points balance</h3>
                 <div className="text-4xl font-bold text-primary tabular-nums">
                   {loyalty?.points || 0} pts
                 </div>
@@ -123,13 +123,13 @@ export const RewardsTab = ({
         <CardContent>
           <p className="text-muted-foreground mb-4">
             Share your referral code and earn 100 bonus points (GHS 10 off) when your friend
-            completes their first appointment!
+            completes their first appointment.
           </p>
           <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
             <span className="text-lg font-mono font-bold text-primary flex-1">
               {referralCode?.code || "Loading..."}
             </span>
-            <Button onClick={onCopyReferralLink}>Copy Link</Button>
+            <Button onClick={onCopyReferralLink}>Copy link</Button>
           </div>
         </CardContent>
       </Card>
@@ -139,7 +139,7 @@ export const RewardsTab = ({
     {loyaltyEnabled && history.length > 0 && (
       <Card>
         <CardHeader>
-          <CardTitle>Points History</CardTitle>
+          <CardTitle>Points history</CardTitle>
         </CardHeader>
         <CardContent>
           <PointsHistory history={history} />

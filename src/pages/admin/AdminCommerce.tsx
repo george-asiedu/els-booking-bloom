@@ -71,7 +71,7 @@ const AdminCommerce = () => {
     <AdminLayout>
       <div className="space-y-6 max-w-2xl">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Shop Settings</h1>
+          <h1 className="text-2xl font-bold text-foreground">Shop settings</h1>
           <p className="text-muted-foreground">
             Control your product shop and how orders are fulfilled.
           </p>
