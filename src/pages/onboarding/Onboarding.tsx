@@ -253,6 +253,7 @@ const Onboarding = () => {
         ownerEmail: email.trim(),
         emailToken,
         promoCode: promo?.code ?? undefined,
+        ...(params.get("ref") ? { ref: params.get("ref")! } : {}),
         ownerPassword: password,
         ownerFullName: fullName.trim() || undefined,
         plan,

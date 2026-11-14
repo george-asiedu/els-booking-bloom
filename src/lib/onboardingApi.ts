@@ -39,6 +39,8 @@ export interface OnboardingStartInput {
   // Proof from confirmEmailCode that the owner controls ownerEmail.
   emailToken: string;
   promoCode?: string;
+  /** The inviting business, from ?ref= on an invite link. */
+  ref?: string;
   ownerPassword: string;
   ownerFullName?: string;
   plan: Plan;
