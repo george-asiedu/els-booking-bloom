@@ -8,6 +8,8 @@ export interface CommerceSettingsDTO {
   enable_pickup: boolean;
   enable_delivery: boolean;
   delivery_fee: number;
+  /** Admins are told when stock falls to this or below. */
+  low_stock_threshold: number;
 }
 
 interface RawCommerceSettings {
@@ -15,6 +17,7 @@ interface RawCommerceSettings {
   enablePickup: boolean;
   enableDelivery: boolean;
   deliveryFee: number;
+  lowStockThreshold?: number;
 }
 
 const normalizeCommerceSettings = (
@@ -24,6 +27,7 @@ const normalizeCommerceSettings = (
   enable_pickup: s.enablePickup,
   enable_delivery: s.enableDelivery,
   delivery_fee: s.deliveryFee,
+  low_stock_threshold: s.lowStockThreshold ?? 3,
 });
 
 export const commerceApi = {
@@ -38,6 +42,7 @@ export const commerceApi = {
     enablePickup?: boolean;
     enableDelivery?: boolean;
     deliveryFee?: number;
+    lowStockThreshold?: number;
   }): Promise<CommerceSettingsDTO> {
     const res = await apiRequest<Envelope<RawCommerceSettings>>(
       "/commerce/settings",

@@ -23,6 +23,7 @@ const AdminCommerce = () => {
   const [enablePickup, setEnablePickup] = useState(true);
   const [enableDelivery, setEnableDelivery] = useState(true);
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [lowStock, setLowStock] = useState(3);
 
   useEffect(() => {
     if (settings) {
@@ -30,6 +31,7 @@ const AdminCommerce = () => {
       setEnablePickup(settings.enable_pickup);
       setEnableDelivery(settings.enable_delivery);
       setDeliveryFee(settings.delivery_fee);
+      setLowStock(settings.low_stock_threshold);
     }
   }, [settings]);
 
@@ -40,6 +42,7 @@ const AdminCommerce = () => {
         enablePickup,
         enableDelivery,
         deliveryFee,
+        lowStockThreshold: lowStock,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commerce-settings"] });
@@ -154,6 +157,22 @@ const AdminCommerce = () => {
                     </p>
                   </div>
                 )}
+
+                <div className="space-y-2 border-t border-border pt-4">
+                  <Label htmlFor="low-stock">Tell me when stock falls to</Label>
+                  <Input
+                    id="low-stock"
+                    type="number"
+                    min={0}
+                    max={1000}
+                    value={lowStock}
+                    onChange={(e) => setLowStock(Number(e.target.value))}
+                    className="max-w-[160px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    You'll get a notification when a sale leaves a product at this many or fewer, and when it sells out.
+                  </p>
+                </div>
 
                 {noFulfillment && (
                   <p className="flex items-center gap-2 text-sm text-destructive">
