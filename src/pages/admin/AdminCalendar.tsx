@@ -191,6 +191,7 @@ const AdminCalendar = () => {
                     <p className="truncate text-xs text-muted-foreground">
                       {a.services?.name ?? "Appointment"}
                       {a.services?.duration ? ` · ${a.services.duration}` : ""}
+                      {a.staff ? ` · with ${a.staff.name}` : ""}
                     </p>
                   </button>
                 </li>

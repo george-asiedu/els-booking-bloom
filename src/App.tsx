@@ -58,6 +58,7 @@ const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
 const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureRequests"));
 const AdminSecurity = lazy(() => import("./pages/admin/AdminSecurity"));
 const AdminCalendar = lazy(() => import("./pages/admin/AdminCalendar"));
+const AdminStaff = lazy(() => import("./pages/admin/AdminStaff"));
 const AdminOnboarding = lazy(() => import("./pages/admin/AdminOnboarding"));
 const AdminPromos = lazy(() => import("./pages/admin/AdminPromos"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
@@ -304,6 +305,7 @@ const App = () => (
                 <Route path="feature-requests" element={<AdminFeatureRequests />} />
                 <Route path="security" element={<AdminSecurity />} />
                 <Route path="calendar" element={<AdminCalendar />} />
+                <Route path="staff" element={<AdminStaff />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="contact" element={<AdminContact />} />

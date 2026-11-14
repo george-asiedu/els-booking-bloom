@@ -26,7 +26,7 @@ export const cursorPage = <T>(res: Envelope<T[]>): CursorPage<T> => ({
   limit: res.pagination?.limit ?? res.data.length,
 });
 
-export type MediaUploadCategory = "gallery" | "services" | "products" | "appointments" | "studio" | "profiles" | "reviews" | "misc";
+export type MediaUploadCategory = "gallery" | "services" | "products" | "appointments" | "studio" | "staff" | "profiles" | "reviews" | "misc";
 
 /** Uploads media in 10 MiB chunks straight from the browser to private S3. */
 export const uploadStudioMedia = async (file: File, category: MediaUploadCategory): Promise<string> => {

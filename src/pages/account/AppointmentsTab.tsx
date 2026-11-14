@@ -145,6 +145,7 @@ export const AppointmentsTab = ({
               title: "Booking",
               items: [
                 { label: "Service", value: open.services?.name },
+                ...(open.staff ? [{ label: "With", value: open.staff.name }] : []),
                 { label: "Date", value: day(open) },
                 { label: "Time", value: open.appointment_time },
                 { label: "Booked on", value: format(new Date(open.created_at), "d MMM yyyy") },

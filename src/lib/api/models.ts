@@ -76,6 +76,8 @@ export interface AppointmentDTO {
   cancel_request_reason: string | null;
   /** The studio paid the customer back itself and recorded it. */
   refunded_outside: { at: string; amount: number; note: string | null } | null;
+  /** The staff member it's with, when the studio has staff. */
+  staff: { id: string; name: string } | null;
 }
 
 // ---------------- Raw server shapes ----------------
@@ -94,6 +96,7 @@ export interface RawService {
 }
 
 export interface RawAppointment {
+  staff?: { id: string; name: string } | null;
   cancelRequestedAt?: string | null;
   cancelRequestReason?: string | null;
   refundedOutsideAt?: string | null;
@@ -200,6 +203,7 @@ export const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
         category: a.service.category,
       }
     : null,
+  staff: a.staff ?? null,
   cancel_requested_at: a.cancelRequestedAt ?? null,
   cancel_request_reason: a.cancelRequestReason ?? null,
   refunded_outside: a.refundedOutsideAt

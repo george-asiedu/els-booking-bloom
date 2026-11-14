@@ -90,6 +90,7 @@ export const AppointmentDetails = ({ item, onClose, footer }: { item: Appointmen
                 title: "Appointment",
                 items: [
                   { label: "Service", value: item.services?.name },
+                  ...(item.staff ? [{ label: "With", value: item.staff.name }] : []),
                   { label: "Category", value: item.services?.category },
                   { label: "Duration", value: item.services?.duration },
                   { label: "Date", value: format(parseISO(item.appointment_date), "EEE d MMM yyyy") },

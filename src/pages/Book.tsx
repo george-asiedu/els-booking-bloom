@@ -1,3 +1,5 @@
+import { doesService, staffApi } from "@/lib/api/staff";
+import { slotIsBusyForStaff } from "@/lib/slots";
 import { useState, useEffect } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +9,7 @@ import { z } from "zod";
 import { toWhatsappNumber } from "@/lib/whatsapp";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, Loader2, Upload, X } from "lucide-react";
+import { CalendarIcon, Loader2, Upload, UserRound, X } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { StudioPageHero } from "@/components/storefront/StudioPageHero";
 import { Button } from "@/components/ui/button";
@@ -237,18 +239,36 @@ const Book = () => {
   // changing the service re-filters the times.
   const selectedService = services.find((s) => s.id === form.watch("service"));
   const serviceMinutes = parseDurationMinutes(selectedService?.duration);
-  const availableTimeSlots = timeSlots.filter(
-    (t) => !slotIsBusy(t, serviceMinutes, busy),
-  );
+
+  // Staff: customers can pick a person or "anyone". With no staff set up, the
+  // studio takes one booking at a time, as before.
+  const { data: allStaff = [] } = useQuery({
+    queryKey: ["public-staff"],
+    queryFn: () => staffApi.listActive(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const [staffChoice, setStaffChoice] = useState<string>("any");
+  const qualifiedStaff = allStaff.filter((s) => doesService(s, selectedService?.id));
+  const staffMode = allStaff.length > 0 && qualifiedStaff.length > 0;
+  useEffect(() => {
+    // A person who doesn't do the newly chosen service falls back to "anyone".
+    if (staffChoice !== "any" && !qualifiedStaff.some((s) => s.id === staffChoice)) setStaffChoice("any");
+  }, [qualifiedStaff, staffChoice]);
+  const slotBusy = (t: string) =>
+    staffMode
+      ? slotIsBusyForStaff(t, serviceMinutes, busy, staffChoice === "any" ? qualifiedStaff.map((s) => s.id) : [staffChoice])
+      : slotIsBusy(t, serviceMinutes, busy);
+  const availableTimeSlots = timeSlots.filter((t) => !slotBusy(t));
 
   // If the picked time becomes unavailable after choosing a date or a longer
   // service, clear it rather than letting the form carry a slot that will fail.
   const selectedTime = form.watch("time");
   useEffect(() => {
-    if (selectedTime && slotIsBusy(selectedTime, serviceMinutes, busy)) {
+    if (selectedTime && slotBusy(selectedTime)) {
       form.setValue("time", "");
     }
-  }, [busy, selectedTime, serviceMinutes, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, selectedTime, serviceMinutes, form, staffChoice]);
 
   const pricing = computeBookingPricing({
     service: selectedService,
@@ -282,6 +302,7 @@ const Book = () => {
         notes: data.notes || null,
         design_image: designImage.file,
         apply_points: effectiveApplyPoints,
+        staff_id: staffMode ? staffChoice : undefined,
       }),
     onSuccess: async (appointment) => {
       // Points were spent and this slot is now taken — refresh both.
@@ -498,6 +519,36 @@ const Book = () => {
                     </FormItem>
                   )}
                 />
+
+                {/* Who: only when the studio has staff who do this service. */}
+                {staffMode && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Who would you like?</p>
+                    <div role="radiogroup" aria-label="Who would you like?" className="flex flex-wrap gap-2">
+                      {[{ id: "any", name: "Anyone available", photoUrl: null as string | null }, ...qualifiedStaff].map((s) => {
+                        const on = staffChoice === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            onClick={() => setStaffChoice(s.id)}
+                            className={cn(
+                              "flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-sm transition-colors",
+                              on ? "border-primary bg-primary/10 font-medium" : "border-border hover:border-primary/50",
+                            )}
+                          >
+                            <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-muted">
+                              {s.photoUrl ? <img src={s.photoUrl} alt="" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4 text-muted-foreground" />}
+                            </span>
+                            {s.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Date */}
                 <FormField
