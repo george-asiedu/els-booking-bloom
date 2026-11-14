@@ -5,6 +5,7 @@ import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
 import { Calendar, CalendarPlus, Gift, Heart, Home, Package, Receipt, Share2, ShieldCheck, ShoppingBag, User } from "lucide-react";
 import { SecurityPanel } from "@/components/security/SecurityPanel";
+import { GiftCardsTab } from "./GiftCardsTab";
 import { NotificationBell } from "@/components/security/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -198,6 +199,7 @@ const Account = () => {
     // Booking payments; a store's payments are its orders.
     ...(booking ? [{ id: "transactions", name: "Transactions", icon: Receipt }] : []),
     ...(features.loyalty || features.referrals ? [{ id: "rewards", name: "Rewards", icon: Gift }] : []),
+    { id: "gift-cards", name: "Gift cards", icon: Gift },
     { id: "security", name: "Security & alerts", icon: ShieldCheck },
   ];
   const tab = sections.some((x) => x.id === searchParams.get("tab")) ? searchParams.get("tab")! : initialTab;
@@ -417,6 +419,10 @@ const Account = () => {
                 />
               </TabsContent>
             )}
+            <TabsContent value="gift-cards">
+              <GiftCardsTab booking={booking} />
+            </TabsContent>
+
             <TabsContent value="security">
               <SecurityPanel
                 client="studio"

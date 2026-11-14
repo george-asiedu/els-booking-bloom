@@ -43,7 +43,27 @@ export interface VoucherPurchase {
   processingFee: number;
 }
 
+/** One of a customer's own gift cards or packages. */
+export interface MyVoucherDTO {
+  id: string;
+  kind: "GIFT_CARD" | "PACKAGE";
+  status: "ACTIVE" | "USED";
+  /** Null for a gift bought for someone else (only they get the code). */
+  code: string | null;
+  price: number;
+  balance: number;
+  sessionsLeft: number;
+  sessionsTotal: number;
+  serviceId: string | null;
+  serviceName: string | null;
+  sentTo: string | null;
+  from: string | null;
+  message: string | null;
+  createdAt: string;
+}
+
 export const vouchersApi = {
+  mine: async () => (await apiRequest<{ data: MyVoucherDTO[] }>("/vouchers/mine", { auth: true })).data,
   packages: async () => (await apiRequest<{ data: PackageOfferDTO[] }>("/vouchers/packages")).data,
   buyGiftCard: async (body: {
     amount: number;

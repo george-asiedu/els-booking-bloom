@@ -1,3 +1,5 @@
+import { GiftCardBanner } from "@/components/shop/GiftCardBanner";
+import { vouchersApi } from "@/lib/api/vouchers";
 import { businessSchema, useSeo } from "@/lib/seo";
 import { HeroSlides } from "@/components/HeroSlides";
 import { useRef, useState } from "react";
@@ -214,6 +216,7 @@ const Index = () => {
   };
 
   const sortedHours = [...hours].sort((a, b) => a.day_of_week - b.day_of_week);
+  const { data: packageOffers = [] } = useQuery({ queryKey: ["package-offers"], queryFn: () => vouchersApi.packages(), staleTime: 5 * 60 * 1000 });
 
   // Search and share details, with the business described for search engines.
   useSeo({
@@ -514,6 +517,8 @@ const Index = () => {
           <Lightbox images={galleryImgs.slice(0, 8)} index={lightbox} onIndexChange={setLightbox} />
         </section>
       )}
+
+      <GiftCardBanner name={studioName} packages={packageOffers.length > 0} />
 
       {/* Reviews */}
       {features.reviews && showTestimonials && reviews.length > 0 && (

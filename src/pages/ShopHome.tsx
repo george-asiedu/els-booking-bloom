@@ -1,3 +1,4 @@
+import { GiftCardBanner } from "@/components/shop/GiftCardBanner";
 import { businessSchema, useSeo } from "@/lib/seo";
 import { BigSavingZone, CategoriesFor, InTheLimelight, limelightPicks, NewArrivals, SectionTitle, TopBrands } from "@/components/shop/HomeSections";
 import { HeroSlides } from "@/components/HeroSlides";
@@ -100,6 +101,8 @@ const ShopHome = () => {
       <CategoriesFor audience="WOMEN" products={products} categories={categories} />
       <TopBrands products={products} />
       <InTheLimelight products={products} />
+
+      <GiftCardBanner name={name} />
 
       {/* Customer favourites: popular pieces not already in the limelight. */}
       {bestSellers.length > 0 && (
