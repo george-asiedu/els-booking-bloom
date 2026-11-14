@@ -1,3 +1,4 @@
+import { useSeo } from "@/lib/seo";
 import { processingFeeFor } from "@/lib/fees";
 import { useStudio } from "@/hooks/useStudio";
 import { useEffect, useState } from "react";
@@ -43,7 +44,7 @@ const lineTotal_ = (price: number, qty: number) => Math.round(price * qty * 100)
 const ProductDetail = () => {
   const { id = "" } = useParams();
   const { user } = useAuth();
-  const { config } = useStudio();
+  const { config, name: studioName } = useStudio();
   const navigate = useNavigate();
   const { toast } = useToast();
   const processing = useProcessing();
@@ -120,6 +121,33 @@ const ProductDetail = () => {
   });
 
   const maxQty = product?.track_stock ? product.stock : 99;
+
+  // Search and share details: the product's name, price, stock and rating.
+  useSeo({
+    title: product ? `${product.name} · ${studioName}` : studioName,
+    description: product?.description,
+    image: product?.image_url,
+    structuredData: product
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: product.name,
+          ...(product.description ? { description: product.description } : {}),
+          ...(product.images.length ? { image: product.images } : {}),
+          ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
+          offers: {
+            "@type": "Offer",
+            price: product.effective_price.toFixed(2),
+            priceCurrency: "GHS",
+            availability: product.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            url: window.location.href,
+          },
+          ...(product.rating_average && product.rating_count
+            ? { aggregateRating: { "@type": "AggregateRating", ratingValue: Number(product.rating_average.toFixed(1)), reviewCount: product.rating_count } }
+            : {}),
+        }
+      : null,
+  });
 
   const addMutation = useMutation({
     mutationFn: () => cartApi.addItem(id, qty, size, color),

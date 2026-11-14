@@ -23,7 +23,9 @@ export const StudioTheme = () => {
 
   useEffect(() => {
     applyStudioTheme(neutral ? null : config?.branding ?? null);
-    document.title = !neutral && config?.name ? config.name : PLATFORM.name;
+    // A page that sets its own title (useSeo) keeps it; this is the fallback.
+    const fallback = !neutral && config?.name ? config.name : PLATFORM.name;
+    if (!document.title.includes(fallback)) document.title = fallback;
     if (!neutral && config) {
       rememberStudioSplash({
         name: config.name,

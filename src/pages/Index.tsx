@@ -1,3 +1,4 @@
+import { businessSchema, useSeo } from "@/lib/seo";
 import { HeroSlides } from "@/components/HeroSlides";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -213,6 +214,26 @@ const Index = () => {
   };
 
   const sortedHours = [...hours].sort((a, b) => a.day_of_week - b.day_of_week);
+
+  // Search and share details, with the business described for search engines.
+  useSeo({
+    title: `${studioName}${contact?.address ? ` · ${contact.address}` : ""}`,
+    description: copy("aboutText"),
+    image: heroBg.startsWith("http") ? heroBg : null,
+    structuredData: businessSchema({
+      kind: "studio",
+      name: studioName,
+      description: copy("aboutText"),
+      image: heroBg.startsWith("http") ? heroBg : null,
+      logo: config?.branding.logoUrl ?? null,
+      phone: contact?.phone,
+      email: contact?.email,
+      address: contact?.address,
+      rating: stats?.averageRating ?? null,
+      reviewCount: stats?.reviewCount ?? 0,
+      hours,
+    }),
+  });
 
   // Real figures only (the API leaves out anything not yet meaningful).
   const metrics = [

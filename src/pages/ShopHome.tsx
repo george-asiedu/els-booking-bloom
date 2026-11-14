@@ -1,3 +1,4 @@
+import { businessSchema, useSeo } from "@/lib/seo";
 import { BigSavingZone, CategoriesFor, InTheLimelight, limelightPicks, NewArrivals, SectionTitle, TopBrands } from "@/components/shop/HomeSections";
 import { HeroSlides } from "@/components/HeroSlides";
 import { Link } from "react-router-dom";
@@ -43,6 +44,18 @@ const ShopHome = () => {
   const bannerImg = content?.ctaImageUrl ?? withPhotos[1]?.image_url ?? heroImg;
   const limelight = new Set(limelightPicks(products).map((p) => p.id));
   const bestSellers = products.filter((p) => p.popular && !limelight.has(p.id)).slice(0, 8);
+  useSeo({
+    title: `${name} · Shop online`,
+    description: content?.heroSubtext || t.subtext,
+    image: heroImg.startsWith("http") ? heroImg : null,
+    structuredData: businessSchema({
+      kind: features.booking === false ? "store" : "studio",
+      name,
+      description: content?.heroSubtext || t.subtext,
+      image: heroImg.startsWith("http") ? heroImg : null,
+      logo: config?.branding.logoUrl ?? null,
+    }),
+  });
   const newArrivals = [...products].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "")).slice(0, 10);
 
   return (

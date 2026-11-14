@@ -1,3 +1,4 @@
+import { useSeo } from "@/lib/seo";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Star, Store } from "lucide-react";
@@ -45,6 +46,10 @@ const Discover = () => {
     placeholderData: (prev) => prev,
   });
   useHideSplashWhen(!isLoading);
+  useSeo({
+    title: "Find a beauty business near you · Zuri Studios",
+    description: "Salons, barbers, nail and lash studios, and shops on Zuri Studios. Book or buy directly, and pay by Mobile Money or card.",
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground">
