@@ -143,7 +143,7 @@ const isCustomHost = (): boolean => {
 // belongs to that domain (browsers block cookies from another site).
 // Locally, els.localhost and localhost are different sites, so the API is
 // called on the same name to keep the session cookie.
-const API_URL: string = window.location.hostname.endsWith(".localhost")
+export const API_URL: string = window.location.hostname.endsWith(".localhost")
   ? CONFIGURED_API_URL.replace("//localhost", `//${window.location.hostname}`)
   : isCustomHost() && !window.location.hostname.endsWith(".vercel.app")
     ? `${window.location.origin}/api`
@@ -199,12 +199,21 @@ interface RequestOptions {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** A machine-readable reason from the API, e.g. "TOTP_REQUIRED". */
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
+
+/** The first `errors[].code` in an API error body, if any. */
+export const errorCode = (json: unknown): string | undefined => {
+  const first = (json as { errors?: { code?: unknown }[] } | null)?.errors?.[0];
+  return typeof first?.code === "string" ? first.code : undefined;
+};
 
 // Global handler invoked once when an authenticated request comes back 401 —
 // i.e. the access token has expired or been invalidated. The app registers a
@@ -273,7 +282,7 @@ export async function apiRequest<T>(
     const message =
       (json as { message?: string } | null)?.message ||
       `Request failed with status ${res.status}`;
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, errorCode(json));
   }
 
   return json as T;

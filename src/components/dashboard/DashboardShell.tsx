@@ -1,3 +1,4 @@
+import { InstallBanner } from "@/components/security/InstallApp";
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LogOut, Menu, X, type LucideIcon } from "lucide-react";
@@ -128,6 +129,7 @@ export const DashboardShell = ({
             <ThemeToggle />
           </div>
         </header>
+        <InstallBanner />
         {banner}
         {/* relative: chart tooltips and screen-reader text position against
             this scrolling area. */}

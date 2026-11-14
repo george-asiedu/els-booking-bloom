@@ -11,6 +11,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   Lightbulb,
+  ShieldCheck,
   Megaphone,
   Package,
   Palette,
@@ -133,6 +134,7 @@ const moneyAndMore: NavGroup[] = [
     items: [
       { name: "Share your story", path: "/admin/testimonial", icon: Quote },
       { name: "Feature requests", path: "/admin/feature-requests", icon: Lightbulb },
+      { name: "Security & alerts", path: "/admin/security", icon: ShieldCheck },
     ],
   },
 ];

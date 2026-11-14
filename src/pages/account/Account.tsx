@@ -3,7 +3,8 @@ import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
-import { Calendar, CalendarPlus, Gift, Heart, Home, Package, Receipt, Share2, ShoppingBag, User } from "lucide-react";
+import { Calendar, CalendarPlus, Gift, Heart, Home, Package, Receipt, Share2, ShieldCheck, ShoppingBag, User } from "lucide-react";
+import { SecurityPanel } from "@/components/security/SecurityPanel";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -195,6 +196,7 @@ const Account = () => {
     // Booking payments; a store's payments are its orders.
     ...(booking ? [{ id: "transactions", name: "Transactions", icon: Receipt }] : []),
     ...(features.loyalty || features.referrals ? [{ id: "rewards", name: "Rewards", icon: Gift }] : []),
+    { id: "security", name: "Security & alerts", icon: ShieldCheck },
   ];
   const tab = sections.some((x) => x.id === searchParams.get("tab")) ? searchParams.get("tab")! : initialTab;
   const groups: NavGroup[] = [
@@ -410,6 +412,17 @@ const Account = () => {
                 />
               </TabsContent>
             )}
+            <TabsContent value="security">
+              <SecurityPanel
+                client="studio"
+                label={studioName}
+                notificationsText={
+                  booking
+                    ? "Booking confirmations, reminders before your appointment, and payment and order updates, on this device."
+                    : "Order and payment updates on this device."
+                }
+              />
+            </TabsContent>
           </Tabs>
 
       <RescheduleDialog

@@ -17,7 +17,8 @@ interface AuthContextType {
   signIn: (
     email: string,
     password: string,
-  ) => Promise<{ error: Error | null; user: AuthUser | null }>;
+    totp?: string,
+  ) => Promise<{ error: Error | null; user: AuthUser | null; needsCode?: boolean }>;
   signUp: (
     payload: SignupPayload,
   ) => Promise<{ error: Error | null; user: AuthUser | null }>;
@@ -36,9 +37,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, totp?: string) => {
     try {
-      const authedUser = await authApi.login(email, password);
+      const authedUser = await authApi.login(email, password, totp);
       setUser(authedUser);
       return { error: null, user: authedUser };
     } catch (error) {
@@ -46,7 +47,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         error instanceof ApiError || error instanceof Error
           ? error.message
           : "Login failed";
-      return { error: new Error(message), user: null };
+      // TOTP_REQUIRED: the password was right; the page asks for the code.
+      const needsCode = error instanceof ApiError && error.code === "TOTP_REQUIRED";
+      return { error: new Error(message), user: null, needsCode };
     }
   }, []);
 

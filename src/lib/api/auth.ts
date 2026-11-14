@@ -17,10 +17,10 @@ const persistAuth = (data: { user: AuthUser }): AuthUser => {
 };
 
 export const authApi = {
-  async login(email: string, password: string): Promise<AuthUser> {
+  async login(email: string, password: string, totp?: string): Promise<AuthUser> {
     const res = await apiRequest<Envelope<{ user: AuthUser }>>(
       "/auth/login",
-      { method: "POST", body: { email, password } },
+      { method: "POST", body: { email, password, ...(totp ? { totp } : {}) } },
     );
     return persistAuth(res.data);
   },

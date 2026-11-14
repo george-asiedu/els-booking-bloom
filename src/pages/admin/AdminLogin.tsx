@@ -1,3 +1,4 @@
+import { SignInCodeStep } from "@/components/auth/SignInCodeStep";
 import { useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -51,6 +52,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
+  // Set once the password checked out and the account asks for a code.
+  const [codeFor, setCodeFor] = useState<LoginFormValues | null>(null);
   const navigate = useNavigate();
   const { signIn, signOut } = useAuth();
   const { toast } = useToast();
@@ -64,9 +67,14 @@ const AdminLogin = () => {
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (data: LoginFormValues, code?: string) => {
     setIsLoading(true);
-    const { error, user } = await signIn(data.email, data.password);
+    const { error, user, needsCode } = await signIn(data.email, data.password, code);
+    if (needsCode) {
+      setCodeFor(data);
+      setIsLoading(false);
+      return;
+    }
 
     if (error) {
       toast({
@@ -122,8 +130,11 @@ const AdminLogin = () => {
           <CardDescription>Sign in to manage {studioName}</CardDescription>
         </CardHeader>
         <CardContent>
+          {codeFor ? (
+            <SignInCodeStep loading={isLoading} onSubmit={(c) => onSubmit(codeFor, c)} onBack={() => setCodeFor(null)} />
+          ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit((d) => onSubmit(d))} className="space-y-4">
               <FormField
                 control={form.control}
                 name="email"
@@ -164,6 +175,7 @@ const AdminLogin = () => {
               </Button>
             </form>
           </Form>
+          )}
           <p className="mt-6 border-t pt-4 text-center text-sm text-muted-foreground">
             Not your studio?{" "}
             <button

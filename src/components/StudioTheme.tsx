@@ -1,3 +1,4 @@
+import { applyStudioManifest } from "@/lib/pwa";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useStudio } from "@/hooks/useStudio";
@@ -30,7 +31,9 @@ export const StudioTheme = () => {
         primaryColor: config.branding.primaryColor,
       });
     }
-  }, [neutral, config]);
+    // A studio's own site installs under the studio's name.
+    if (hasStudio && config) applyStudioManifest({ name: config.name, themeColor: config.branding.primaryColor });
+  }, [neutral, hasStudio, config]);
 
   return null;
 };

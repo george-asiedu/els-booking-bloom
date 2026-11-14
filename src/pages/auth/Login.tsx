@@ -1,3 +1,4 @@
+import { SignInCodeStep } from "@/components/auth/SignInCodeStep";
 import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -28,6 +29,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
+  // Set once the password checked out and the account asks for a code.
+  const [codeFor, setCodeFor] = useState<LoginFormValues | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -44,9 +47,14 @@ const Login = () => {
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (data: LoginFormValues, code?: string) => {
     setIsLoading(true);
-    const { error, user } = await signIn(data.email, data.password);
+    const { error, user, needsCode } = await signIn(data.email, data.password, code);
+    if (needsCode) {
+      setCodeFor(data);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(false);
 
     if (error) {
@@ -91,8 +99,11 @@ const Login = () => {
             </div>
 
             <div className="bg-card border border-border rounded-lg p-6">
+              {codeFor ? (
+                <SignInCodeStep loading={isLoading} onSubmit={(c) => onSubmit(codeFor, c)} onBack={() => setCodeFor(null)} />
+              ) : (
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit((d) => onSubmit(d))} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="email"
@@ -140,6 +151,7 @@ const Login = () => {
                   </Button>
                 </form>
               </Form>
+              )}
 
               <div className="mt-6 text-center space-y-2">
                 <p className="text-sm text-muted-foreground">

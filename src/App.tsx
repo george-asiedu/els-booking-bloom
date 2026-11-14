@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
+import { InstallGuide } from "@/components/security/InstallApp";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -55,6 +56,7 @@ const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
 const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
 const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureRequests"));
+const AdminSecurity = lazy(() => import("./pages/admin/AdminSecurity"));
 const AdminOnboarding = lazy(() => import("./pages/admin/AdminOnboarding"));
 const AdminPromos = lazy(() => import("./pages/admin/AdminPromos"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
@@ -192,6 +194,7 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <SessionGuard />
+            <InstallGuide />
             <StudioTheme />
             <Suspense fallback={<PageLoader />}>
             <SplashController />
@@ -298,6 +301,7 @@ const App = () => (
                 <Route path="testimonial" element={<AdminTestimonial />} />
                 <Route path="domain" element={<AdminDomain />} />
                 <Route path="feature-requests" element={<AdminFeatureRequests />} />
+                <Route path="security" element={<AdminSecurity />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="contact" element={<AdminContact />} />

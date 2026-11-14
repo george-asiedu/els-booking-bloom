@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { platformApi, type PlatformSiteSettings } from "@/lib/platformApi";
 import { PlatformLayout } from "./PlatformLayout";
+import { NotificationsCard } from "@/components/security/NotificationsCard";
+import { TwoFactorCard } from "@/components/security/TwoFactorCard";
 import { SITE_DEFAULTS } from "@/config/platform";
 
 // Shown as placeholders: what a blank field means.
@@ -134,6 +136,15 @@ const PlatformSettings = () => {
             </CardContent>
           </Card>
         )}
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Your sign-in and alerts</h2>
+          <TwoFactorCard client="platform" />
+          <NotificationsCard
+            client="platform"
+            description="New feature requests from studios, on this device."
+          />
+        </div>
       </div>
     </PlatformLayout>
   );

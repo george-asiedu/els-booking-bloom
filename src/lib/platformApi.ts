@@ -4,7 +4,7 @@
 // (its own cookie + user key) so that impersonating a studio — which writes the
 // normal session and els_user — doesn't sign the super admin out of /platform.
 
-import { ApiError } from "./apiClient";
+import { ApiError, errorCode } from "./apiClient";
 import {
   directoryQuery,
   toDirectoryPage,
@@ -60,7 +60,7 @@ interface PlatformRequestOptions {
   auth?: boolean;
 }
 
-async function platformRequest<T>(
+export async function platformRequest<T>(
   path: string,
   options: PlatformRequestOptions = {},
 ): Promise<T> {
@@ -104,7 +104,7 @@ async function platformRequest<T>(
     const message =
       (json as { message?: string } | null)?.message ||
       `Request failed with status ${res.status}`;
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, errorCode(json));
   }
 
   return json as T;
@@ -451,10 +451,10 @@ interface Envelope<T> {
 // ---------------- API ----------------
 
 export const platformApi = {
-  async login(email: string, password: string): Promise<PlatformUser> {
+  async login(email: string, password: string, totp?: string): Promise<PlatformUser> {
     const res = await platformRequest<
       Envelope<{ user: PlatformUser }>
-    >("/auth/login", { method: "POST", auth: false, body: { email, password } });
+    >("/auth/login", { method: "POST", auth: false, body: { email, password, ...(totp ? { totp } : {}) } });
     platformStore.setUser(res.data.user);
     return res.data.user;
   },

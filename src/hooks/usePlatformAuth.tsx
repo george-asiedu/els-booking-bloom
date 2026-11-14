@@ -14,7 +14,8 @@ interface PlatformAuthContextType {
   signIn: (
     email: string,
     password: string,
-  ) => Promise<{ error: Error | null; user: PlatformUser | null }>;
+    totp?: string,
+  ) => Promise<{ error: Error | null; user: PlatformUser | null; needsCode?: boolean }>;
   signOut: () => void;
 }
 
@@ -32,9 +33,9 @@ export const PlatformAuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, totp?: string) => {
     try {
-      const authed = await platformApi.login(email, password);
+      const authed = await platformApi.login(email, password, totp);
       setUser(authed);
       return { error: null, user: authed };
     } catch (error) {
@@ -42,7 +43,9 @@ export const PlatformAuthProvider = ({ children }: { children: ReactNode }) => {
         error instanceof ApiError || error instanceof Error
           ? error.message
           : "Login failed";
-      return { error: new Error(message), user: null };
+      // TOTP_REQUIRED: the password was right; the page asks for the code.
+      const needsCode = error instanceof ApiError && error.code === "TOTP_REQUIRED";
+      return { error: new Error(message), user: null, needsCode };
     }
   };
 

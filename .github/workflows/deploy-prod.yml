@@ -45,10 +45,10 @@ jobs:
           # Hashed assets: cache for a year. Everything else: always revalidate.
           aws s3 sync dist/ "s3://${{ vars.S3_BUCKET }}/" --delete \
             --exclude "index.html" --cache-control "public,max-age=31536000,immutable" \
-            --exclude "*.html" --exclude "splash.js" --exclude "robots.txt"
+            --exclude "*.html" --exclude "splash.js" --exclude "robots.txt" --exclude "sw.js" --exclude "manifest.webmanifest"
           aws s3 sync dist/ "s3://${{ vars.S3_BUCKET }}/" \
-            --exclude "*" --include "*.html" --include "splash.js" --include "robots.txt" \
+            --exclude "*" --include "*.html" --include "splash.js" --include "robots.txt" --include "sw.js" --include "manifest.webmanifest" \
             --cache-control "no-cache"
 
       - name: Refresh CloudFront
-        run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/index.html" "/splash.js" "/"
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/index.html" "/splash.js" "/sw.js" "/manifest.webmanifest" "/"
