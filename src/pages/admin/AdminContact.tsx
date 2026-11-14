@@ -1,3 +1,5 @@
+import { WhatsappMessagesCard } from "@/components/admin/WhatsappMessagesCard";
+import { useStudio } from "@/hooks/useStudio";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Phone, MessageCircle, Mail, Instagram, Music2, Facebook, MapPin } from "lucide-react";
@@ -46,6 +48,7 @@ const fields: {
 ];
 
 const AdminContact = () => {
+  const { features } = useStudio();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [form, setForm] = useState<ContactInfoDTO | null>(null);
@@ -102,6 +105,9 @@ const AdminContact = () => {
             to control whether it appears.
           </p>
         </div>
+
+        {/* Bookings only: storefronts have no appointments to confirm or remind. */}
+        {features.booking !== false && <WhatsappMessagesCard />}
 
         {isLoading || !form ? (
           <div className="flex items-center justify-center py-12">
