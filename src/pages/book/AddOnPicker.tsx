@@ -1,8 +1,8 @@
+import { SearchBox } from "@/components/ui/search-box";
 import { useState } from "react";
-import { ImageOff, Minus, Plus, Search, ShoppingBag, X } from "lucide-react";
+import { ImageOff, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormLabel } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatGHS } from "@/lib/currency";
 import type { ProductDTO } from "@/lib/api";
@@ -82,9 +82,8 @@ export const AddOnPicker = ({
           <SheetHeader className="border-b border-border p-5 text-left">
             <SheetTitle>Add products</SheetTitle>
             <SheetDescription>Pick anything you'd like with your appointment.</SheetDescription>
-            <div className="relative pt-2">
-              <Search className="pointer-events-none absolute left-3 top-1/2 mt-1 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products" aria-label="Search products" className="pl-9" />
+            <div className="pb-4 pt-2">
+              <SearchBox value={q} onSearch={setQ} placeholder="Search products" />
             </div>
           </SheetHeader>
           <ul className="flex-1 divide-y divide-border overflow-y-auto">

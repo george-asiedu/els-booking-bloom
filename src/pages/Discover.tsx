@@ -1,10 +1,10 @@
+import { SearchBox } from "@/components/ui/search-box";
 import { useSeo } from "@/lib/seo";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Search, Star, Store } from "lucide-react";
+import { MapPin, Star, Store } from "lucide-react";
 import { NavSection } from "./landing/LandingNav";
 import { FooterSection } from "./landing/ClosingSections";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/apiClient";
 import { studioUrl } from "@/config/platform";
@@ -33,14 +33,15 @@ const KINDS = [
 
 /** The public directory: every business on Zuri, searchable by name, area or service. */
 const Discover = () => {
-  const [q, setQ] = useState("");
   const [kind, setKind] = useState<"" | "studio" | "store">("");
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["directory", q.trim(), kind],
+  // SearchBox waits for a pause and 3 characters before setting this.
+  const [term, setTerm] = useState("");
+  const { data = [], isLoading, isFetching } = useQuery({
+    queryKey: ["directory", term, kind],
     queryFn: async () =>
       (
         await apiRequest<{ data: Listing[] }>(
-          `/platform/directory?${new URLSearchParams({ ...(q.trim() ? { q: q.trim() } : {}), ...(kind ? { kind } : {}) })}`,
+          `/platform/directory?${new URLSearchParams({ ...(term ? { q: term } : {}), ...(kind ? { kind } : {}) })}`,
         )
       ).data,
     placeholderData: (prev) => prev,
@@ -61,16 +62,15 @@ const Discover = () => {
         </p>
 
         <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="relative flex-1 md:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name, area, service or product"
-              aria-label="Search businesses"
-              className="h-11 pl-9"
-            />
-          </div>
+          <SearchBox
+            value={term}
+            onSearch={setTerm}
+            busy={isFetching && Boolean(term)}
+            placeholder="Search by name, area, service or product"
+            label="Search businesses"
+            className="flex-1 md:max-w-md"
+            inputClassName="h-11"
+          />
           <div className="flex gap-2" role="tablist" aria-label="What you're looking for">
             {KINDS.map((k) => (
               <button

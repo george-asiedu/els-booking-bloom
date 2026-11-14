@@ -1,8 +1,9 @@
+import { SearchBox } from "@/components/ui/search-box";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useId, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { Crown, Loader2, Search, Trash2, UserRound } from "lucide-react";
+import { Crown, Loader2, Trash2, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -63,15 +64,6 @@ const RoleBadge = ({ role, isOwner }: { role: DirectoryRole; isOwner: boolean })
     </Badge>
   );
 
-const useDebounced = <T,>(value: T, ms = 300) => {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return v;
-};
-
 /**
  * A searchable, paged table of studio users with a details drawer. With
  * `source.update` / `source.remove` (super admin) the drawer can edit and
@@ -101,7 +93,8 @@ export const UserDirectory = ({
   const role = fixedRole ?? pickedRole;
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
-  const q = useDebounced(search);
+  // SearchBox already waits for a pause and 3 characters.
+  const q = search;
 
   useEffect(() => setPage(1), [q, role]);
 
@@ -118,16 +111,14 @@ export const UserDirectory = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, email or phone"
-            className="pl-9"
-            aria-label={`Search ${noun}`}
-          />
-        </div>
+        <SearchBox
+          value={search}
+          onSearch={setSearch}
+          busy={isFetching && Boolean(search)}
+          placeholder="Search name, email or phone"
+          label={`Search ${noun}`}
+          className="w-full sm:max-w-sm"
+        />
         {!fixedRole && (
         <div role="tablist" aria-label="Filter by role" className="inline-flex rounded-lg border bg-muted/40 p-1">
           {ROLE_FILTERS.map((f) => (

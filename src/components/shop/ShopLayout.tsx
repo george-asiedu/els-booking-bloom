@@ -1,3 +1,4 @@
+import { SEARCH_MIN } from "@/components/ui/search-box";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -69,6 +70,8 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
   ];
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Same rule as every other search: 3 letters or more.
+    if (q.trim().length > 0 && q.trim().length < SEARCH_MIN) return;
     setOpen(false);
     navigate(`/shop/products${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`);
   };
@@ -133,6 +136,11 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
                 aria-label="Search products"
                 className="h-9 w-52 rounded-full border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
+              {q.trim() && (
+                <span role="status" className="absolute left-3 top-full z-10 mt-1 whitespace-nowrap text-xs text-muted-foreground">
+                  {q.trim().length < SEARCH_MIN ? `Type at least ${SEARCH_MIN} letters` : "Press Enter to search"}
+                </span>
+              )}
             </form>
             <ThemeToggle />
             <Link
@@ -162,7 +170,8 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
           <div className="border-t border-border md:hidden">
             <div className="container mx-auto space-y-1 px-4 py-4">
               <form onSubmit={submit} className="relative mb-3" role="search">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                {/* Pinned to the input (44px tall), not the form, which grows with the hint. */}
+                <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -170,6 +179,11 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
                   aria-label="Search products"
                   className="h-11 w-full rounded-full border border-input bg-background pl-9 pr-3 text-base outline-none"
                 />
+                {q.trim() && (
+                  <p role="status" className="mt-1.5 pl-3 text-xs text-muted-foreground">
+                    {q.trim().length < SEARCH_MIN ? `Type at least ${SEARCH_MIN} letters` : "Press Enter to search"}
+                  </p>
+                )}
               </form>
               {links.map((l) => (
                 <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="block rounded-md px-3 py-3 text-sm font-medium hover:bg-accent">
