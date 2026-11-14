@@ -131,6 +131,7 @@ export interface CheckoutInput {
   applyPoints?: boolean;
   referralCode?: string;
   couponCode?: string;
+  giftCardCode?: string;
 }
 
 export interface GuestCheckoutInput {
@@ -143,6 +144,7 @@ export interface GuestCheckoutInput {
   deliveryPhone?: string;
   referralCode?: string;
   couponCode?: string;
+  giftCardCode?: string;
 }
 
 export interface CheckoutResult {
@@ -154,6 +156,8 @@ export interface CheckoutResult {
   total: number;
   /** Included in `total`: the Paystack fee the customer pays on top. */
   processing_fee: number;
+  /** A gift card paid the whole order: nothing to charge. */
+  paid_with_gift_card: boolean;
   email: string;
   subaccount: string | null;
   public_key: string;
@@ -167,6 +171,7 @@ interface RawCheckout {
   orderNumber?: string;
   total: number;
   processingFee?: number;
+  paidWithGiftCard?: boolean;
   email: string;
   subaccount: string | null;
   publicKey: string;
@@ -180,6 +185,7 @@ const mapCheckout = (d: RawCheckout): CheckoutResult => ({
   order_number: d.orderNumber ?? "",
   total: d.total,
   processing_fee: d.processingFee ?? 0,
+  paid_with_gift_card: Boolean(d.paidWithGiftCard),
   email: d.email,
   subaccount: d.subaccount,
   public_key: d.publicKey,

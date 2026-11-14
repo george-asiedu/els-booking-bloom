@@ -33,6 +33,7 @@ export const Footer = () => {
     ...(features.gallery ? [{ label: "Gallery", to: "/gallery" }] : []),
     ...(features.commerce ? [{ label: "Shop", to: "/shop" }] : []),
     { label: "Book an appointment", to: "/book" },
+    { label: "Gift cards", to: "/gift-cards" },
     { label: "Contact", to: "/contact" },
   ];
 

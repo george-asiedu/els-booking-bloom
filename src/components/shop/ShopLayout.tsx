@@ -212,6 +212,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to={user ? "/account" : "/login"} className="hover:text-foreground">{user ? "Orders and points" : "Log in"}</Link></li>
               <li><Link to="/cart" className="hover:text-foreground">Your bag</Link></li>
+              <li><Link to="/gift-cards" className="hover:text-foreground">Gift cards</Link></li>
                           </ul>
           </div>
           <div>

@@ -13,6 +13,7 @@ import {
   Lightbulb,
   CalendarDays,
   UserRound,
+  Gift,
   ShieldCheck,
   Megaphone,
   Package,
@@ -132,6 +133,7 @@ const moneyAndMore: NavGroup[] = [
     items: [
       { name: "Payments", path: "/admin/payments", icon: CreditCard },
       { name: "Transactions", path: "/admin/transactions", icon: Receipt },
+      { name: "Gift cards", path: "/admin/gift-cards", icon: Gift },
       { name: "Billing & plan", path: "/admin/billing", icon: CreditCard },
     ],
   },

@@ -17,6 +17,7 @@ export interface CreateAppointmentInput {
   apply_points?: boolean;
   /** A staff member's id, or "any" / undefined for whoever is free. */
   staff_id?: string | null;
+  voucher_code?: string;
 }
 
 
@@ -27,7 +28,7 @@ export const appointmentsApi = {
     const res = await apiRequest<Envelope<RawAppointment>>("/appointments", {
       method: "POST",
       auth: true, // optionalAuth server-side; token attached if present
-      body: { fullName: input.full_name, phone: input.phone, email: input.email, serviceId: input.service_id, appointmentDate: input.appointment_date, appointmentTime: input.appointment_time, notes: input.notes, applyPoints: input.apply_points ? "true" : undefined, designImageUrl, staffId: input.staff_id ?? undefined },
+      body: { fullName: input.full_name, phone: input.phone, email: input.email, serviceId: input.service_id, appointmentDate: input.appointment_date, appointmentTime: input.appointment_time, notes: input.notes, applyPoints: input.apply_points ? "true" : undefined, designImageUrl, staffId: input.staff_id ?? undefined, voucherCode: input.voucher_code },
     });
     return normalizeAppointment(res.data);
   },

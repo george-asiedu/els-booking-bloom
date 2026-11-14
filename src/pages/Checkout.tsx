@@ -1,8 +1,10 @@
+import { vouchersApi, type VoucherCheck } from "@/lib/api/vouchers";
 import { useStudio } from "@/hooks/useStudio";
 import { processingFeeFor } from "@/lib/fees";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { Loader2, LocateFixed } from "lucide-react";
 import { CouponBox } from "@/components/shop/CouponBox";
 import { Input } from "@/components/ui/input";
@@ -41,6 +43,19 @@ const Checkout = () => {
     queryFn: () => commerceApi.getSettings(),
   });
   const { config } = useStudio();
+  const [giftInput, setGiftInput] = useState("");
+  const [giftCard, setGiftCard] = useState<VoucherCheck | null>(null);
+  const checkGift = useMutation({
+    mutationFn: () => vouchersApi.check(giftInput),
+    onSuccess: (v) => {
+      if (v.kind !== "GIFT_CARD") {
+        toast({ variant: "destructive", title: "That's a package code. Use it when you book." });
+        return;
+      }
+      setGiftCard(v);
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "That code isn't valid" }),
+  });
   const { data: cart, isLoading } = useQuery({
     queryKey: ["cart"],
     queryFn: () => cartApi.getMine(),
@@ -61,7 +76,10 @@ const Checkout = () => {
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const deliveryFee = fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
-  const total = Math.round((subtotal - (coupon?.discount ?? 0) + deliveryFee) * 100) / 100;
+  const beforeGiftCard = Math.round((subtotal - (coupon?.discount ?? 0) + deliveryFee) * 100) / 100;
+  // A gift card pays what it can of the rest.
+  const giftCardCovers = giftCard ? Math.min(giftCard.balance, beforeGiftCard) : 0;
+  const total = Math.round((beforeGiftCard - giftCardCovers) * 100) / 100;
   // Paystack's fee, when this business has customers pay it.
   const processingFee = processingFeeFor(total, config?.settings);
 
@@ -114,7 +132,13 @@ const Checkout = () => {
         deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
         deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
         couponCode: coupon?.code,
+        giftCardCode: giftCard?.code,
       });
+      // A gift card paid it all: straight to the confirmation.
+      if (result.paid_with_gift_card) {
+        navigate(`/order/callback?reference=${encodeURIComponent(result.reference)}`);
+        return;
+      }
       setPaymentTarget({
         reference: result.reference,
         amount: result.total,
@@ -218,10 +242,24 @@ const Checkout = () => {
               ))}
             </ul>
             <div className="border-t border-border p-5"><CouponBox subtotal={subtotal} onChange={setCoupon} /></div>
+            <div className="border-t border-border p-5">
+              {giftCard ? (
+                <p className="flex items-center justify-between text-sm">
+                  <span>Gift card <span className="font-medium">{giftCard.code}</span> ({GHS(giftCard.balance)} left)</span>
+                  <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setGiftCard(null)}>Remove</button>
+                </p>
+              ) : (
+                <div className="flex gap-2">
+                  <Input value={giftInput} onChange={(e) => setGiftInput(e.target.value.toUpperCase())} placeholder="Gift card code" aria-label="Gift card code" />
+                  <Button type="button" variant="outline" disabled={!giftInput.trim() || checkGift.isPending} onClick={() => checkGift.mutate()}>Apply</Button>
+                </div>
+              )}
+            </div>
             <div className="space-y-2 border-t border-border p-5 text-sm">
               <p className="flex justify-between"><span>Subtotal</span><span className="tabular-nums">{GHS(subtotal)}</span></p>
               {coupon && <p className="flex justify-between"><span>Discount</span><span className="tabular-nums">-{GHS(coupon.discount)}</span></p>}
               <p className="flex justify-between"><span>Delivery</span><span className="tabular-nums">{deliveryFee > 0 ? GHS(deliveryFee) : "Free"}</span></p>
+              {giftCard && <p className="flex justify-between"><span>Gift card</span><span className="tabular-nums">-{GHS(giftCardCovers)}</span></p>}
               {processingFee > 0 && (
                 <p className="flex justify-between text-muted-foreground"><span>Payment processing fee</span><span className="tabular-nums">{GHS(processingFee)}</span></p>
               )}

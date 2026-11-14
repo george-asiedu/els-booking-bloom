@@ -59,6 +59,9 @@ const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureReques
 const AdminSecurity = lazy(() => import("./pages/admin/AdminSecurity"));
 const AdminCalendar = lazy(() => import("./pages/admin/AdminCalendar"));
 const AdminStaff = lazy(() => import("./pages/admin/AdminStaff"));
+const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
+const GiftCards = lazy(() => import("./pages/GiftCards"));
+const GiftCardCallback = lazy(() => import("./pages/GiftCards").then((m) => ({ default: m.GiftCardCallback })));
 const AdminOnboarding = lazy(() => import("./pages/admin/AdminOnboarding"));
 const AdminPromos = lazy(() => import("./pages/admin/AdminPromos"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
@@ -267,6 +270,8 @@ const App = () => (
                 }
               />
               <Route path="/order/callback" element={<OrderCallback />} />
+              <Route path="/gift-cards" element={<GiftCards />} />
+              <Route path="/gift-cards/callback" element={<GiftCardCallback />} />
               <Route path="/booking/callback" element={<BookingCallback />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
@@ -306,6 +311,7 @@ const App = () => (
                 <Route path="security" element={<AdminSecurity />} />
                 <Route path="calendar" element={<AdminCalendar />} />
                 <Route path="staff" element={<AdminStaff />} />
+                <Route path="gift-cards" element={<AdminVouchers />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="contact" element={<AdminContact />} />

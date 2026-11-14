@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/apiClient";
 import { doesService, staffApi } from "@/lib/api/staff";
+import { vouchersApi, type VoucherCheck } from "@/lib/api/vouchers";
 import { slotIsBusyForStaff } from "@/lib/slots";
 import { useState, useEffect } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
@@ -298,6 +299,28 @@ const Book = () => {
   });
   const { effectiveApplyPoints, payNowAmount, bookingPayNow } = pricing;
 
+  // A gift card or package code: checked here, taken when the booking is made.
+  const [voucherInput, setVoucherInput] = useState("");
+  const [voucher, setVoucher] = useState<VoucherCheck | null>(null);
+  const checkVoucher = useMutation({
+    mutationFn: () => vouchersApi.check(voucherInput, selectedService?.id),
+    onSuccess: (v) => setVoucher(v),
+    onError: (e) => {
+      setVoucher(null);
+      toast({ variant: "destructive", title: e instanceof Error ? e.message : "That code isn't valid" });
+    },
+  });
+  // A package only covers its own service.
+  useEffect(() => {
+    if (voucher?.kind === "PACKAGE" && selectedService && voucher.serviceId !== selectedService.id) setVoucher(null);
+  }, [voucher, selectedService]);
+  const voucherCovers =
+    voucher && selectedService
+      ? voucher.kind === "PACKAGE"
+        ? selectedService.effective_price
+        : Math.min(voucher.balance, selectedService.effective_price)
+      : 0;
+
   // Customers who've missed bookings pay in full rather than a deposit.
   const { data: standing } = useQuery({
     queryKey: ["booking-standing", user?.id],
@@ -353,8 +376,9 @@ const Book = () => {
         appointment_time: data.time,
         notes: data.notes || null,
         design_image: designImage.file,
-        apply_points: effectiveApplyPoints,
+        apply_points: voucher ? false : effectiveApplyPoints,
         staff_id: staffMode ? staffChoice : undefined,
+        voucher_code: voucher?.code,
       }),
     onSuccess: async (appointment) => {
       // Points were spent and this slot is now taken — refresh both.
@@ -397,8 +421,9 @@ const Book = () => {
               error instanceof Error ? error.message : "Please try again.",
           });
         }
-      } else if (paymentEnabled) {
-        // Service-only online payment.
+      } else if (paymentEnabled && appointment.amount_due > 0) {
+        // Service-only online payment (nothing to pay when a gift card or
+        // package covered it).
         try {
           const init = await paymentsApi.initialize(appointment.id, type);
           setBookedAppointment(appointment);
@@ -711,6 +736,42 @@ const Book = () => {
                     </FormItem>
                   )}
                 />
+
+                {/* Gift card or package */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Gift card or package code</p>
+                  {voucher ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+                      <span>
+                        <span className="font-medium">{voucher.code}</span>
+                        {" · "}
+                        {voucher.kind === "PACKAGE"
+                          ? `Uses 1 of ${voucher.sessionsLeft} sessions left`
+                          : `Covers ${formatGHS(voucherCovers)} of this booking`}
+                      </span>
+                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setVoucher(null)}>
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={voucherInput}
+                        onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                        placeholder="GIFT-XXXX-XXXX"
+                        aria-label="Gift card or package code"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!voucherInput.trim() || !selectedService || checkVoucher.isPending}
+                        onClick={() => checkVoucher.mutate()}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Notes */}
                 <FormField
