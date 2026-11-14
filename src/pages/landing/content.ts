@@ -7,7 +7,7 @@ import lashes1 from "@/assets/gallery/lashes-1.jpg";
 import lashes2 from "@/assets/gallery/lashes-2.jpg";
 import siteEls from "@/assets/landing/site-els.webp";
 import siteZara from "@/assets/landing/site-zara.webp";
-import siteNoir from "@/assets/landing/site-noir.webp";
+import siteTrendlux from "@/assets/landing/site-trendlux.webp";
 import { formatGHS } from "@/lib/currency";
 
 export const GHS = formatGHS;
@@ -46,10 +46,10 @@ export const STUDIOS: DemoStudio[] = [
     gallery: [nails2, nails1, lashes2],
   },
   {
-    key: "noir",
-    site: siteNoir,
-    name: "Noir & Co",
-    slug: "noir",
+    key: "trendlux",
+    site: siteTrendlux,
+    name: "TrendLux",
+    slug: "trendlux",
     accent: "18 58% 52%",
     tags: ["Clothing", "Watches", "Perfumes", "Accessories"],
     featured: { name: "Outbound Top-Handle Bag", price: 690, duration: "In stock" },
