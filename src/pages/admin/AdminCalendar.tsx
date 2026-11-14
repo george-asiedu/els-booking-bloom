@@ -31,6 +31,7 @@ const STATUS: Record<AppointmentDTO["status"], { label: string; dot: string; chi
   confirmed: { label: "Confirmed", dot: "bg-emerald-500", chip: "border-l-emerald-500" },
   completed: { label: "Completed", dot: "bg-sky-500", chip: "border-l-sky-500" },
   cancelled: { label: "Cancelled", dot: "bg-muted-foreground/50", chip: "border-l-muted-foreground/50 opacity-60 line-through" },
+  no_show: { label: "No-show", dot: "bg-rose-500", chip: "border-l-rose-500 opacity-70" },
 };
 
 /** "10:30 AM" or "14:00" → minutes, so a day's bookings sort by time. */

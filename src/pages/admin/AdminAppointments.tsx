@@ -143,6 +143,7 @@ const APPOINTMENT_TABS = [
   { key: "confirmed", label: "Confirmed", empty: "No confirmed appointments" },
   { key: "completed", label: "Completed", empty: "No completed appointments yet" },
   { key: "cancelled", label: "Cancelled", empty: "No cancelled appointments" },
+  { key: "no_show", label: "No-shows", empty: "No missed appointments" },
   { key: "all", label: "All", empty: "No appointments yet" },
 ];
 
@@ -526,6 +527,7 @@ const AdminAppointments = () => {
                               <SelectItem value="confirmed">Confirmed</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
                               <SelectItem value="cancelled">Cancelled</SelectItem>
+                              <SelectItem value="no_show">No-show</SelectItem>
                             </SelectContent>
                           </Select>
                           <DropdownMenu>
@@ -643,6 +645,13 @@ const AdminAppointments = () => {
 
       <AppointmentDetails
         item={details}
+        missed={
+          details
+            ? (appointments ?? []).filter(
+                (a) => a.status === "no_show" && (details.user_id ? a.user_id === details.user_id : a.phone === details.phone),
+              ).length
+            : 0
+        }
         onClose={() => setDetails(null)}
         footer={details && <CancellationActions kind="appointments" item={details} onChanged={() => setDetails(null)} />}
       />

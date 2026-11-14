@@ -7,6 +7,7 @@ export const statusColors: Record<string, string> = {
   pending_reschedule: "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  no_show: "bg-stone-200 text-stone-800 dark:bg-stone-800 dark:text-stone-200",
 };
 
 // The raw enum reads badly to a customer ("pending_reschedule"), and this one
@@ -17,6 +18,7 @@ export const statusLabels: Record<string, string> = {
   pending_reschedule: "awaiting studio approval",
   completed: "completed",
   cancelled: "cancelled",
+  no_show: "missed",
 };
 
 export const orderStatusColors: Record<string, string> = {

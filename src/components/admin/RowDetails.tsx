@@ -58,7 +58,12 @@ const cancellationSection = (item: {
       ]
     : [];
 
-export const AppointmentDetails = ({ item, onClose, footer }: { item: AppointmentDTO | null; footer?: ReactNode } & Close) => {
+export const AppointmentDetails = ({
+  item,
+  onClose,
+  footer,
+  missed,
+}: { item: AppointmentDTO | null; footer?: ReactNode; /** This customer's missed bookings. */ missed?: number } & Close) => {
   const p = item?.payment;
   const refunded = p?.refunded_amount ?? 0;
   return (
@@ -84,6 +89,7 @@ export const AppointmentDetails = ({ item, onClose, footer }: { item: Appointmen
                   { label: "Phone", value: item.phone },
                   { label: "Email", value: item.email },
                   { label: "Has an account", value: yesNo(Boolean(item.user_id)) },
+                  ...(missed ? [{ label: "Missed bookings", value: `${missed}${missed >= 2 ? " (must pay in full)" : ""}` }] : []),
                 ],
               },
               {

@@ -1,3 +1,4 @@
+import { apiRequest } from "@/lib/apiClient";
 import { doesService, staffApi } from "@/lib/api/staff";
 import { slotIsBusyForStaff } from "@/lib/slots";
 import { useState, useEffect } from "react";
@@ -282,6 +283,20 @@ const Book = () => {
     productSubtotal,
   });
   const { effectiveApplyPoints, payNowAmount, bookingPayNow } = pricing;
+
+  // Customers who've missed bookings pay in full rather than a deposit.
+  const { data: standing } = useQuery({
+    queryKey: ["booking-standing", user?.id],
+    queryFn: async () =>
+      (await apiRequest<{ data: { noShows: number; mustPayInFull: boolean } }>("/appointments/me/standing", { auth: true })).data,
+    enabled: !!user,
+  });
+  const mustPayInFull = Boolean(standing?.mustPayInFull);
+  const offeredPaymentSettings =
+    mustPayInFull && paymentSettings ? { ...paymentSettings, allow_partial: false, allow_full: true } : paymentSettings;
+  useEffect(() => {
+    if (mustPayInFull && paymentMethod === "partial") setPaymentMethod("full");
+  }, [mustPayInFull, paymentMethod]);
 
   const processing = useProcessing();
   const bookingMutation = useMutation({
@@ -730,12 +745,17 @@ const Book = () => {
                     referral={referral}
                     onReferralChange={setReferral}
                     paymentEnabled={paymentEnabled}
-                    paymentSettings={paymentSettings}
+                    paymentSettings={offeredPaymentSettings}
                     paymentMethod={paymentMethod}
                     onPaymentMethodChange={setPaymentMethod}
                   />
                 )}
 
+                {mustPayInFull && paymentEnabled && (
+                  <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                    Because of missed appointments, this booking needs to be paid in full.
+                  </p>
+                )}
                 <Button
                   type="submit"
                   size="lg"

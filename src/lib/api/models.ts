@@ -62,7 +62,7 @@ export interface AppointmentDTO {
   design_image_url: string | null;
   // pending_reschedule: the customer moved the booking and the studio hasn't
   // approved the new slot yet (the server's PENDING_RESCHEDULE).
-  status: "pending" | "confirmed" | "pending_reschedule" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "pending_reschedule" | "completed" | "cancelled" | "no_show";
   user_id: string | null;
   created_at: string;
   total_price: number;

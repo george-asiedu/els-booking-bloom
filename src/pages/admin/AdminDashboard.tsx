@@ -86,6 +86,7 @@ const STATUS: Record<AppointmentDTO["status"], { label: string; className: strin
   confirmed: { label: "Confirmed", className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300" },
   completed: { label: "Completed", className: "bg-muted text-muted-foreground" },
   cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground line-through" },
+  no_show: { label: "No-show", className: "bg-rose-100 text-rose-900 dark:bg-rose-500/15 dark:text-rose-300" },
 };
 
 /** "+20%" against last month, or a plain note when there's nothing to compare. */
