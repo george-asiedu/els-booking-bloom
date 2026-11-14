@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CancellationActions } from "@/components/admin/CancellationActions";
 import { AppointmentDetails } from "@/components/admin/RowDetails";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -137,6 +138,7 @@ const statusConfig = {
 
 const APPOINTMENT_TABS = [
   { key: "pending", label: "Pending", empty: "No bookings waiting for confirmation" },
+  { key: "cancel_requested", label: "Cancel requests", empty: "No cancellation requests" },
   { key: "pending_reschedule", label: "New time requested", empty: "No reschedule requests" },
   { key: "confirmed", label: "Confirmed", empty: "No confirmed appointments" },
   { key: "completed", label: "Completed", empty: "No completed appointments yet" },
@@ -235,7 +237,9 @@ const AdminAppointments = () => {
 
   const q = aSearch.trim().toLowerCase();
   const filteredAppointments = (appointments ?? []).filter((apt) => {
-    if (statusFilter !== "all" && apt.status !== statusFilter) return false;
+    if (statusFilter === "cancel_requested") {
+      if (!apt.cancel_requested_at || apt.status === "cancelled") return false;
+    } else if (statusFilter !== "all" && apt.status !== statusFilter) return false;
     if (q) {
       const hay = `${apt.full_name ?? ""} ${apt.phone ?? ""} ${apt.email ?? ""} ${apt.services?.name ?? ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
@@ -345,7 +349,12 @@ const AdminAppointments = () => {
           tabs={APPOINTMENT_TABS.map((t) => ({
             key: t.key,
             label: t.label,
-            count: t.key === "all" ? appointments?.length ?? 0 : appointments?.filter((a) => a.status === t.key).length ?? 0,
+            count:
+              t.key === "all"
+                ? appointments?.length ?? 0
+                : t.key === "cancel_requested"
+                  ? appointments?.filter((a) => a.cancel_requested_at && a.status !== "cancelled").length ?? 0
+                  : appointments?.filter((a) => a.status === t.key).length ?? 0,
           }))}
         />
 
@@ -632,7 +641,11 @@ const AdminAppointments = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AppointmentDetails item={details} onClose={() => setDetails(null)} />
+      <AppointmentDetails
+        item={details}
+        onClose={() => setDetails(null)}
+        footer={details && <CancellationActions kind="appointments" item={details} onChanged={() => setDetails(null)} />}
+      />
     </AdminLayout>
   );
 };

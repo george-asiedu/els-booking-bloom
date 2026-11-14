@@ -5,6 +5,7 @@ import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
 import { Calendar, CalendarPlus, Gift, Heart, Home, Package, Receipt, Share2, ShieldCheck, ShoppingBag, User } from "lucide-react";
 import { SecurityPanel } from "@/components/security/SecurityPanel";
+import { NotificationBell } from "@/components/security/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -242,6 +243,8 @@ const Account = () => {
       }}
       onSignOut={handleSignOut}
       topBar={
+        <>
+        <NotificationBell client="studio" />
         <ProfileEditDialog
           userId={user.id}
           profile={profile}
@@ -252,6 +255,7 @@ const Account = () => {
             </Button>
           }
         />
+        </>
       }
     >
       <div className="mx-auto max-w-screen-2xl">

@@ -13,6 +13,7 @@ import { downloadOrderReceipt, type DocumentBrand } from "@/lib/receipt";
 import type { CartDTO, OrderDTO } from "@/lib/api";
 import { orderStatusColors, orderStatusLabel } from "./accountFormat";
 import { LoadMore } from "./AccountParts";
+import { CancelRequestButton, cancellationRows } from "@/components/account/CancelRequest";
 import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
 
 const ORDER_TABS = [
@@ -166,6 +167,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
               { label: "Total", value: <span className="font-semibold">{formatGHS(open.total)}</span> },
               { label: "Paid on", value: open.paid_at ? format(new Date(open.paid_at), "d MMM yyyy, HH:mm") : "Not paid yet" },
               { label: "Reference", value: open.reference, mono: true },
+              ...cancellationRows(open),
             ],
           },
           {
@@ -185,10 +187,15 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
               <Link to="/cart">Pay for this order</Link>
             </Button>
           ) : (
-            <Button className="w-full" variant="outline" onClick={() => downloadOrderReceipt(open, brand)}>
-              <Download className="mr-2 h-4 w-4" />
-              Download receipt
-            </Button>
+            <div className="flex w-full flex-col gap-2">
+              <Button className="w-full" variant="outline" onClick={() => downloadOrderReceipt(open, brand)}>
+                <Download className="mr-2 h-4 w-4" />
+                Download receipt
+              </Button>
+              {open.status === "paid" && !open.cancel_requested_at && (
+                <CancelRequestButton kind="orders" id={open.id} paid={open.total} invalidate={["my-orders"]} onDone={() => setOpen(null)} />
+              )}
+            </div>
           )
         }
       />

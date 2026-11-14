@@ -37,6 +37,7 @@ export * from "./appointments";
 export * from "./profile";
 export * from "./account";
 export * from "./contact";
+export * from "./cancellations";
 export * from "./payments";
 export * from "./products";
 export * from "./cart";

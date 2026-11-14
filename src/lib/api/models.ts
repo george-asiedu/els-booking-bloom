@@ -71,6 +71,11 @@ export interface AppointmentDTO {
   amount_due: number;
   payment: PaymentInfoDTO | null;
   services: AppointmentServiceDTO | null;
+  /** The customer asked to cancel; the studio hasn't decided yet. */
+  cancel_requested_at: string | null;
+  cancel_request_reason: string | null;
+  /** The studio paid the customer back itself and recorded it. */
+  refunded_outside: { at: string; amount: number; note: string | null } | null;
 }
 
 // ---------------- Raw server shapes ----------------
@@ -89,6 +94,11 @@ export interface RawService {
 }
 
 export interface RawAppointment {
+  cancelRequestedAt?: string | null;
+  cancelRequestReason?: string | null;
+  refundedOutsideAt?: string | null;
+  refundedOutsideAmount?: number | null;
+  refundedOutsideNote?: string | null;
   id: string;
   fullName: string;
   phone: string;
@@ -189,5 +199,10 @@ export const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
         price: a.service.price,
         category: a.service.category,
       }
+    : null,
+  cancel_requested_at: a.cancelRequestedAt ?? null,
+  cancel_request_reason: a.cancelRequestReason ?? null,
+  refunded_outside: a.refundedOutsideAt
+    ? { at: a.refundedOutsideAt, amount: a.refundedOutsideAmount ?? 0, note: a.refundedOutsideNote ?? null }
     : null,
 });

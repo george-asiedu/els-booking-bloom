@@ -1,4 +1,5 @@
 import { TwoFactorGate } from "@/components/security/TwoFactorGate";
+import { NotificationBell } from "@/components/security/NotificationBell";
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -73,6 +74,7 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
       }
       user={{ name: "Super admin", email: user?.email }}
       onSignOut={handleSignOut}
+      topBar={<NotificationBell client="platform" />}
     >
       <div className="mx-auto max-w-screen-2xl">
         <TwoFactorGate client="platform">{children}</TwoFactorGate>

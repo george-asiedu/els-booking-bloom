@@ -41,6 +41,9 @@ export interface OrderDTO {
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;
+  cancel_requested_at: string | null;
+  cancel_request_reason: string | null;
+  refunded_outside: { at: string; amount: number; note: string | null } | null;
 }
 
 export interface RawOrder {
@@ -65,6 +68,11 @@ export interface RawOrder {
   customerName?: string | null;
   customerEmail?: string | null;
   customerPhone?: string | null;
+  cancelRequestedAt?: string | null;
+  cancelRequestReason?: string | null;
+  refundedOutsideAt?: string | null;
+  refundedOutsideAmount?: number | null;
+  refundedOutsideNote?: string | null;
   items: { name: string; unitPrice: number; costPrice?: number; quantity: number; size?: string | null; color?: string | null }[];
   user?: { email: string; profile?: { fullName: string | null } | null } | null;
 }
@@ -98,6 +106,11 @@ export const normalizeOrder = (o: RawOrder): OrderDTO => {
     delivery_fee: o.deliveryFee,
     total: o.total,
     refunded_amount: o.refundedAmount ?? 0,
+    cancel_requested_at: o.cancelRequestedAt ?? null,
+    cancel_request_reason: o.cancelRequestReason ?? null,
+    refunded_outside: o.refundedOutsideAt
+      ? { at: o.refundedOutsideAt, amount: o.refundedOutsideAmount ?? 0, note: o.refundedOutsideNote ?? null }
+      : null,
     profit,
     reference: o.reference,
     paid_at: o.paidAt,

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { DetailsSheet, type DetailItem } from "@/components/ui/details-sheet";
@@ -27,7 +28,37 @@ const channel = (c: string | null | undefined) =>
 
 type Close = { onClose: () => void };
 
-export const AppointmentDetails = ({ item, onClose }: { item: AppointmentDTO | null } & Close) => {
+// The cancellation request and any refund the business recorded itself.
+const cancellationSection = (item: {
+  status: string;
+  cancel_requested_at: string | null;
+  cancel_request_reason: string | null;
+  refunded_outside: { at: string; amount: number; note: string | null } | null;
+}) =>
+  (item.cancel_requested_at || item.refunded_outside)
+    ? [
+        {
+          title: "Cancellation",
+          items: [
+            ...(item.cancel_requested_at
+              ? [
+                  { label: "Customer asked to cancel", value: when(item.cancel_requested_at) },
+                  ...(item.cancel_request_reason ? [{ label: "Reason", value: item.cancel_request_reason }] : []),
+                ]
+              : []),
+            ...(item.refunded_outside
+              ? [
+                  { label: "Refunded by you", value: formatGHS(item.refunded_outside.amount) },
+                  { label: "Refunded on", value: when(item.refunded_outside.at) },
+                  ...(item.refunded_outside.note ? [{ label: "How", value: item.refunded_outside.note }] : []),
+                ]
+              : []),
+          ] as DetailItem[],
+        },
+      ]
+    : [];
+
+export const AppointmentDetails = ({ item, onClose, footer }: { item: AppointmentDTO | null; footer?: ReactNode } & Close) => {
   const p = item?.payment;
   const refunded = p?.refunded_amount ?? 0;
   return (
@@ -93,14 +124,16 @@ export const AppointmentDetails = ({ item, onClose }: { item: AppointmentDTO | n
                     ] as DetailItem[])
                   : [{ label: "Payment", value: "Pay at the studio" }],
               },
+              ...cancellationSection(item),
             ]
           : []
       }
+      footer={footer}
     />
   );
 };
 
-export const OrderDetails = ({ item, onClose }: { item: OrderDTO | null } & Close) => (
+export const OrderDetails = ({ item, onClose, footer }: { item: OrderDTO | null; footer?: ReactNode } & Close) => (
   <DetailsSheet
     open={Boolean(item)}
     onClose={onClose}
@@ -162,9 +195,11 @@ export const OrderDetails = ({ item, onClose }: { item: OrderDTO | null } & Clos
                 ...(item.appointment_id ? [{ label: "Paid with a booking", value: "Yes" }] : []),
               ],
             },
+            ...cancellationSection(item),
           ]
         : []
     }
+    footer={footer}
   />
 );
 

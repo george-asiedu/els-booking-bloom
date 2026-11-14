@@ -16,6 +16,7 @@ import type { AppointmentDTO } from "@/lib/api";
 import { statusColors, statusLabels } from "./accountFormat";
 import { ListSkeleton, LoadMore, PaymentBadge } from "./AccountParts";
 import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
+import { CancelRequestButton, cancellationRows } from "@/components/account/CancelRequest";
 
 const day = (apt: AppointmentDTO) => format(new Date(`${apt.appointment_date}T00:00:00`), "d MMM yyyy");
 
@@ -148,6 +149,7 @@ export const AppointmentsTab = ({
                 { label: "Time", value: open.appointment_time },
                 { label: "Booked on", value: format(new Date(open.created_at), "d MMM yyyy") },
                 { label: "Notes", value: open.notes },
+                ...cancellationRows(open),
               ],
             },
             {
@@ -191,6 +193,15 @@ export const AppointmentsTab = ({
                 <Download className="mr-2 h-4 w-4" />
                 Booking document
               </Button>
+              {isUpcoming && canChange && !open.cancel_requested_at && (
+                <CancelRequestButton
+                  kind="appointments"
+                  id={open.id}
+                  paid={open.payment?.status === "paid" ? open.payment.amount : 0}
+                  invalidate={["my-appointments"]}
+                  onDone={() => setOpen(null)}
+                />
+              )}
             </div>
           }
         />

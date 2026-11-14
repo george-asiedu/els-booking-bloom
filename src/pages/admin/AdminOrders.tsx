@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CancellationActions } from "@/components/admin/CancellationActions";
 import { OrderDetails } from "@/components/admin/RowDetails";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -44,6 +45,7 @@ const statusLabel: Record<string, string> = {
 
 const ORDER_TABS = [
   { key: "paid", label: "Paid", empty: "No paid orders waiting to be fulfilled" },
+  { key: "cancel_requested", label: "Cancel requests", empty: "No cancellation requests" },
   { key: "fulfilled", label: "Fulfilled", empty: "No fulfilled orders yet" },
   { key: "pending_payment", label: "Awaiting payment", empty: "No orders awaiting payment" },
   { key: "cancelled", label: "Cancelled", empty: "No cancelled orders" },
@@ -87,7 +89,9 @@ const AdminOrders = () => {
 
   const oq = oSearch.trim().toLowerCase();
   const filtered = (orders ?? []).filter((o) => {
-    if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (statusFilter === "cancel_requested") {
+      if (!o.cancel_requested_at || o.status === "cancelled") return false;
+    } else if (statusFilter !== "all" && o.status !== statusFilter) return false;
     if (oFulfil !== "all" && o.fulfillment !== oFulfil) return false;
     if (oq) {
       const hay = `${o.order_number} ${o.customer_name ?? ""} ${o.customer_email ?? ""} ${o.customer_phone ?? ""}`.toLowerCase();
@@ -174,7 +178,12 @@ const AdminOrders = () => {
           tabs={ORDER_TABS.map((t) => ({
             key: t.key,
             label: t.label,
-            count: t.key === "all" ? orders?.length ?? 0 : orders?.filter((o) => o.status === t.key).length ?? 0,
+            count:
+              t.key === "all"
+                ? orders?.length ?? 0
+                : t.key === "cancel_requested"
+                  ? orders?.filter((o) => o.cancel_requested_at && o.status !== "cancelled").length ?? 0
+                  : orders?.filter((o) => o.status === t.key).length ?? 0,
           }))}
         />
 
@@ -317,7 +326,11 @@ const AdminOrders = () => {
         )}
       </div>
 
-      <OrderDetails item={details} onClose={() => setDetails(null)} />
+      <OrderDetails
+        item={details}
+        onClose={() => setDetails(null)}
+        footer={details && <CancellationActions kind="orders" item={details} onChanged={() => setDetails(null)} />}
+      />
     </AdminLayout>
   );
 };

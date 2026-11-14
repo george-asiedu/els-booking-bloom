@@ -35,6 +35,7 @@ import { useStudio } from "@/hooks/useStudio";
 import { studioUrl } from "@/config/platform";
 import { profileApi } from "@/lib/api";
 import { TwoFactorGate } from "@/components/security/TwoFactorGate";
+import { NotificationBell } from "@/components/security/NotificationBell";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
 import { StudioMark } from "@/components/StudioMark";
 import { BillingBadge, BillingMarquee } from "@/components/admin/BillingReminder";
@@ -186,6 +187,7 @@ export const AdminLayout = ({ children }: { children: ReactNode }) => {
       topBar={
         <>
           <BillingBadge />
+          <NotificationBell client="studio" />
           {user && (
             <ProfileEditDialog
               userId={user.id}
