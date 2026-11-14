@@ -1,3 +1,4 @@
+import { InviteBusinessCard } from "@/components/admin/InviteBusinessCard";
 import { useState } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -316,6 +317,7 @@ const AdminBilling = () => {
             </p>
           </>
         )}
+        <InviteBusinessCard />
       </div>
       <RenewalSuccessDialog
         receipt={renewed?.receipt ?? null}
