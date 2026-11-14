@@ -21,6 +21,7 @@ import { DashboardHeading, Panel } from "@/components/dashboard/KpiTile";
 import { Button } from "@/components/ui/button";
 import { appointmentsApi, type AppointmentDTO } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/apiClient";
 
 const ymd = (d: Date) => format(d, "yyyy-MM-dd");
 
@@ -77,6 +78,19 @@ const AdminCalendar = () => {
     setParams({ date: ymd(d) }, { replace: true });
   };
   const agenda = byDay.get(ymd(day)) ?? [];
+  // Who's waiting for a slot that day (past days have no waitlist).
+  const { data: waiting = [] } = useQuery({
+    queryKey: ["admin-waitlist", ymd(day)],
+    queryFn: async () =>
+      (
+        await apiRequest<{ data: { id: string; name: string; email: string | null; phone: string | null; notifiedAt: string | null }[] }>(
+          `/waitlist?date=${ymd(day)}`,
+          { auth: true },
+        )
+      ).data,
+    enabled: day >= addDays(new Date(), -1),
+    retry: false,
+  });
   const active = agenda.filter((a) => a.status !== "cancelled");
 
   return (
@@ -198,6 +212,23 @@ const AdminCalendar = () => {
                 </li>
               ))}
             </ol>
+          )}
+          {waiting.length > 0 && (
+            <div className="mt-6 border-t border-border pt-4">
+              <p className="text-sm font-semibold">Waiting list ({waiting.length})</p>
+              <p className="text-xs text-muted-foreground">They're told automatically if a booking this day is cancelled.</p>
+              <ul className="mt-3 space-y-2 text-sm">
+                {waiting.map((w) => (
+                  <li key={w.id} className="flex items-center justify-between gap-2">
+                    <span className="min-w-0">
+                      <span className="block truncate">{w.name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{w.phone ?? w.email}</span>
+                    </span>
+                    {w.notifiedAt && <span className="shrink-0 text-xs text-muted-foreground">Told</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </Panel>
       </div>

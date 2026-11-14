@@ -3,7 +3,7 @@ import { doesService, staffApi } from "@/lib/api/staff";
 import { slotIsBusyForStaff } from "@/lib/slots";
 import { useState, useEffect } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -187,6 +187,20 @@ const Book = () => {
     },
   });
 
+  // Links like /book?service=…&date=… (a waitlist "slot opened" email) pick
+  // the service and day.
+  const [linkParams] = useSearchParams();
+  useEffect(() => {
+    const service = linkParams.get("service");
+    const date = linkParams.get("date");
+    if (service) form.setValue("service", service);
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const d = new Date(`${date}T12:00:00`);
+      if (!Number.isNaN(d.getTime())) form.setValue("date", d);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // A booking a guest started before logging in — restored once on mount.
   const [restored] = useState(() => takePendingBooking());
   useEffect(() => {
@@ -297,6 +311,29 @@ const Book = () => {
   useEffect(() => {
     if (mustPayInFull && paymentMethod === "partial") setPaymentMethod("full");
   }, [mustPayInFull, paymentMethod]);
+
+  // Waitlist for a full day: uses the name and contact details already typed.
+  const joinWaitlist = useMutation({
+    mutationFn: () =>
+      apiRequest<{ message: string }>("/waitlist", {
+        method: "POST",
+        auth: true,
+        body: {
+          serviceId: selectedService?.id,
+          date: selectedDateStr,
+          name: form.getValues("fullName") || profile?.full_name || "",
+          email: form.getValues("email") || user?.email || "",
+          phone: form.getValues("phone") || "",
+        },
+      }),
+    onSuccess: (r) => toast({ title: "You're on the waitlist", description: r.message }),
+    onError: (e) =>
+      toast({
+        variant: "destructive",
+        title: "Couldn't join the waitlist",
+        description: e instanceof Error ? `${e.message}. Fill in your name and email above first.` : undefined,
+      }),
+  });
 
   const processing = useProcessing();
   const bookingMutation = useMutation({
@@ -646,11 +683,29 @@ const Book = () => {
                       {selectedDateStr && busy.length > 0 && (
                         <p className="text-xs text-muted-foreground">
                           {availableTimeSlots.length === 0
-                            ? "Every time that day is taken. Please try another date."
+                            ? "Every time that day is taken. Try another date, or join the waitlist below."
                             : serviceMinutes && serviceMinutes > 60
                               ? "Times that don't leave room for this service are hidden."
                               : "Times already booked are hidden."}
                         </p>
+                      )}
+                      {selectedDateStr && selectedService && availableTimeSlots.length === 0 && busy.length > 0 && (
+                        <div className="rounded-lg border border-border p-3 text-sm">
+                          <p className="font-medium">This day is full</p>
+                          <p className="mt-0.5 text-muted-foreground">
+                            Join the waitlist and we'll tell you if a slot opens up on this day.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            disabled={joinWaitlist.isPending || joinWaitlist.isSuccess}
+                            onClick={() => joinWaitlist.mutate()}
+                          >
+                            {joinWaitlist.isSuccess ? "You're on the waitlist" : "Join the waitlist"}
+                          </Button>
+                        </div>
                       )}
                       <FormMessage />
                     </FormItem>
