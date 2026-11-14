@@ -21,7 +21,7 @@ import { DashboardHeading, Panel } from "@/components/dashboard/KpiTile";
 import { Button } from "@/components/ui/button";
 import { appointmentsApi, type AppointmentDTO } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { apiRequest } from "@/lib/apiClient";
+import { apiRequest, studioStore } from "@/lib/apiClient";
 
 const ymd = (d: Date) => format(d, "yyyy-MM-dd");
 
@@ -57,10 +57,32 @@ const AdminCalendar = () => {
   // The visible grid runs from the Monday before the 1st to the Sunday after the end.
   const gridStart = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
   const gridEnd = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
-  const { data = [], isLoading } = useQuery({
+  // Each month is kept on this device too, so the calendar still shows with
+  // no internet (the app itself opens offline through its service worker).
+  const cacheKey = `zuri-calendar:${studioStore.getSlug() ?? ""}:${ymd(gridStart)}:${ymd(gridEnd)}`;
+  const saved = (): { at: string; items: AppointmentDTO[] } | undefined => {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      return raw ? JSON.parse(raw) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const { data = [], isLoading, isError } = useQuery({
     queryKey: ["admin-calendar", ymd(gridStart), ymd(gridEnd)],
-    queryFn: () => appointmentsApi.calendar(ymd(gridStart), ymd(gridEnd)),
+    queryFn: async () => {
+      const items = await appointmentsApi.calendar(ymd(gridStart), ymd(gridEnd));
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ at: new Date().toISOString(), items }));
+      } catch {
+        /* Storage full or blocked: the calendar just won't work offline. */
+      }
+      return items;
+    },
+    placeholderData: () => saved()?.items,
+    retry: (count) => navigator.onLine && count < 2,
   });
+  const offlineCopy = (isError || !navigator.onLine) && saved();
 
   const byDay = useMemo(() => {
     const m = new Map<string, AppointmentDTO[]>();
@@ -112,6 +134,12 @@ const AdminCalendar = () => {
           </div>
         }
       />
+
+      {offlineCopy && (
+        <p className="mb-4 rounded-lg bg-amber-500/10 px-4 py-2.5 text-sm">
+          You're offline. Showing the bookings saved on this device on {format(new Date(offlineCopy.at), "d MMM 'at' HH:mm")}.
+        </p>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Panel className="p-0">
