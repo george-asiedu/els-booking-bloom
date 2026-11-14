@@ -163,6 +163,8 @@ export const OrderDetails = ({ item, onClose, footer }: { item: OrderDTO | null;
                 { label: "Email", value: item.customer_email },
                 { label: "Phone", value: item.customer_phone ?? item.delivery_phone },
                 ...(item.fulfillment === "delivery" ? [{ label: "Deliver to", value: item.delivery_address }] : []),
+                ...(item.delivery_zone ? [{ label: "Area", value: item.delivery_zone }] : []),
+                ...(item.delivery_slot ? [{ label: "Customer chose", value: item.delivery_slot }] : []),
                 ...(item.delivery_note ? [{ label: "Note for the rider", value: item.delivery_note }] : []),
                 ...(item.delivery_eta ? [{ label: item.fulfillment === "delivery" ? "Expected" : "Collect by", value: item.delivery_eta }] : []),
                 ...(item.delivered_at ? [{ label: item.fulfillment === "delivery" ? "Delivered" : "Collected", value: when(item.delivered_at) }] : []),

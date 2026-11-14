@@ -59,6 +59,8 @@ export interface OrderDTO {
   refunded_outside: { at: string; amount: number; note: string | null } | null;
   /** Delivery and pickup details. The handover code only reaches the customer. */
   delivery_note: string | null;
+  delivery_zone: string | null;
+  delivery_slot: string | null;
   delivery_eta: string | null;
   status_updated_at: string | null;
   handover_code: string | null;
@@ -91,6 +93,8 @@ export interface RawOrder {
   cancelRequestedAt?: string | null;
   cancelRequestReason?: string | null;
   deliveryNote?: string | null;
+  deliveryZone?: string | null;
+  deliverySlot?: string | null;
   deliveryEta?: string | null;
   statusUpdatedAt?: string | null;
   handoverCode?: string | null;
@@ -133,6 +137,8 @@ export const normalizeOrder = (o: RawOrder): OrderDTO => {
     total: o.total,
     refunded_amount: o.refundedAmount ?? 0,
     delivery_note: o.deliveryNote ?? null,
+    delivery_zone: o.deliveryZone ?? null,
+    delivery_slot: o.deliverySlot ?? null,
     delivery_eta: o.deliveryEta ?? null,
     status_updated_at: o.statusUpdatedAt ?? null,
     handover_code: o.handoverCode ?? null,
@@ -165,6 +171,9 @@ export interface CheckoutInput {
   couponCode?: string;
   giftCardCode?: string;
   deliveryNote?: string;
+  deliveryZoneId?: string;
+  deliveryDate?: string;
+  deliveryWindow?: string;
 }
 
 export interface GuestCheckoutInput {
@@ -178,6 +187,10 @@ export interface GuestCheckoutInput {
   referralCode?: string;
   couponCode?: string;
   giftCardCode?: string;
+  deliveryNote?: string;
+  deliveryZoneId?: string;
+  deliveryDate?: string;
+  deliveryWindow?: string;
 }
 
 export interface CheckoutResult {

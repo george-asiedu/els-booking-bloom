@@ -18,6 +18,8 @@ import { cartApi, commerceApi, ordersApi, PaymentTarget } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS as GHS } from "@/lib/currency";
+import { DeliveryChoice, deliveryPickBody, deliveryPickMissing, type DeliveryPick } from "@/components/shop/DeliveryChoice";
+import { deliveryFeeFor } from "@/lib/api/commerce";
 import { cn } from "@/lib/utils";
 
 /** "You're almost there" (checkout): delivery details beside the order summary. */
@@ -30,6 +32,7 @@ const Checkout = () => {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [deliveryNote, setDeliveryNote] = useState("");
+  const [pick, setPick] = useState<DeliveryPick>({});
   const [busy, setBusy] = useState(false);
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
   // What the map shows: settles after typing stops, so it doesn't reload per key.
@@ -76,7 +79,7 @@ const Checkout = () => {
 
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
-  const deliveryFee = fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
+  const deliveryFee = fulfillment === "DELIVERY" ? deliveryFeeFor(commerce, pick.zoneId) : 0;
   const beforeGiftCard = Math.round((subtotal - (coupon?.discount ?? 0) + deliveryFee) * 100) / 100;
   // A gift card pays what it can of the rest.
   const giftCardCovers = giftCard ? Math.min(giftCard.balance, beforeGiftCard) : 0;
@@ -125,6 +128,11 @@ const Checkout = () => {
       toast({ variant: "destructive", title: "Delivery details needed", description: "Enter a delivery address and phone number." });
       return;
     }
+    const missing = fulfillment === "DELIVERY" ? deliveryPickMissing(commerce, pick) : null;
+    if (missing) {
+      toast({ variant: "destructive", title: "Delivery details needed", description: missing });
+      return;
+    }
     try {
       setBusy(true);
       processing.show(PROCESSING.preparing);
@@ -133,6 +141,7 @@ const Checkout = () => {
         deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
         deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
         deliveryNote: fulfillment === "DELIVERY" ? deliveryNote.trim() || undefined : undefined,
+        ...(fulfillment === "DELIVERY" ? deliveryPickBody(pick) : {}),
         couponCode: coupon?.code,
         giftCardCode: giftCard?.code,
       });
@@ -161,7 +170,7 @@ const Checkout = () => {
 
   const options = [
     ...(commerce?.enable_pickup ? [{ id: "PICKUP" as const, label: "Collect from us", text: "Pick up your order at no charge." }] : []),
-    ...(commerce?.enable_delivery ? [{ id: "DELIVERY" as const, label: "Home delivery", text: (commerce.delivery_fee ?? 0) > 0 ? `Delivered to you for ${GHS(commerce.delivery_fee)}.` : "Delivered to you." }] : []),
+    ...(commerce?.enable_delivery ? [{ id: "DELIVERY" as const, label: "Home delivery", text: commerce.delivery_zones.length ? "Delivered to you. The fee depends on your area." : (commerce.delivery_fee ?? 0) > 0 ? `Delivered to you for ${GHS(commerce.delivery_fee)}.` : "Delivered to you." }] : []),
   ];
 
   return (
@@ -195,6 +204,7 @@ const Checkout = () => {
             {fulfillment === "DELIVERY" && (
               <div className="space-y-4 border-t border-border pt-6">
                 <h2 className="font-medium">Delivery information</h2>
+                <DeliveryChoice settings={commerce} value={pick} onChange={setPick} labelClassName="text-xs uppercase tracking-wider" />
                 <div>
                   <Label htmlFor="co-phone" className="text-xs uppercase tracking-wider">Phone *</Label>
                   <Input id="co-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-2 rounded-none" />

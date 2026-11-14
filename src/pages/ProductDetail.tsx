@@ -36,6 +36,8 @@ import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
+import { DeliveryChoice, deliveryPickBody, deliveryPickMissing, type DeliveryPick } from "@/components/shop/DeliveryChoice";
+import { deliveryFeeFor } from "@/lib/api/commerce";
 import { formatGHS } from "@/lib/currency";
 
 const RECENT_KEY = "zuri_recently_viewed";
@@ -62,6 +64,7 @@ const ProductDetail = () => {
   // Guest express-checkout form.
   const [guest, setGuest] = useState({ name: "", email: "", phone: "" });
   const [fulfillment, setFulfillment] = useState<"PICKUP" | "DELIVERY">("PICKUP");
+  const [pick, setPick] = useState<DeliveryPick>({});
   const [address, setAddress] = useState("");
   const [referral, setReferral] = useState("");
 
@@ -229,6 +232,11 @@ const ProductDetail = () => {
       });
       return;
     }
+    const missing = fulfillment === "DELIVERY" ? deliveryPickMissing(commerce, pick) : null;
+    if (missing) {
+      toast({ variant: "destructive", title: "Delivery details needed", description: missing });
+      return;
+    }
     try {
       setRedirecting(true);
       // Stays up until the browser leaves for Paystack's checkout page.
@@ -241,6 +249,7 @@ const ProductDetail = () => {
         fulfillment,
         deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
         deliveryPhone: fulfillment === "DELIVERY" ? guest.phone.trim() : undefined,
+        ...(fulfillment === "DELIVERY" ? deliveryPickBody(pick) : {}),
         referralCode: referral.trim() || undefined,
       });
       window.location.href = res.authorization_url;
@@ -279,7 +288,7 @@ const ProductDetail = () => {
   }
 
   const deliveryFee = commerce?.delivery_fee ?? 0;
-  const guestTotal = lineTotal_(product.effective_price, qty) + (fulfillment === "DELIVERY" ? deliveryFee : 0);
+  const guestTotal = lineTotal_(product.effective_price, qty) + (fulfillment === "DELIVERY" ? deliveryFeeFor(commerce, pick.zoneId) : 0);
   const lineTotal = lineTotal_(product.effective_price, qty);
   const categoryName = categories.find((c) => c.slug === product.category)?.name ?? product.category.replace(/-/g, " ");
   const others = allProducts.filter((p) => p.id !== product.id);
@@ -306,7 +315,7 @@ const ProductDetail = () => {
     { icon: CreditCard, label: "Secure payment", hint: "Mobile Money or card" },
     ...(commerce?.enable_pickup ? [{ icon: Store, label: "Free pickup", hint: "Collect it from us" }] : []),
     ...(commerce?.enable_delivery
-      ? [{ icon: Truck, label: deliveryFee > 0 ? `Delivery ${formatGHS(deliveryFee)}` : "Free delivery", hint: "Choose at checkout" }]
+      ? [{ icon: Truck, label: commerce?.delivery_zones.length ? "Delivery by area" : deliveryFee > 0 ? `Delivery ${formatGHS(deliveryFee)}` : "Free delivery", hint: "Choose at checkout" }]
       : []),
     {
       icon: PackageCheck,
@@ -477,7 +486,10 @@ const ProductDetail = () => {
                         )}
                       </div>
                       {fulfillment === "DELIVERY" && (
-                        <Textarea placeholder="Delivery address" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+                        <>
+                          <Textarea placeholder="Delivery address" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
+                          <DeliveryChoice settings={commerce} value={pick} onChange={setPick} />
+                        </>
                       )}
                       <div>
                         <Label htmlFor="referral" className="text-xs text-muted-foreground">Referral code (optional)</Label>

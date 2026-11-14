@@ -15,6 +15,8 @@ export const securityRequest = <T>(client: SecurityClient, path: string, method:
 export interface TwoFactorStatus {
   enabled: boolean;
   recoveryCodesLeft: number;
+  /** False when the platform has switched the admin requirement off. */
+  required?: boolean;
 }
 export interface TwoFactorSetup {
   secret: string;

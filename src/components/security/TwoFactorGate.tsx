@@ -21,7 +21,7 @@ export const TwoFactorGate = ({ client, label, children }: { client: SecurityCli
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
-  if (status.data && !status.data.enabled)
+  if (status.data && !status.data.enabled && status.data.required !== false)
     return (
       <div className="mx-auto max-w-xl py-6">
         <DashboardHeading

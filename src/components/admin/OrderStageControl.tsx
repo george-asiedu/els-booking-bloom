@@ -39,7 +39,7 @@ export const OrderStageControl = ({ order }: { order: OrderDTO }) => {
 
   const choose = (status: OrderStatus) => {
     if (status === "out_for_delivery" || status === "ready_for_pickup") {
-      setEta(order.delivery_eta ?? "");
+      setEta(order.delivery_eta ?? order.delivery_slot ?? "");
       setAsking(status);
     } else move.mutate({ status });
   };

@@ -16,6 +16,8 @@ interface Delivery {
   address: string | null;
   note: string | null;
   eta: string | null;
+  zone: string | null;
+  slot: string | null;
   items: { name: string; quantity: number; size: string | null; color: string | null }[];
   status: string;
   failedReason: string | null;
@@ -59,7 +61,8 @@ const RiderDelivery = () => {
       <header>
         <p className="text-sm text-muted-foreground">{data.shop}</p>
         <h1 className="text-2xl font-semibold">Delivery for order {data.orderNumber}</h1>
-        {data.eta && <p className="mt-1 text-sm">Expected: {data.eta}</p>}
+        {(data.eta || data.slot) && <p className="mt-1 text-sm">Deliver: {data.eta ?? data.slot}</p>}
+        {data.zone && <p className="text-sm text-muted-foreground">Area: {data.zone}</p>}
       </header>
 
       {done ? (

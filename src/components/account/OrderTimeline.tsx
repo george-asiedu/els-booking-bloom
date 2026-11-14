@@ -40,9 +40,9 @@ export const OrderTimeline = ({ order }: { order: OrderDTO }) => {
           );
         })}
       </ol>
-      {order.delivery_eta && order.status !== "fulfilled" && (
+      {(order.delivery_eta || order.delivery_slot) && order.status !== "fulfilled" && (
         <p className="text-sm">
-          {order.fulfillment === "pickup" ? "Collect by" : "Expected"}: <span className="font-medium">{order.delivery_eta}</span>
+          {order.fulfillment === "pickup" ? "Collect by" : "Expected"}: <span className="font-medium">{order.delivery_eta ?? order.delivery_slot}</span>
         </p>
       )}
       {order.delivery_failed_reason && order.status === "out_for_delivery" && (
