@@ -1,3 +1,4 @@
+import { FeePayerCard } from "@/components/admin/FeePayerCard";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, CreditCard, Info, Wallet, CheckCircle2 } from "lucide-react";
@@ -220,6 +221,8 @@ const AdminPayments = () => {
             Control how customers pay when booking an appointment.
           </p>
         </div>
+
+        <FeePayerCard />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

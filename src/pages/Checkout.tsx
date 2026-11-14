@@ -1,3 +1,5 @@
+import { useStudio } from "@/hooks/useStudio";
+import { processingFeeFor } from "@/lib/fees";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +40,7 @@ const Checkout = () => {
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
+  const { config } = useStudio();
   const { data: cart, isLoading } = useQuery({
     queryKey: ["cart"],
     queryFn: () => cartApi.getMine(),
@@ -59,6 +62,8 @@ const Checkout = () => {
   const subtotal = cart?.subtotal ?? 0;
   const deliveryFee = fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
   const total = Math.round((subtotal - (coupon?.discount ?? 0) + deliveryFee) * 100) / 100;
+  // Paystack's fee, when this business has customers pay it.
+  const processingFee = processingFeeFor(total, config?.settings);
 
   // The pin shows on the map; the address box gets the place's name (from
   // OpenStreetMap), falling back to the coordinates if the lookup fails.
@@ -117,6 +122,7 @@ const Checkout = () => {
         access_code: result.access_code,
         subaccount: result.subaccount,
         public_key: result.public_key,
+        processing_fee: result.processing_fee,
       });
       setPaymentOpen(true);
     } catch (error) {
@@ -216,7 +222,10 @@ const Checkout = () => {
               <p className="flex justify-between"><span>Subtotal</span><span className="tabular-nums">{GHS(subtotal)}</span></p>
               {coupon && <p className="flex justify-between"><span>Discount</span><span className="tabular-nums">-{GHS(coupon.discount)}</span></p>}
               <p className="flex justify-between"><span>Delivery</span><span className="tabular-nums">{deliveryFee > 0 ? GHS(deliveryFee) : "Free"}</span></p>
-              <p className="flex justify-between pt-1 text-xl font-semibold"><span>Total</span><span className="tabular-nums">{GHS(total)}</span></p>
+              {processingFee > 0 && (
+                <p className="flex justify-between text-muted-foreground"><span>Payment processing fee</span><span className="tabular-nums">{GHS(processingFee)}</span></p>
+              )}
+              <p className="flex justify-between pt-1 text-xl font-semibold"><span>Total</span><span className="tabular-nums">{GHS(total + processingFee)}</span></p>
             </div>
           </aside>
         </div>

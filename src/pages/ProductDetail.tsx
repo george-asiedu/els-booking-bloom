@@ -1,3 +1,5 @@
+import { processingFeeFor } from "@/lib/fees";
+import { useStudio } from "@/hooks/useStudio";
 import { useEffect, useState } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -36,10 +38,12 @@ import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { formatGHS } from "@/lib/currency";
 
 const RECENT_KEY = "zuri_recently_viewed";
+const lineTotal_ = (price: number, qty: number) => Math.round(price * qty * 100) / 100;
 
 const ProductDetail = () => {
   const { id = "" } = useParams();
   const { user } = useAuth();
+  const { config } = useStudio();
   const navigate = useNavigate();
   const { toast } = useToast();
   const processing = useProcessing();
@@ -247,7 +251,8 @@ const ProductDetail = () => {
   }
 
   const deliveryFee = commerce?.delivery_fee ?? 0;
-  const lineTotal = Math.round(product.effective_price * qty * 100) / 100;
+  const guestTotal = lineTotal_(product.effective_price, qty) + (fulfillment === "DELIVERY" ? deliveryFee : 0);
+  const lineTotal = lineTotal_(product.effective_price, qty);
   const categoryName = categories.find((c) => c.slug === product.category)?.name ?? product.category.replace(/-/g, " ");
   const others = allProducts.filter((p) => p.id !== product.id);
   // Same category first, then pieces for the same audience, eight in all.
@@ -452,7 +457,7 @@ const ProductDetail = () => {
                       </div>
                       <Button type="button" className="h-11 w-full rounded-xl" disabled={redirecting} onClick={handleGuestBuy}>
                         {redirecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Pay {formatGHS(lineTotal + (fulfillment === "DELIVERY" ? deliveryFee : 0))}
+                        Pay {formatGHS(guestTotal + processingFeeFor(guestTotal, config?.settings))}
                       </Button>
                     </div>
                   </AccordionContent>

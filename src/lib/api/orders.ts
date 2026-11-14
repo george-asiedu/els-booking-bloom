@@ -152,6 +152,8 @@ export interface CheckoutResult {
   order_id: string;
   order_number: string;
   total: number;
+  /** Included in `total`: the Paystack fee the customer pays on top. */
+  processing_fee: number;
   email: string;
   subaccount: string | null;
   public_key: string;
@@ -164,6 +166,7 @@ interface RawCheckout {
   orderId: string;
   orderNumber?: string;
   total: number;
+  processingFee?: number;
   email: string;
   subaccount: string | null;
   publicKey: string;
@@ -176,6 +179,7 @@ const mapCheckout = (d: RawCheckout): CheckoutResult => ({
   order_id: d.orderId,
   order_number: d.orderNumber ?? "",
   total: d.total,
+  processing_fee: d.processingFee ?? 0,
   email: d.email,
   subaccount: d.subaccount,
   public_key: d.publicKey,

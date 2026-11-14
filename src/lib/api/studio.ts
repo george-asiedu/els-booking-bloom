@@ -14,6 +14,9 @@ export interface StudioFeatureFlags {
   onlinePayments: boolean;
   productsInBooking: boolean;
   loyaltyCapPercent?: number;
+  // Whether customers pay Paystack's fee on top, and its rate (percent).
+  customerPaysFee?: boolean;
+  processingFeePercent?: number;
 }
 
 export interface StudioFeatureCard {

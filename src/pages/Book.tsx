@@ -312,6 +312,7 @@ const Book = () => {
             access_code: res.access_code,
             subaccount: res.subaccount,
             public_key: res.public_key,
+            processing_fee: res.processing_fee,
           });
           setPaymentOpen(true);
           return;
@@ -337,6 +338,7 @@ const Book = () => {
             access_code: init.access_code,
             subaccount: init.subaccount,
             public_key: init.public_key,
+            processing_fee: init.processing_fee,
           });
           setPaymentOpen(true);
           return;

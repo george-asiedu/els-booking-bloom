@@ -37,6 +37,8 @@ export interface InitializePaymentResult {
   subaccount: string | null;
   public_key: string;
   type: "FULL" | "PARTIAL";
+  /** Included in `amount`: the Paystack fee the customer pays on top. */
+  processing_fee: number;
 }
 
 interface RawInitialize {
@@ -48,6 +50,7 @@ interface RawInitialize {
   subaccount: string | null;
   publicKey: string;
   type: "FULL" | "PARTIAL";
+  processingFee?: number;
 }
 
 // Shared payment-target shape the in-app PaymentDialog consumes.
@@ -58,6 +61,8 @@ export interface PaymentTarget {
   access_code?: string;
   subaccount: string | null;
   public_key: string;
+  /** Included in `amount`: the Paystack fee the customer pays on top. */
+  processing_fee?: number;
 }
 
 export type ChargeStatus = "success" | "pending" | "failed";
@@ -134,6 +139,7 @@ export const paymentsApi = {
       subaccount: res.data.subaccount,
       public_key: res.data.publicKey,
       type: res.data.type,
+      processing_fee: res.data.processingFee ?? 0,
     };
   },
 

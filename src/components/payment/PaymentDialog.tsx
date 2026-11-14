@@ -207,7 +207,9 @@ export const PaymentDialog = ({
           <DialogDescription>
             {step === "success"
               ? "Payment received."
-              : `Amount due: ${amountLabel}`}
+              : target?.processing_fee
+                ? `Amount due: ${amountLabel} (includes a ${formatGHS(target.processing_fee)} payment processing fee)`
+                : `Amount due: ${amountLabel}`}
           </DialogDescription>
         </DialogHeader>
 

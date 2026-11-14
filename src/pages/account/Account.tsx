@@ -75,6 +75,7 @@ const Account = () => {
         access_code: init.access_code,
         subaccount: init.subaccount,
         public_key: init.public_key,
+        processing_fee: init.processing_fee,
       });
       setPaymentOpen(true);
     } catch (error) {
