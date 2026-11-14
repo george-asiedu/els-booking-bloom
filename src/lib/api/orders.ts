@@ -3,7 +3,20 @@ import { CursorPage, Envelope, cursorPage, cursorQuery } from "./core";
 
 // ---------------- Commerce: orders ----------------
 
-export type OrderStatus = "pending_payment" | "paid" | "fulfilled" | "cancelled";
+export type OrderStatus =
+  | "pending_payment"
+  | "paid"
+  | "preparing"
+  | "ready_for_pickup"
+  | "out_for_delivery"
+  | "fulfilled"
+  | "cancelled";
+
+/** Paid, at any stage up to and including handed over. */
+export const isPaidOrder = (o: { status: OrderStatus }) =>
+  o.status === "paid" || o.status === "preparing" || o.status === "ready_for_pickup" || o.status === "out_for_delivery" || o.status === "fulfilled";
+/** Paid but not yet handed over: still needs the shop's attention. */
+export const isOpenOrder = (o: { status: OrderStatus }) => isPaidOrder(o) && o.status !== "fulfilled";
 export type Fulfillment = "pickup" | "delivery";
 
 export interface OrderItemDTO {
@@ -44,6 +57,13 @@ export interface OrderDTO {
   cancel_requested_at: string | null;
   cancel_request_reason: string | null;
   refunded_outside: { at: string; amount: number; note: string | null } | null;
+  /** Delivery and pickup details. The handover code only reaches the customer. */
+  delivery_note: string | null;
+  delivery_eta: string | null;
+  status_updated_at: string | null;
+  handover_code: string | null;
+  delivered_at: string | null;
+  delivery_failed_reason: string | null;
 }
 
 export interface RawOrder {
@@ -70,6 +90,12 @@ export interface RawOrder {
   customerPhone?: string | null;
   cancelRequestedAt?: string | null;
   cancelRequestReason?: string | null;
+  deliveryNote?: string | null;
+  deliveryEta?: string | null;
+  statusUpdatedAt?: string | null;
+  handoverCode?: string | null;
+  deliveredAt?: string | null;
+  deliveryFailReason?: string | null;
   refundedOutsideAt?: string | null;
   refundedOutsideAmount?: number | null;
   refundedOutsideNote?: string | null;
@@ -106,6 +132,12 @@ export const normalizeOrder = (o: RawOrder): OrderDTO => {
     delivery_fee: o.deliveryFee,
     total: o.total,
     refunded_amount: o.refundedAmount ?? 0,
+    delivery_note: o.deliveryNote ?? null,
+    delivery_eta: o.deliveryEta ?? null,
+    status_updated_at: o.statusUpdatedAt ?? null,
+    handover_code: o.handoverCode ?? null,
+    delivered_at: o.deliveredAt ?? null,
+    delivery_failed_reason: o.deliveryFailReason ?? null,
     cancel_requested_at: o.cancelRequestedAt ?? null,
     cancel_request_reason: o.cancelRequestReason ?? null,
     refunded_outside: o.refundedOutsideAt
@@ -132,6 +164,7 @@ export interface CheckoutInput {
   referralCode?: string;
   couponCode?: string;
   giftCardCode?: string;
+  deliveryNote?: string;
 }
 
 export interface GuestCheckoutInput {
@@ -269,12 +302,20 @@ export const ordersApi = {
     );
     return normalizeOrder(res.data);
   },
-  async updateStatus(id: string, status: OrderStatus): Promise<OrderDTO> {
-    const res = await apiRequest<Envelope<RawOrder>>(`/orders/${id}/status`, {
+  async updateStatus(id: string, status: OrderStatus, eta?: string): Promise<OrderDTO> {
+    return (await ordersApi.moveStage(id, status, eta)).order;
+  },
+  /** Move an order to a stage; going out for delivery returns the rider's link. */
+  async moveStage(id: string, status: OrderStatus, eta?: string): Promise<{ order: OrderDTO; riderLink: string | null }> {
+    const res = await apiRequest<Envelope<RawOrder> & { riderLink?: string }>(`/orders/${id}/status`, {
       method: "PATCH",
       auth: true,
-      body: { status: status.toUpperCase() },
+      body: { status: status.toUpperCase(), ...(eta ? { eta } : {}) },
     });
-    return normalizeOrder(res.data);
+    return { order: normalizeOrder(res.data), riderLink: res.riderLink ?? null };
+  },
+  /** At the counter: the customer's code confirms a pickup. */
+  async confirmHandover(id: string, code: string): Promise<void> {
+    await apiRequest(`/orders/${id}/handover`, { method: "POST", auth: true, body: { code } });
   },
 };

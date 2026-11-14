@@ -1,3 +1,4 @@
+import { isOpenOrder } from "@/lib/api/orders";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -229,7 +230,7 @@ const StudioDashboard = () => {
   // Waiting on the studio.
   const toConfirm = appointments.filter((a) => a.status === "pending").length;
   const newTimes = appointments.filter((a) => a.status === "pending_reschedule").length;
-  const toFulfil = (ordersQuery.data ?? []).filter((o) => o.status === "paid").length;
+  const toFulfil = (ordersQuery.data ?? []).filter((o) => isOpenOrder(o)).length;
   const toApprove = (reviewsQuery.data ?? []).filter((r) => !r.approved).length;
   const outOfStock = (productsQuery.data ?? []).filter(
     (p) => p.active && p.track_stock && p.stock <= 0,

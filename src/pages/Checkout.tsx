@@ -29,6 +29,7 @@ const Checkout = () => {
   const [fulfillment, setFulfillment] = useState<"PICKUP" | "DELIVERY">("PICKUP");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
+  const [deliveryNote, setDeliveryNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
   // What the map shows: settles after typing stops, so it doesn't reload per key.
@@ -131,6 +132,7 @@ const Checkout = () => {
         fulfillment,
         deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
         deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
+        deliveryNote: fulfillment === "DELIVERY" ? deliveryNote.trim() || undefined : undefined,
         couponCode: coupon?.code,
         giftCardCode: giftCard?.code,
       });
@@ -200,6 +202,10 @@ const Checkout = () => {
                 <div>
                   <Label htmlFor="co-address" className="text-xs uppercase tracking-wider">Address *</Label>
                   <Textarea id="co-address" rows={3} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="House number, street, area and a nearby landmark" className="mt-2 rounded-none" />
+                </div>
+                <div>
+                  <Label htmlFor="co-note" className="text-xs uppercase tracking-wider">Note for the rider (optional)</Label>
+                  <Input id="co-note" maxLength={300} value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)} placeholder="e.g. Call when you reach the gate" className="mt-2 rounded-none" />
                 </div>
                 <button type="button" onClick={useMyLocation} disabled={locating} className="flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 hover:underline">
                   {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" aria-hidden />}

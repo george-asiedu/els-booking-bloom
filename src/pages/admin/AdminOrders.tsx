@@ -1,5 +1,7 @@
 import { ExportButton } from "@/components/admin/ExportButton";
 import { useState } from "react";
+import { OrderStageControl, PickupHandover } from "@/components/admin/OrderStageControl";
+import { isOpenOrder, isPaidOrder } from "@/lib/api/orders";
 import { CancellationActions } from "@/components/admin/CancellationActions";
 import { OrderDetails } from "@/components/admin/RowDetails";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,23 +33,12 @@ import { formatGHS } from "@/lib/currency";
 import { DateRangeField } from "@/components/admin/DateRangeFilter";
 import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
 
-const statusColors: Record<string, string> = {
-  pending_payment: "secondary",
-  paid: "default",
-  fulfilled: "outline",
-  cancelled: "destructive",
-};
-const statusLabel: Record<string, string> = {
-  pending_payment: "Payment pending",
-  paid: "Paid",
-  fulfilled: "Fulfilled",
-  cancelled: "Cancelled",
-};
-
 const ORDER_TABS = [
-  { key: "paid", label: "Paid", empty: "No paid orders waiting to be fulfilled" },
+  { key: "paid", label: "To prepare", empty: "No new orders to prepare" },
+  { key: "preparing", label: "Preparing", empty: "Nothing being prepared" },
+  { key: "on_the_way", label: "Out or ready", empty: "Nothing out for delivery or waiting to be collected" },
   { key: "cancel_requested", label: "Cancel requests", empty: "No cancellation requests" },
-  { key: "fulfilled", label: "Fulfilled", empty: "No fulfilled orders yet" },
+  { key: "fulfilled", label: "Delivered", empty: "No delivered or collected orders yet" },
   { key: "pending_payment", label: "Awaiting payment", empty: "No orders awaiting payment" },
   { key: "cancelled", label: "Cancelled", empty: "No cancelled orders" },
   { key: "all", label: "All", empty: "No orders yet" },
@@ -92,6 +83,8 @@ const AdminOrders = () => {
   const filtered = (orders ?? []).filter((o) => {
     if (statusFilter === "cancel_requested") {
       if (!o.cancel_requested_at || o.status === "cancelled") return false;
+    } else if (statusFilter === "on_the_way") {
+      if (o.status !== "out_for_delivery" && o.status !== "ready_for_pickup") return false;
     } else if (statusFilter !== "all" && o.status !== statusFilter) return false;
     if (oFulfil !== "all" && o.fulfillment !== oFulfil) return false;
     if (oq) {
@@ -114,13 +107,13 @@ const AdminOrders = () => {
 
   const stats = {
     total: orders?.length ?? 0,
-    paid: orders?.filter((o) => o.status === "paid").length ?? 0,
+    paid: orders?.filter((o) => isOpenOrder(o)).length ?? 0,
     fulfilled: orders?.filter((o) => o.status === "fulfilled").length ?? 0,
     // Commerce revenue = profit (selling − cost), delivery excluded.
     profit:
       Math.round(
         (orders
-          ?.filter((o) => o.status === "paid" || o.status === "fulfilled")
+          ?.filter((o) => isPaidOrder(o))
           .reduce((s, o) => s + o.profit, 0) ?? 0) * 100,
       ) / 100,
   };
@@ -138,9 +131,9 @@ const AdminOrders = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="Total orders" value={stats.total} />
-          <StatCard label="Paid" value={stats.paid} className="text-green-600" />
+          <StatCard label="To deliver or collect" value={stats.paid} className="text-green-600" />
           <StatCard
-            label="Fulfilled"
+            label="Delivered or collected"
             value={stats.fulfilled}
             className="text-blue-600"
           />
@@ -187,7 +180,9 @@ const AdminOrders = () => {
                 ? orders?.length ?? 0
                 : t.key === "cancel_requested"
                   ? orders?.filter((o) => o.cancel_requested_at && o.status !== "cancelled").length ?? 0
-                  : orders?.filter((o) => o.status === t.key).length ?? 0,
+                  : t.key === "on_the_way"
+                    ? orders?.filter((o) => o.status === "out_for_delivery" || o.status === "ready_for_pickup").length ?? 0
+                    : orders?.filter((o) => o.status === t.key).length ?? 0,
           }))}
         />
 
@@ -278,41 +273,8 @@ const AdminOrders = () => {
                     <TableCell className="font-medium">
                       {formatGHS(order.total)}
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-2">
-                        <Badge
-                          variant={
-                            statusColors[order.status] as
-                              | "secondary"
-                              | "default"
-                              | "outline"
-                              | "destructive"
-                          }
-                        >
-                          {statusLabel[order.status]}
-                        </Badge>
-                        <Select
-                          value={order.status}
-                          onValueChange={(value) =>
-                            updateStatus.mutate({
-                              id: order.id,
-                              status: value as OrderStatus,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="w-40 h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending_payment">
-                              Payment pending
-                            </SelectItem>
-                            <SelectItem value="paid">Paid</SelectItem>
-                            <SelectItem value="fulfilled">Fulfilled</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <OrderStageControl order={order} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -333,7 +295,14 @@ const AdminOrders = () => {
       <OrderDetails
         item={details}
         onClose={() => setDetails(null)}
-        footer={details && <CancellationActions kind="orders" item={details} onChanged={() => setDetails(null)} />}
+        footer={
+          details && (
+            <div className="flex w-full flex-col gap-3">
+              <PickupHandover order={details} onDone={() => setDetails(null)} />
+              <CancellationActions kind="orders" item={details} onChanged={() => setDetails(null)} />
+            </div>
+          )
+        }
       />
     </AdminLayout>
   );

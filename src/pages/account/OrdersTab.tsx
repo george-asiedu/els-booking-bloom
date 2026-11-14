@@ -15,10 +15,12 @@ import { orderStatusColors, orderStatusLabel } from "./accountFormat";
 import { LoadMore } from "./AccountParts";
 import { CancelRequestButton, cancellationRows } from "@/components/account/CancelRequest";
 import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
+import { OrderTimeline } from "@/components/account/OrderTimeline";
+import { isOpenOrder } from "@/lib/api/orders";
 
 const ORDER_TABS = [
-  { key: "paid", label: "Paid", empty: "No paid orders being prepared" },
-  { key: "fulfilled", label: "Fulfilled", empty: "No fulfilled orders yet" },
+  { key: "open", label: "In progress", empty: "No orders on the way" },
+  { key: "fulfilled", label: "Delivered", empty: "No delivered or collected orders yet" },
   { key: "pending_payment", label: "Awaiting payment", empty: "Nothing waiting for payment" },
   { key: "cancelled", label: "Cancelled", empty: "No cancelled orders" },
 ];
@@ -34,8 +36,9 @@ interface OrdersTabProps {
 export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTabProps) => {
   // The order whose details drawer is open.
   const [open, setOpen] = useState<OrderDTO | null>(null);
-  const [tab, setTab] = useState("paid");
-  const shown = orders.filter((o) => o.status === tab);
+  const [tab, setTab] = useState("open");
+  const inTab = (o: OrderDTO, key: string) => (key === "open" ? isOpenOrder(o) : o.status === key);
+  const shown = orders.filter((o) => inTab(o, tab));
   return (
   <>
     {/* Current cart */}
@@ -74,7 +77,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
         className="mb-4"
         value={tab}
         onChange={setTab}
-        tabs={ORDER_TABS.map((t) => ({ key: t.key, label: t.label, count: orders.filter((o) => o.status === t.key).length }))}
+        tabs={ORDER_TABS.map((t) => ({ key: t.key, label: t.label, count: orders.filter((o) => inTab(o, t.key)).length }))}
       />
       {shown.length === 0 ? (
         <TabEmpty
@@ -141,6 +144,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
     </div>
     {open && (
       <DetailsSheet
+        media={<OrderTimeline order={open} />}
         open
         onClose={() => setOpen(null)}
         title={`Order ${open.order_number}`}
@@ -192,7 +196,7 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
                 <Download className="mr-2 h-4 w-4" />
                 Download receipt
               </Button>
-              {open.status === "paid" && !open.cancel_requested_at && (
+              {(open.status === "paid" || open.status === "preparing") && !open.cancel_requested_at && (
                 <CancelRequestButton kind="orders" id={open.id} paid={open.total} invalidate={["my-orders"]} onDone={() => setOpen(null)} />
               )}
             </div>

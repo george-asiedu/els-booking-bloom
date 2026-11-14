@@ -13,17 +13,14 @@ import { studioUrl } from "@/config/platform";
 import { formatGHS } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { ordersApi, productsApi, type OrderDTO } from "@/lib/api";
+import { isOpenOrder, isPaidOrder } from "@/lib/api/orders";
+import { ORDER_STAGE } from "@/lib/orderStages";
 
-const SOLD = (o: OrderDTO) => o.status === "paid" || o.status === "fulfilled";
-const STATUS: Record<OrderDTO["status"], { label: string; className: string }> = {
-  pending_payment: { label: "Awaiting Payment", className: "bg-muted text-muted-foreground" },
-  paid: { label: "To Fulfil", className: "bg-[hsl(var(--tile-amber))] text-amber-800 dark:text-amber-300" },
-  fulfilled: { label: "Fulfilled", className: "bg-[hsl(var(--tile-green))] text-green-800 dark:text-green-300" },
-  cancelled: { label: "Cancelled", className: "bg-[hsl(var(--tile-rose))] text-red-800 dark:text-red-300" },
-};
+const SOLD = (o: OrderDTO) => isPaidOrder(o);
+const STATUS = ORDER_STAGE;
 const TABS = [
   { id: "all", label: "All orders" },
-  { id: "paid", label: "To fulfil" },
+  { id: "open", label: "To fulfil" },
   { id: "fulfilled", label: "Fulfilled" },
   { id: "cancelled", label: "Cancelled" },
 ] as const;
@@ -50,7 +47,7 @@ export const ShopDashboard = () => {
   const salesBefore = sum(lastMonth);
   const avg = thisMonth.length ? sales / thisMonth.length : 0;
   const avgBefore = lastMonth.length ? salesBefore / lastMonth.length : 0;
-  const toFulfil = all.filter((o) => o.status === "paid");
+  const toFulfil = all.filter((o) => isOpenOrder(o));
   const live = (products.data ?? []).filter((p) => p.active);
   const outOfStock = live.filter((p) => p.track_stock && p.stock <= 0);
   const lowStock = live.filter((p) => p.track_stock && p.stock > 0 && p.stock <= 3);
@@ -86,7 +83,7 @@ export const ShopDashboard = () => {
   const topBuyers = [...buyers.values()].sort((a, b) => b.spent - a.spent).slice(0, 4);
 
   const recent = [...all]
-    .filter((o) => tab === "all" || o.status === tab)
+    .filter((o) => tab === "all" || (tab === "open" ? isOpenOrder(o) : o.status === tab))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 8);
   const siteUrl = config?.slug ? studioUrl(config.slug) : null;
