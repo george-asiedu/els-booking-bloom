@@ -18,12 +18,11 @@ const ETA_SUGGESTIONS = ["Within 1 hour", "Today, 2–4 pm", "Today, 4–6 pm", 
  * ready to collect) asks for an expected time; going out returns a link for
  * the rider, shown with Copy and "Send on WhatsApp".
  */
-export const OrderStageControl = ({ order }: { order: OrderDTO }) => {
+export const OrderStageControl = ({ order, onRiderLink }: { order: OrderDTO; onRiderLink: (orderNumber: string, link: string) => void }) => {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [asking, setAsking] = useState<OrderStatus | null>(null);
   const [eta, setEta] = useState("");
-  const [riderLink, setRiderLink] = useState<string | null>(null);
 
   const move = useMutation({
     mutationFn: (v: { status: OrderStatus; eta?: string }) => ordersApi.moveStage(order.id, v.status, v.eta),
@@ -31,7 +30,7 @@ export const OrderStageControl = ({ order }: { order: OrderDTO }) => {
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
       setAsking(null);
       setEta("");
-      if (r.riderLink) setRiderLink(r.riderLink);
+      if (r.riderLink) onRiderLink(order.order_number, r.riderLink);
       else toast({ title: `Order ${stageLabel(r.order).toLowerCase()}`, description: "The customer has been told." });
     },
     onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't update the order" }),
@@ -48,7 +47,6 @@ export const OrderStageControl = ({ order }: { order: OrderDTO }) => {
   const options: OrderStatus[] =
     order.status === "pending_payment" ? ["pending_payment", "cancelled"] : [...stagesFor(order.fulfillment), "cancelled"];
   const stuck = isStuck(order);
-  const shareText = riderLink ? `Delivery for order ${order.order_number}. Open this link for the address and to confirm delivery: ${riderLink}` : "";
 
   return (
     <div className="space-y-1.5">
@@ -121,22 +119,34 @@ export const OrderStageControl = ({ order }: { order: OrderDTO }) => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(riderLink)} onOpenChange={(o) => !o && setRiderLink(null)}>
+    </div>
+  );
+};
+
+/**
+ * The rider's link, shown after an order goes out for delivery. Kept above the
+ * order list so it stays open when the order moves to another tab.
+ */
+export const RiderLinkDialog = ({ link, orderNumber, onClose }: { link: string | null; orderNumber: string; onClose: () => void }) => {
+  const { toast } = useToast();
+  const shareText = link ? `Delivery for order ${orderNumber}. Open this link for the address and to confirm delivery: ${link}` : "";
+  return (
+      <Dialog open={Boolean(link)} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-emerald-600" /> Order {order.order_number} is out for delivery
+              <Check className="h-5 w-5 text-emerald-600" /> Order {orderNumber} is out for delivery
             </DialogTitle>
             <DialogDescription>
               Send this link to the rider. It shows the address and the customer's number, and the rider enters the customer's 4-digit code there to confirm delivery. It works for 3 days.
             </DialogDescription>
           </DialogHeader>
-          <code className="block break-all rounded-lg bg-muted px-3 py-2 text-sm">{riderLink}</code>
+          <code className="block break-all rounded-lg bg-muted px-3 py-2 text-sm">{link}</code>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
               variant="outline"
               onClick={() =>
-                navigator.clipboard.writeText(riderLink ?? "").then(
+                navigator.clipboard.writeText(link ?? "").then(
                   () => toast({ title: "Link copied" }),
                   () => toast({ variant: "destructive", title: "Couldn't copy. Select the link instead." }),
                 )
@@ -152,7 +162,6 @@ export const OrderStageControl = ({ order }: { order: OrderDTO }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
   );
 };
 

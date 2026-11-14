@@ -1,6 +1,6 @@
 import { ExportButton } from "@/components/admin/ExportButton";
 import { useState } from "react";
-import { OrderStageControl, PickupHandover } from "@/components/admin/OrderStageControl";
+import { OrderStageControl, PickupHandover, RiderLinkDialog } from "@/components/admin/OrderStageControl";
 import { isOpenOrder, isPaidOrder } from "@/lib/api/orders";
 import { CancellationActions } from "@/components/admin/CancellationActions";
 import { OrderDetails } from "@/components/admin/RowDetails";
@@ -47,6 +47,7 @@ const ORDER_TABS = [
 const AdminOrders = () => {
   // The row whose details drawer is open.
   const [details, setDetails] = useState<OrderDTO | null>(null);
+  const [riderLink, setRiderLink] = useState<{ orderNumber: string; link: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("paid");
   const [oSearch, setOSearch] = useState("");
   const [oFulfil, setOFulfil] = useState("all");
@@ -274,7 +275,7 @@ const AdminOrders = () => {
                       {formatGHS(order.total)}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <OrderStageControl order={order} />
+                      <OrderStageControl order={order} onRiderLink={(orderNumber, link) => setRiderLink({ orderNumber, link })} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -304,6 +305,7 @@ const AdminOrders = () => {
           )
         }
       />
+      <RiderLinkDialog link={riderLink?.link ?? null} orderNumber={riderLink?.orderNumber ?? ""} onClose={() => setRiderLink(null)} />
     </AdminLayout>
   );
 };
