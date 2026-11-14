@@ -99,6 +99,7 @@ const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"))
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 const StudioLogin = lazy(() => import("./pages/StudioLogin"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
+const Discover = lazy(() => import("./pages/Discover"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
 const Terms = lazy(() => import("./pages/legal/Terms"));
@@ -206,6 +207,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<RootRoute />} />
               <Route path="/welcome" element={<PlatformLanding />} />
+              <Route path="/discover" element={<Discover />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/onboarding/callback" element={<Onboarding />} />
               <Route path="/privacy" element={<Privacy />} />

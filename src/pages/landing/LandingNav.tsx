@@ -60,7 +60,8 @@ const ContactStrip = () => {
   );
 };
 
-export const NavSection = () => {
+/** `solid`: on pages without a hero photo, start with the light bar. */
+export const NavSection = ({ solid = false }: { solid?: boolean }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -79,7 +80,7 @@ export const NavSection = () => {
         <div
           className={cn(
             "transition-[background-color,border-color,box-shadow,padding] duration-300",
-            scrolled || menuOpen
+            scrolled || menuOpen || solid
               ? "border-b border-border bg-background/80 py-2 shadow-sm backdrop-blur-xl"
               : // Over the hero photo: white text and icons so they read on it.
                 "border-b border-transparent bg-transparent py-4 text-white [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/85",

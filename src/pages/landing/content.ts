@@ -115,11 +115,12 @@ export const FAQ = [
   },
 ];
 
+// Root-relative, so they also work from other platform pages (Discover).
 export const NAV_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#how", label: "How it works" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#for-studios", label: "For studios" },
+  { href: "/#features", label: "Features" },
+  { href: "/#how", label: "How it works" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/discover", label: "Find a business" },
 ];
 
 // How a prospective studio gets in touch: WhatsApp when configured, else email.
