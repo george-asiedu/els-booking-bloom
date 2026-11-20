@@ -46,6 +46,7 @@ const LABELS: Record<string, string> = {
   studio: "Branding and website",
   appointments: "Booking photos",
   profiles: "Profile photos",
+  requests: "Feature request pictures",
 };
 
 /** What's stored, against the plan's limit, with the trash and extra blocks. */

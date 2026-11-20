@@ -17,6 +17,8 @@ export interface FeatureRequestDTO {
   status: FeatureRequestStatus;
   /** A one-off fee set by Zuri (GHS). Null until decided; 0 is free. */
   feeAmount?: number | null;
+  /** Pictures attached to the request (up to 5). */
+  images?: string[];
   createdAt: string;
 }
 
@@ -32,6 +34,7 @@ export const featureRequestsApi = {
   async create(input: {
     title: string;
     description: string;
+    images?: string[];
   }): Promise<FeatureRequestDTO> {
     const res = await apiRequest<Envelope<FeatureRequestDTO>>(
       "/feature-requests",

@@ -130,6 +130,15 @@ const PlatformRequests = () => {
                     <p className="mt-1 text-sm text-muted-foreground">
                       {r.description}
                     </p>
+                    {!!r.images?.length && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {r.images.map((src, i) => (
+                          <a key={src} href={src} target="_blank" rel="noreferrer" aria-label={`Open picture ${i + 1}`}>
+                            <img src={src} alt="" className="h-20 w-20 rounded-md border border-border object-cover" loading="lazy" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     <p className="mt-2 text-xs text-muted-foreground">
                       {format(new Date(r.createdAt), "MMM d, yyyy")}
                     </p>
