@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { setAppBadge } from "@/lib/appBadge";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -40,6 +41,10 @@ export const NotificationBell = ({ client }: { client: SecurityClient }) => {
 
   const items = data?.data ?? [];
   const unread = data?.unread ?? 0;
+  // Keep the number on the installed app's icon in step with the bell.
+  useEffect(() => {
+    if (data) setAppBadge(data.unread);
+  }, [data]);
 
   const openItem = (n: InboxItem) => {
     if (!n.readAt) read.mutate([n.id]);

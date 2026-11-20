@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { authApi, SignupPayload } from "@/lib/api";
+import { clearAppBadge } from "@/lib/appBadge";
 import { tokenStore, AuthUser, ApiError } from "@/lib/apiClient";
 
 interface AuthContextType {
@@ -68,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = useCallback(() => {
+    clearAppBadge();
     authApi.logout();
     setUser(null);
   }, []);

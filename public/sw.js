@@ -1,4 +1,4 @@
-/* Zuri Studios service worker (one per site: the platform and each studio).
+/* Zuri service worker (one per site: the platform and each studio).
  * - Cache-first for Vite's fingerprinted /assets/* and the app icons.
  * - Network-first for page loads; offline, it falls back to the last app shell,
  *   so an installed app still opens.
@@ -7,7 +7,7 @@
  * - Push: shows the notification and opens its link when tapped.
  * Bump VERSION to move every client onto a fresh cache.
  */
-const VERSION = "zuri-v1";
+const VERSION = "zuri-v2";
 const STATIC = `${VERSION}-static`;
 const SHELL = `${VERSION}-shell`;
 const PRECACHE = ["/icons/icon-192.png", "/icons/icon-512.png"];
@@ -82,18 +82,28 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "Zuri Studios", body: event.data ? event.data.text() : "" };
+    data = { title: "Zuri", body: event.data ? event.data.text() : "" };
   }
   const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/";
+  // The number on the app's icon: this person's unread count, sent with the push.
+  // Best-effort: not supported everywhere, and it never blocks the notification.
+  const nav = self.navigator;
+  const badge =
+    typeof data.unread === "number" && nav && "setAppBadge" in nav
+      ? (data.unread > 0 ? nav.setAppBadge(data.unread) : nav.clearAppBadge()).catch(() => undefined)
+      : Promise.resolve();
   event.waitUntil(
-    self.registration.showNotification(data.title || "Zuri Studios", {
-      body: data.body || "",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: data.tag || undefined,
-      renotify: Boolean(data.tag),
-      data: { url },
-    }),
+    Promise.all([
+      badge,
+      self.registration.showNotification(data.title || "Zuri", {
+        body: data.body || "",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        tag: data.tag || undefined,
+        renotify: Boolean(data.tag),
+        data: { url },
+      }),
+    ]),
   );
 });
 

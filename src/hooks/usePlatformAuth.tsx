@@ -6,6 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { platformApi, platformStore, PlatformUser } from "@/lib/platformApi";
+import { clearAppBadge } from "@/lib/appBadge";
 import { ApiError } from "@/lib/apiClient";
 
 interface PlatformAuthContextType {
@@ -50,6 +51,7 @@ export const PlatformAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = () => {
+    clearAppBadge();
     platformApi.logout();
     setUser(null);
   };
