@@ -873,7 +873,7 @@ const Book = () => {
                     Because of missed appointments, this booking needs to be paid in full.
                   </p>
                 )}
-                {!user && <Captcha />}
+                {!user && !paymentOpen && <Captcha />}
                 <Button
                   type="submit"
                   size="lg"

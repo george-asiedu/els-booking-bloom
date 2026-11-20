@@ -270,7 +270,7 @@ async function send<T>(path: string, options: RequestOptions, refreshGuestKey: b
   // Guest endpoints (no account) need the app's guest key.
   if (path.includes("guest")) headers["X-Guest-Key"] = await loadGuestKey(refreshGuestKey);
   // The security check, for the requests that start something as a guest.
-  if (captcha && (path === "/appointments/guest" || path === "/orders/guest-checkout" || /^\/bills\/pay\/[^/]+\/start$/.test(path)))
+  if (captcha && (path === "/appointments/guest" || path === "/orders/guest-checkout" || path === "/payments/charge/momo" || path === "/payments/guest/charge/momo" || /^\/bills\/pay\/[^/]+\/start$/.test(path)))
     headers["X-Captcha-Token"] = captcha;
   const signedIn = Boolean(tokenStore.getUser());
 

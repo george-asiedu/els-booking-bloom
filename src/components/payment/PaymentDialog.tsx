@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { paymentsApi, PaymentTarget } from "@/lib/api";
+import { Captcha, captchaEnabled, captchaReady } from "@/components/Captcha";
 import { formatGHS } from "@/lib/currency";
 
 // Paystack Ghana mobile-money provider codes.
@@ -150,9 +151,16 @@ export const PaymentDialog = ({
     }
   };
 
+  // The security check for the Mobile Money prompt (nothing to wait for when it is off).
+  const [checkReady, setCheckReady] = useState(!captchaEnabled);
+
   // ---- Mobile-money phone prompt ----
   const startMomo = async () => {
     if (!momoCharge) return;
+    if (!captchaReady()) {
+      setError("Complete the security check first.");
+      return;
+    }
     if (!/^\d{9,15}$/.test(phone.trim())) {
       setError("Enter a valid mobile-money number.");
       return;
@@ -287,8 +295,9 @@ export const PaymentDialog = ({
                   placeholder="0244123456"
                 />
               </div>
+              <Captcha onChange={setCheckReady} />
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button className="w-full" onClick={startMomo} disabled={busy}>
+              <Button className="w-full" onClick={startMomo} disabled={busy || !checkReady}>
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send prompt to my phone
               </Button>
