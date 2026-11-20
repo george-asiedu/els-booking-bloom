@@ -61,6 +61,7 @@ const AdminCalendar = lazy(() => import("./pages/admin/AdminCalendar"));
 const AdminStaff = lazy(() => import("./pages/admin/AdminStaff"));
 const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
 const AdminExpenses = lazy(() => import("./pages/admin/AdminExpenses"));
+const AdminStorage = lazy(() => import("./pages/admin/AdminStorage"));
 const RiderDelivery = lazy(() => import("./pages/RiderDelivery"));
 const GiftCards = lazy(() => import("./pages/GiftCards"));
 const GiftCardCallback = lazy(() => import("./pages/GiftCards").then((m) => ({ default: m.GiftCardCallback })));
@@ -318,6 +319,7 @@ const App = () => (
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="gift-cards" element={<AdminVouchers />} />
                 <Route path="expenses" element={<AdminExpenses />} />
+                <Route path="storage" element={<AdminStorage />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="contact" element={<AdminContact />} />

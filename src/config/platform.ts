@@ -79,6 +79,7 @@ const STANDARD_FEATURES = [
   "Loyalty points & referrals",
   "Reviews & photo/video gallery",
   "A banner for offers and promotions",
+  "500 MB of storage for photos and videos",
 ];
 
 export const PLANS: PlanDef[] = [
@@ -104,6 +105,7 @@ export const PLANS: PlanDef[] = [
       "An online shop with cart and checkout",
       "Sell products during booking",
       "Payments settled straight to your account",
+      "1 GB of storage. Need more? 50 MB is GHS 5 a month",
     ],
   },
   {

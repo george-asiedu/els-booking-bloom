@@ -8,6 +8,7 @@ import {
   CreditCard,
   ExternalLink,
   Globe,
+  HardDrive,
   ImageIcon,
   LayoutDashboard,
   Lightbulb,
@@ -88,6 +89,7 @@ const studioNav = (f: Features): NavGroup[] => [
     items: [
       { name: "Appearance", path: "/admin/appearance", icon: Palette },
       ...(f.gallery ? [{ name: "Gallery", path: "/admin/gallery", icon: ImageIcon }] : []),
+      { name: "Storage", path: "/admin/storage", icon: HardDrive },
       { name: "Reviews", path: "/admin/reviews", icon: Star },
       { name: "Promotions", path: "/admin/promos", icon: Megaphone },
       { name: "Custom domain", path: "/admin/domain", icon: Globe },
