@@ -7,7 +7,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { StorefrontsSection } from "./landing/ShowcaseSections";
 import { LoyaltyReviewsSection } from "./landing/ProductSections";
 import { PlatformMetricsSection } from "./landing/TrustSections";
-import { PricingSection, FaqSection, FooterSection } from "./landing/ClosingSections";
+import { PricingSection, TrainingSection, FaqSection, FooterSection } from "./landing/ClosingSections";
 import {
   PhotoHero,
   WhyRow,
@@ -38,6 +38,7 @@ const PlatformLanding = () => {
       <LoyaltyReviewsSection />
       <TestimonialsSection />
       <PricingSection />
+      <TrainingSection />
       <FaqSection />
       <PhotoCta />
       <FooterSection />

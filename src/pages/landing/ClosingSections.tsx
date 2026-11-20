@@ -12,6 +12,35 @@ import { whatsappLink } from "@/lib/whatsapp";
 import { FooterCol } from "./Visuals";
 import { hasNoSetupFee, subscriptionSetup, useOnboardingConfig } from "@/lib/setupFee";
 
+/** Free online training for every new business; in-person for a fee. */
+export const TrainingSection = () => (
+  <section id="training" className="py-16 md:py-20">
+    <div className="container mx-auto grid items-center gap-8 px-4 md:grid-cols-[1.2fr_1fr]">
+      <div>
+        <h2 className="font-serif text-3xl font-semibold md:text-4xl">We'll teach you. It's free.</h2>
+        <p className="mt-4 max-w-xl text-muted-foreground">
+          Every new business gets free online training: short guides inside your dashboard, in the order you'll need them, and a live session you can join with your questions. You'll be running it yourself in a day.
+        </p>
+        <p className="mt-3 max-w-xl text-muted-foreground">
+          Rather have someone beside you? In-person training is available for a fee, which we confirm before anything is booked.
+        </p>
+      </div>
+      <ul className="space-y-3 rounded-2xl border border-border bg-card p-6 text-sm">
+        {[
+          ["Online guides and live sessions", "Free"],
+          ["Step-by-step set-up checklist", "Free"],
+          ["In-person training at your business", "Fee on request"],
+        ].map(([what, cost]) => (
+          <li key={what} className="flex items-start justify-between gap-4">
+            <span className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {what}</span>
+            <span className="shrink-0 font-medium">{cost}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+);
+
 export const PricingSection = () => {
   const [cadence, setCadence] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const { data: billing } = useOnboardingConfig();
@@ -29,8 +58,9 @@ export const PricingSection = () => {
                 Simple plans, paid monthly or yearly.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Standard and Premium are for studios with bookings; Premium adds an
-                online shop. Storefront is a shop on its own, for anything you sell.{" "}
+                Zuri Studios (Standard and Premium) is for businesses with bookings, and
+                Premium adds an online shop. Zuri Stores is a shop on its own, for
+                anything you sell.{" "}
                 {anySetup
                   ? `A setup fee at signup covers your first ${anySetup.months} months, then the plan price applies. Cancel at any time.`
                   : hasNoSetupFee(billing)

@@ -12,6 +12,7 @@ import type {
   ReviewDTO,
   ServiceDTO,
 } from "@/lib/api";
+import { whatsappLink } from "@/lib/whatsapp";
 import { formatGHS } from "@/lib/currency";
 
 // The details drawers the studio admin's tables open when a row is clicked.
@@ -161,7 +162,23 @@ export const OrderDetails = ({ item, onClose, footer }: { item: OrderDTO | null;
               items: [
                 { label: "Name", value: item.customer_name },
                 { label: "Email", value: item.customer_email },
-                { label: "Phone", value: item.customer_phone ?? item.delivery_phone },
+                {
+                  label: "Phone",
+                  value: (() => {
+                    const phone = item.customer_phone ?? item.delivery_phone;
+                    const href = whatsappLink(phone, `Hello ${(item.customer_name ?? "").split(" ")[0] || "there"}, this is about your order ${item.order_number}.`);
+                    return (
+                      <span>
+                        {phone}
+                        {href && (
+                          <a href={href} target="_blank" rel="noreferrer" className="ml-2 text-xs underline underline-offset-2">
+                            Message on WhatsApp
+                          </a>
+                        )}
+                      </span>
+                    );
+                  })(),
+                },
                 ...(item.fulfillment === "delivery" ? [{ label: "Deliver to", value: item.delivery_address }] : []),
                 ...(item.delivery_zone ? [{ label: "Area", value: item.delivery_zone }] : []),
                 ...(item.delivery_slot ? [{ label: "Customer chose", value: item.delivery_slot }] : []),

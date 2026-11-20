@@ -17,6 +17,7 @@ import { useStudio } from "@/hooks/useStudio";
 import { apiRequest } from "@/lib/apiClient";
 import { productsApi, servicesApi } from "@/lib/api";
 import { formatGHS } from "@/lib/currency";
+import { whatsappLink } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
 
 interface Line { name: string; quantity: number; unitPrice: number; kind: "service" | "product" | "custom" }
@@ -53,7 +54,6 @@ const ShareDialog = ({ bill, onClose }: { bill: Bill | null; onClose: () => void
     if (bill?.payUrl) QRCode.toDataURL(bill.payUrl, { margin: 1, width: 240 }).then(setQr).catch(() => setQr(""));
   }, [bill?.payUrl]);
   if (!bill) return null;
-  const digits = (bill.customerPhone ?? "").replace(/\D/g, "").replace(/^0/, "233");
   const text = `Hello ${bill.customerName.split(" ")[0]}, here is your bill from ${business} for ${formatGHS(bill.total)}. You can pay by Mobile Money or card here: ${bill.payUrl}`;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -81,7 +81,7 @@ const ShareDialog = ({ bill, onClose }: { bill: Bill | null; onClose: () => void
             <Copy className="mr-2 h-4 w-4" /> Copy link
           </Button>
           <Button asChild>
-            <a href={`https://wa.me/${digits}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
+            <a href={whatsappLink(bill.customerPhone, text) ?? `https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
               <MessageCircle className="mr-2 h-4 w-4" /> Send on WhatsApp
             </a>
           </Button>

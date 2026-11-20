@@ -7,6 +7,7 @@ import {
   Activity,
   Building2,
   CreditCard,
+  GraduationCap,
   Lightbulb,
   Quote,
   Receipt,
@@ -39,6 +40,7 @@ const groups: NavGroup[] = [
     label: "Community",
     items: [
       { name: "Feature requests", path: "/platform/requests", icon: Lightbulb },
+      { name: "Training", path: "/platform/training", icon: GraduationCap },
       { name: "Testimonials", path: "/platform/reviews", icon: Quote },
     ],
   },

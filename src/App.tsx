@@ -61,6 +61,8 @@ const AdminCalendar = lazy(() => import("./pages/admin/AdminCalendar"));
 const AdminStaff = lazy(() => import("./pages/admin/AdminStaff"));
 const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
 const AdminExpenses = lazy(() => import("./pages/admin/AdminExpenses"));
+const AdminLearn = lazy(() => import("./pages/admin/AdminLearn"));
+const PlatformTraining = lazy(() => import("./pages/platform/PlatformTraining"));
 const PayBill = lazy(() => import("./pages/PayBill"));
 const AdminBills = lazy(() => import("./pages/admin/AdminBills"));
 const AdminSales = lazy(() => import("./pages/admin/AdminSales"));
@@ -326,6 +328,7 @@ const App = () => (
                 <Route path="storage" element={<AdminStorage />} />
                 <Route path="sales" element={<AdminSales />} />
                 <Route path="bills" element={<AdminBills />} />
+                <Route path="learn" element={<AdminLearn />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="contact" element={<AdminContact />} />
@@ -356,6 +359,7 @@ const App = () => (
                   <Route path="users" element={<PlatformUsers />} />
                   <Route path="earnings" element={<PlatformEarnings />} />
                   <Route path="requests" element={<PlatformRequests />} />
+                  <Route path="training" element={<PlatformTraining />} />
                 <Route path="reviews" element={<PlatformReviews />} />
                 <Route path="transactions" element={<PlatformTransactions />} />
                   <Route path="billing" element={<PlatformBilling />} />

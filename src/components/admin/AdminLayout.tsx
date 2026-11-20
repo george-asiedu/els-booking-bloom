@@ -14,6 +14,7 @@ import {
   Lightbulb,
   CalendarDays,
   UserRound,
+  GraduationCap,
   Gift,
   Wallet,
   ShieldCheck,
@@ -148,6 +149,7 @@ const moneyAndMore: NavGroup[] = [
   {
     label: "More",
     items: [
+      { name: "Learn Zuri", path: "/admin/learn", icon: GraduationCap },
       { name: "Share your story", path: "/admin/testimonial", icon: Quote },
       { name: "Feature requests", path: "/admin/feature-requests", icon: Lightbulb },
       { name: "Security & alerts", path: "/admin/security", icon: ShieldCheck },
