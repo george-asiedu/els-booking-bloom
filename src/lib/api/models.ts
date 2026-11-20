@@ -52,6 +52,8 @@ export interface PaymentInfoDTO {
 
 export interface AppointmentDTO {
   id: string;
+  /** Only on a booking just made without an account: what lets the guest pay. */
+  guest_token?: string | undefined;
   full_name: string;
   phone: string;
   email: string | null;
@@ -165,6 +167,7 @@ export const normalizeService = (s: RawService): ServiceDTO => {
 
 export const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
   id: a.id,
+  guest_token: (a as { guestToken?: string }).guestToken,
   full_name: a.fullName,
   phone: a.phone,
   email: a.email,

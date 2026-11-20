@@ -42,6 +42,19 @@ export const tokenStore = {
 // "<slug>.app.example.com" resolves to that studio's slug. Left empty in local
 // dev, where the slug comes from impersonation or the server default instead.
 // A bare host, however it's written in the env ("http://localhost:8080" -> "localhost").
+// The guest key (for booking, paying and buying without an account) is read
+// from the API when first needed, so the platform can rotate it without a new
+// release. A request refused because the key changed fetches the new one and
+// tries once more.
+let guestKey: string | null = null;
+const loadGuestKey = async (force = false): Promise<string> => {
+  if (guestKey && !force) return guestKey;
+  const res = await fetch(`${API_URL}/platform/guest-key`, { headers: { "X-Zuri-Client": "web" }, cache: "no-store" });
+  const json = (await res.json().catch(() => null)) as { data?: { key?: string } } | null;
+  if (!res.ok || !json?.data?.key) throw new ApiError("Couldn't start this request. Please try again.", res.status);
+  guestKey = json.data.key;
+  return guestKey;
+};
 const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)
   ?.trim()
   .toLowerCase()
@@ -229,6 +242,16 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
+  try {
+    return await send<T>(path, options, false);
+  } catch (e) {
+    // The guest key was rotated since this page loaded: get the new one, retry once.
+    if (path.includes("guest") && e instanceof ApiError && e.status === 401) return send<T>(path, options, true);
+    throw e;
+  }
+}
+
+async function send<T>(path: string, options: RequestOptions, refreshGuestKey: boolean): Promise<T> {
   const { method = "GET", body, formData, auth = false } = options;
 
   const headers: Record<string, string> = {};
@@ -237,6 +260,8 @@ export async function apiRequest<T>(
   }
   // Proves the request came from this app (see the CSRF check in the API).
   headers["X-Zuri-Client"] = "web";
+  // Guest endpoints (no account) need the app's guest key.
+  if (path.includes("guest")) headers["X-Guest-Key"] = await loadGuestKey(refreshGuestKey);
   const signedIn = Boolean(tokenStore.getUser());
 
   // Scope the request to a specific studio when one is active (e.g. during

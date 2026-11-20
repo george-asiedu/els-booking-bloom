@@ -51,7 +51,7 @@ import {
   ordersApi,
   AppointmentDTO,
 } from "@/lib/api";
-import { setPendingBooking, takePendingBooking } from "@/lib/pendingBooking";
+import { takePendingBooking } from "@/lib/pendingBooking";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
@@ -106,6 +106,7 @@ const Book = () => {
   const [payAppointment, setPayAppointment] = useState<{
     id: string;
     type: "FULL" | "PARTIAL";
+    guestToken?: string;
   } | null>(null);
   const designImage = useDesignImage();
   const { toast } = useToast();
@@ -389,6 +390,7 @@ const Book = () => {
         apply_points: voucher ? false : effectiveApplyPoints,
         staff_id: staffMode ? staffChoice : undefined,
         voucher_code: voucher?.code,
+        guest: !user,
       }),
     onSuccess: async (appointment) => {
       // Points were spent and this slot is now taken — refresh both.
@@ -435,10 +437,10 @@ const Book = () => {
         // Service-only online payment (nothing to pay when a gift card or
         // package covered it).
         try {
-          const init = await paymentsApi.initialize(appointment.id, type);
+          const init = await paymentsApi.initialize(appointment.id, type, appointment.guest_token);
           setBookedAppointment(appointment);
           setPaymentKind("service");
-          setPayAppointment({ id: appointment.id, type });
+          setPayAppointment({ id: appointment.id, type, ...(appointment.guest_token ? { guestToken: appointment.guest_token } : {}) });
           setPaymentTarget({
             reference: init.reference,
             amount: init.amount,
@@ -474,28 +476,10 @@ const Book = () => {
   });
 
   const onSubmit = (data: BookingFormValues) => {
-    // Anyone can fill the form, but booking/paying requires an account. Save the
-    // filled-in details and send guests to log in / sign up — they come back to
-    // /book with everything restored (the design image can't be saved).
-    if (!user) {
-      setPendingBooking({
-        fullName: data.fullName,
-        phone: data.phone,
-        email: data.email,
-        service: data.service,
-        date: data.date ? data.date.toISOString() : undefined,
-        time: data.time,
-        notes: data.notes,
-        addOns,
-        applyPoints,
-        paymentMethod,
-        referral,
-      });
-      toast({
-        title: "Almost there",
-        description: "Log in or sign up to confirm your appointment.",
-      });
-      navigate("/login?redirect=/book");
+    // Guests can book and pay without an account; their email is how the
+    // studio confirms and sends the receipt.
+    if (!user && !data.email?.trim()) {
+      form.setError("email", { message: "Enter your email so we can confirm your booking" });
       return;
     }
     bookingMutation.mutate(data);
@@ -571,7 +555,7 @@ const Book = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email (optional)</FormLabel>
+                      <FormLabel>{user ? "Email (optional)" : "Email *"}</FormLabel>
                       <FormControl>
                         <Input placeholder="you@example.com" {...field} />
                       </FormControl>
@@ -850,7 +834,7 @@ const Book = () => {
                 </div>
 
                 {/* Product add-ons */}
-                {shopEnabled && products.length > 0 && (
+                {user && shopEnabled && products.length > 0 && (
                   <AddOnPicker
                     products={products}
                     quantities={addOns}
@@ -893,9 +877,7 @@ const Book = () => {
                   {bookingMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {!user
-                    ? "Log in to book"
-                    : hasAddOns
+                  {hasAddOns
                       ? `Pay ${formatGHS(bookingPayNow)} & Book`
                       : paymentEnabled
                         ? `Pay ${formatGHS(payNowAmount)} & Book`
@@ -920,6 +902,7 @@ const Book = () => {
                   type: payAppointment.type,
                   phone,
                   provider,
+                  ...(payAppointment.guestToken ? { guestToken: payAppointment.guestToken } : {}),
                 })
             : undefined
         }

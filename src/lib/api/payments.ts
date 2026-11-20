@@ -125,10 +125,11 @@ export const paymentsApi = {
   async initialize(
     appointmentId: string,
     type: "FULL" | "PARTIAL",
+    guestToken?: string,
   ): Promise<InitializePaymentResult> {
     const res = await apiRequest<Envelope<RawInitialize>>(
-      "/payments/initialize",
-      { method: "POST", auth: true, body: { appointmentId, type } },
+      guestToken ? "/payments/guest/initialize" : "/payments/initialize",
+      { method: "POST", auth: !guestToken, body: guestToken ? { appointmentId, type, guestToken } : { appointmentId, type } },
     );
     return {
       authorization_url: res.data.authorizationUrl,
@@ -149,12 +150,13 @@ export const paymentsApi = {
     type: "FULL" | "PARTIAL";
     phone: string;
     provider: string;
+    guestToken?: string;
   }): Promise<{ reference: string; status: string; displayText: string | null; amount: number }> {
     // status is Paystack's raw charge lifecycle: send_otp | pay_offline |
     // pending | success | failed — the dialog branches on it.
     const res = await apiRequest<
       Envelope<{ reference: string; status: string; displayText: string | null; amount: number }>
-    >("/payments/charge/momo", { method: "POST", auth: true, body: input });
+    >(input.guestToken ? "/payments/guest/charge/momo" : "/payments/charge/momo", { method: "POST", auth: !input.guestToken, body: input });
     return res.data;
   },
 

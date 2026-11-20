@@ -1,6 +1,9 @@
 import { useEffect, useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Settings } from "lucide-react";
+import { KeyRound, Loader2, Settings } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
+import { apiRequest } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,6 +56,75 @@ const FIELDS: {
     hint: "The studio address opened by \"See a real studio's page\", e.g. els for els.zuristudios.com.",
   },
 ];
+
+interface GuestKeyStatus {
+  endsWith: string;
+  rotatedAt: string | null;
+  previousValidUntil: string | null;
+}
+
+/** The key the web app sends for guest bookings, payments and orders. */
+const GuestKeyCard = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery({
+    queryKey: ["platform-guest-key"],
+    queryFn: async () => (await apiRequest<{ data: GuestKeyStatus }>("/platform/guest-key/status", { auth: true })).data,
+  });
+  const rotate = useMutation({
+    mutationFn: () => apiRequest<{ message: string }>("/platform/guest-key/rotate", { method: "POST", auth: true }),
+    onSuccess: (r) => {
+      toast({ title: "Guest key rotated", description: r.message });
+      qc.invalidateQueries({ queryKey: ["platform-guest-key"] });
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't rotate the key" }),
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <KeyRound className="h-5 w-5 text-primary" /> Guest access key
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p className="text-muted-foreground">
+          Customers without an account need this key to book, pay or buy. The app picks up the new one by itself when you rotate it, and the old key keeps working for 24 hours so pages that are already open don't break. Rotate it if you think it has leaked or is being misused.
+        </p>
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : data ? (
+          <dl className="grid gap-1">
+            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Current key</dt><dd className="font-mono">gk_••••{data.endsWith}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Last changed</dt><dd>{data.rotatedAt ? format(new Date(data.rotatedAt), "d MMM yyyy, h:mm a") : "Never"}</dd></div>
+            {data.previousValidUntil && (
+              <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Previous key stops working</dt><dd>{format(new Date(data.previousValidUntil), "d MMM, h:mm a")}</dd></div>
+            )}
+          </dl>
+        ) : null}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" disabled={rotate.isPending}>
+              {rotate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Rotate key
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Rotate the guest key?</AlertDialogTitle>
+              <AlertDialogDescription>
+                A new key is made now. The app uses it automatically. The current key stops working after 24 hours.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => rotate.mutate()}>Rotate key</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+};
 
 const PlatformSettings = () => {
   const qc = useQueryClient();
@@ -136,6 +208,8 @@ const PlatformSettings = () => {
             </CardContent>
           </Card>
         )}
+
+        <GuestKeyCard />
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Your sign-in and alerts</h2>
