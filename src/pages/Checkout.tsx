@@ -20,6 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatGHS as GHS } from "@/lib/currency";
 import { DeliveryChoice, deliveryPickBody, deliveryPickMissing, type DeliveryPick } from "@/components/shop/DeliveryChoice";
 import { deliveryFeeFor } from "@/lib/api/commerce";
+import { Captcha, captchaReady } from "@/components/Captcha";
+import { guestCartLines } from "@/lib/api/cart";
 import { cn } from "@/lib/utils";
 
 /** "You're almost there" (checkout): delivery details beside the order summary. */
@@ -41,6 +43,8 @@ const Checkout = () => {
   const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const isCustomer = !!user && user.role !== "ADMIN";
+  const isGuest = !user;
+  const [guest, setGuest] = useState({ name: "", email: "" });
 
   const { data: commerce } = useQuery({
     queryKey: ["commerce-settings"],
@@ -61,9 +65,9 @@ const Checkout = () => {
     onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "That code isn't valid" }),
   });
   const { data: cart, isLoading } = useQuery({
-    queryKey: ["cart"],
+    queryKey: ["cart", isCustomer ? "me" : "guest"],
     queryFn: () => cartApi.getMine(),
-    enabled: isCustomer,
+    enabled: user?.role !== "ADMIN",
   });
   useEffect(() => {
     if (commerce) setFulfillment(commerce.enable_pickup ? "PICKUP" : "DELIVERY");
@@ -74,7 +78,7 @@ const Checkout = () => {
     return () => clearTimeout(t);
   }, [address]);
 
-  if (!isCustomer) return <Navigate to="/cart" replace />;
+  if (user?.role === "ADMIN") return <Navigate to="/cart" replace />;
   if (!isLoading && !paymentOpen && !cart?.items.length) return <Navigate to="/cart" replace />;
 
   const items = cart?.items ?? [];
@@ -133,6 +137,40 @@ const Checkout = () => {
       toast({ variant: "destructive", title: "Delivery details needed", description: missing });
       return;
     }
+    if (isGuest) {
+      if (!guest.name.trim() || !guest.email.trim() || !phone.trim()) {
+        toast({ variant: "destructive", title: "Your details are needed", description: "Enter your name, email and phone number." });
+        return;
+      }
+      if (!captchaReady()) {
+        toast({ variant: "destructive", title: "Complete the security check first" });
+        return;
+      }
+      try {
+        setBusy(true);
+        processing.show(PROCESSING.preparing);
+        const res = await ordersApi.guestCheckout({
+          items: guestCartLines(),
+          name: guest.name.trim(),
+          email: guest.email.trim(),
+          phone: phone.trim(),
+          fulfillment,
+          deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
+          deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
+          deliveryNote: fulfillment === "DELIVERY" ? deliveryNote.trim() || undefined : undefined,
+          ...(fulfillment === "DELIVERY" ? deliveryPickBody(pick) : {}),
+          couponCode: coupon?.code,
+          giftCardCode: giftCard?.code,
+        });
+        // Paid in full with a gift card: straight to the confirmation.
+        window.location.href = res.authorization_url || `/order/callback?reference=${encodeURIComponent(res.reference)}`;
+      } catch (error) {
+        setBusy(false);
+        processing.hide();
+        toast({ variant: "destructive", title: "Couldn't start checkout", description: error instanceof Error ? error.message : "Please try again." });
+      }
+      return;
+    }
     try {
       setBusy(true);
       processing.show(PROCESSING.preparing);
@@ -184,8 +222,24 @@ const Checkout = () => {
           <div className="space-y-8 border border-border p-6">
             <div>
               <h2 className="font-medium">Your information</h2>
-              <Label htmlFor="co-email" className="mt-4 block text-xs uppercase tracking-wider">Email address</Label>
-              <Input id="co-email" value={user.email} readOnly className="mt-2 rounded-none bg-muted" />
+              {isGuest ? (
+                <>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    No account needed. <Link to="/login?redirect=/checkout" className="underline underline-offset-2">Log in</Link> if you have one, to use your points.
+                  </p>
+                  <Label htmlFor="co-name" className="mt-4 block text-xs uppercase tracking-wider">Full name *</Label>
+                  <Input id="co-name" value={guest.name} onChange={(e) => setGuest({ ...guest, name: e.target.value })} autoComplete="name" className="mt-2 rounded-none" />
+                  <Label htmlFor="co-email" className="mt-4 block text-xs uppercase tracking-wider">Email address *</Label>
+                  <Input id="co-email" type="email" value={guest.email} onChange={(e) => setGuest({ ...guest, email: e.target.value })} autoComplete="email" className="mt-2 rounded-none" />
+                  <Label htmlFor="co-gphone" className="mt-4 block text-xs uppercase tracking-wider">Phone *</Label>
+                  <Input id="co-gphone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" className="mt-2 rounded-none" />
+                </>
+              ) : (
+                <>
+                  <Label htmlFor="co-email" className="mt-4 block text-xs uppercase tracking-wider">Email address</Label>
+                  <Input id="co-email" value={user!.email} readOnly className="mt-2 rounded-none bg-muted" />
+                </>
+              )}
             </div>
             <fieldset className="border-t border-border pt-6">
               <legend className="font-medium">How would you like to get it?</legend>
@@ -232,6 +286,7 @@ const Checkout = () => {
                 )}
               </div>
             )}
+            {isGuest && <Captcha />}
             <button type="button" className={cn(SHOP_CTA, "w-full")} disabled={busy || isLoading} onClick={proceed}>
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Proceed to payment

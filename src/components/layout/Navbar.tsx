@@ -83,9 +83,9 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   // Show a cart icon with a live item count for logged-in customers.
   const isCustomer = !!user && user.role !== "ADMIN";
   const { data: cart } = useQuery({
-    queryKey: ["cart"],
+    queryKey: ["cart", user ? "me" : "guest"],
     queryFn: () => cartApi.getMine(),
-    enabled: isCustomer,
+    enabled: user?.role !== "ADMIN",
   });
   const cartCount = cart?.count ?? 0;
 
@@ -174,7 +174,7 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
                 {link.name}
               </Link>
             ))}
-            {isCustomer && shopEnabled && <CartButton />}
+            {user?.role !== "ADMIN" && shopEnabled && <CartButton />}
             <Button variant="ghost" size="icon" asChild>
               <Link to={user ? "/account" : "/login"}>
                 <User className="h-5 w-5" />
@@ -190,7 +190,7 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
 
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-2 md:hidden">
-            {isCustomer && shopEnabled && <CartButton />}
+            {user?.role !== "ADMIN" && shopEnabled && <CartButton />}
             <ThemeToggle />
             <Button
               variant="ghost"

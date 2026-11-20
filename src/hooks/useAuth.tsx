@@ -9,6 +9,7 @@ import {
 } from "react";
 import { authApi, SignupPayload } from "@/lib/api";
 import { clearAppBadge } from "@/lib/appBadge";
+import { mergeGuestCart } from "@/lib/api/cart";
 import { tokenStore, AuthUser, ApiError } from "@/lib/apiClient";
 
 interface AuthContextType {
@@ -42,6 +43,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const authedUser = await authApi.login(email, password, totp);
       setUser(authedUser);
+      // What they put in the basket before signing in joins their account's basket.
+      if (authedUser.role !== "ADMIN") void mergeGuestCart().catch(() => undefined);
       return { error: null, user: authedUser };
     } catch (error) {
       const message =
@@ -58,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const authedUser = await authApi.signup(payload);
       setUser(authedUser);
+      void mergeGuestCart().catch(() => undefined);
       return { error: null, user: authedUser };
     } catch (error) {
       const message =

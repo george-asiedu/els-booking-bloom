@@ -64,6 +64,7 @@ import { useDesignImage } from "./book/useDesignImage";
 import { useAddOns } from "./book/useAddOns";
 import { AdminCannotBook, BookingSuccess } from "./book/BookingStates";
 import { AddOnPicker } from "./book/AddOnPicker";
+import { Captcha, captchaReady } from "@/components/Captcha";
 import { BookingSummary } from "./book/BookingSummary";
 
 const timeSlots = [
@@ -476,6 +477,10 @@ const Book = () => {
   });
 
   const onSubmit = (data: BookingFormValues) => {
+    if (!user && !captchaReady()) {
+      toast({ variant: "destructive", title: "Complete the security check first" });
+      return;
+    }
     // Guests can book and pay without an account; their email is how the
     // studio confirms and sends the receipt.
     if (!user && !data.email?.trim()) {
@@ -868,6 +873,7 @@ const Book = () => {
                     Because of missed appointments, this booking needs to be paid in full.
                   </p>
                 )}
+                {!user && <Captcha />}
                 <Button
                   type="submit"
                   size="lg"

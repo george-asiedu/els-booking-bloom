@@ -1,6 +1,7 @@
 // Low-level API client for the ELS-Server Express API.
 // Handles base URL, cookie sessions, JSON (de)serialization and error shaping.
 
+import { resetCaptcha, takeCaptchaToken } from "@/components/Captcha";
 import { getDeviceId } from "./deviceIdentity";
 
 const CONFIGURED_API_URL: string =
@@ -242,16 +243,22 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
+  // The security check's token works once, so take it here and use the same
+  // one if the request has to be tried again.
+  const captcha = takeCaptchaToken();
   try {
-    return await send<T>(path, options, false);
+    return await send<T>(path, options, false, captcha);
   } catch (e) {
     // The guest key was rotated since this page loaded: get the new one, retry once.
-    if (path.includes("guest") && e instanceof ApiError && e.status === 401) return send<T>(path, options, true);
+    if (path.includes("guest") && e instanceof ApiError && e.status === 401) return send<T>(path, options, true, captcha);
     throw e;
+  } finally {
+    // A used token is spent: ask for a fresh check for the next try.
+    if (captcha) resetCaptcha();
   }
 }
 
-async function send<T>(path: string, options: RequestOptions, refreshGuestKey: boolean): Promise<T> {
+async function send<T>(path: string, options: RequestOptions, refreshGuestKey: boolean, captcha: string): Promise<T> {
   const { method = "GET", body, formData, auth = false } = options;
 
   const headers: Record<string, string> = {};
@@ -262,6 +269,9 @@ async function send<T>(path: string, options: RequestOptions, refreshGuestKey: b
   headers["X-Zuri-Client"] = "web";
   // Guest endpoints (no account) need the app's guest key.
   if (path.includes("guest")) headers["X-Guest-Key"] = await loadGuestKey(refreshGuestKey);
+  // The security check, for the requests that start something as a guest.
+  if (captcha && (path === "/appointments/guest" || path === "/orders/guest-checkout" || /^\/bills\/pay\/[^/]+\/start$/.test(path)))
+    headers["X-Captcha-Token"] = captcha;
   const signedIn = Boolean(tokenStore.getUser());
 
   // Scope the request to a specific studio when one is active (e.g. during

@@ -21,9 +21,9 @@ const Cart = () => {
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
 
   const { data: cart, isLoading } = useQuery({
-    queryKey: ["cart"],
+    queryKey: ["cart", isCustomer ? "me" : "guest"],
     queryFn: () => cartApi.getMine(),
-    enabled: isCustomer,
+    enabled: user?.role !== "ADMIN",
   });
   const { data: allProducts = [] } = useQuery({
     queryKey: ["public-products"],
@@ -54,33 +54,7 @@ const Cart = () => {
   });
 
   // Gates.
-  if (!user) {
-    return (
-      <Layout>
-        <section className="py-20">
-          <div className="container mx-auto max-w-md px-4 text-center">
-            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-primary" />
-            <h1 className="mb-2 font-serif text-2xl font-bold text-foreground">
-              Log in to view your bag
-            </h1>
-            <p className="mb-6 text-muted-foreground">
-              Sign in to add products and check out.
-            </p>
-            <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild>
-                <Link to="/login?redirect=/cart">Log in</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/shop">Continue shopping</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </Layout>
-    );
-  }
-
-  if (user.role === "ADMIN") {
+  if (user?.role === "ADMIN") {
     return (
       <Layout>
         <section className="py-20 text-center">

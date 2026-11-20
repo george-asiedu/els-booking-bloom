@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
 import { DeliveryChoice, deliveryPickBody, deliveryPickMissing, type DeliveryPick } from "@/components/shop/DeliveryChoice";
 import { deliveryFeeFor } from "@/lib/api/commerce";
+import { Captcha, captchaReady } from "@/components/Captcha";
 import { formatGHS } from "@/lib/currency";
 
 const RECENT_KEY = "zuri_recently_viewed";
@@ -201,13 +202,8 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!optionsChosen()) return;
-    if (!user) {
-      // The saved add has no options, so those shoppers choose again after login.
-      if (!product?.sizes.length && !product?.colors.length) setPendingCartAdd(id);
-      navigate(`/login?redirect=/shop/${id}`);
-      return;
-    }
-    if (user.role === "ADMIN") {
+    // No account needed: a visitor's basket stays on their own device.
+    if (user?.role === "ADMIN") {
       toast({ variant: "destructive", title: "Admins can't shop" });
       return;
     }
@@ -222,6 +218,10 @@ const ProductDetail = () => {
         title: "Details needed",
         description: "Enter your name, email and phone.",
       });
+      return;
+    }
+    if (!captchaReady()) {
+      toast({ variant: "destructive", title: "Complete the security check first" });
       return;
     }
     if (fulfillment === "DELIVERY" && !address.trim()) {
@@ -495,6 +495,7 @@ const ProductDetail = () => {
                         <Label htmlFor="referral" className="text-xs text-muted-foreground">Referral code (optional)</Label>
                         <Input id="referral" value={referral} onChange={(e) => setReferral(e.target.value)} />
                       </div>
+                      <Captcha />
                       <Button type="button" className="h-11 w-full rounded-xl" disabled={redirecting} onClick={handleGuestBuy}>
                         {redirecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Pay {formatGHS(guestTotal + processingFeeFor(guestTotal, config?.settings))}

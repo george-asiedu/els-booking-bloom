@@ -105,7 +105,7 @@ export const PLANS: PlanDef[] = [
       "An online shop with cart and checkout",
       "Sell products during booking",
       "Payments settled straight to your account",
-      "1 GB of storage. Need more? 50 MB is GHS 5 a month",
+      "1 GB of storage. Need more? 500 MB is GHS 5 a month",
     ],
   },
   {

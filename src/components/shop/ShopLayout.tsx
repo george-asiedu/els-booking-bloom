@@ -45,9 +45,9 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
   });
   const isCustomer = !!user && user.role !== "ADMIN";
   const { data: cart } = useQuery({
-    queryKey: ["cart"],
+    queryKey: ["cart", user ? "me" : "guest"],
     queryFn: () => cartApi.getMine(),
-    enabled: isCustomer,
+    enabled: user?.role !== "ADMIN",
   });
   const count = cart?.items.reduce((n, i) => n + i.quantity, 0) ?? 0;
 

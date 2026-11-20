@@ -3,6 +3,7 @@ import { planLabel } from "@/config/platform";
 import { format, parseISO } from "date-fns";
 import { DetailsSheet } from "@/components/ui/details-sheet";
 import { EarningDetails, PurposeBadge } from "@/components/platform/EarningDetails";
+import { StudioStorageCard } from "@/components/platform/StudioStorageCard";
 import { StudioBillingCard as BillingCard } from "@/components/platform/StudioBillingCard";
 import { StudioBillingTerms } from "@/components/platform/StudioBillingTerms";
 import { UserDirectory, type DirectorySource } from "@/components/users/UserDirectory";
@@ -346,6 +347,7 @@ const PlatformStudioDetail = () => {
         <Stat label="Orders" value={studio.counts.orderCount} />
       </div>
 
+      <StudioStorageCard studioId={studio.id} />
       <BillingCard billing={studio.billing} onOpenPayment={setOpenEarning} />
       <StudioBillingTerms studioId={studio.id} billing={studio.billing} />
 

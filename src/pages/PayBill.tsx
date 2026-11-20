@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/apiClient";
+import { Captcha, captchaEnabled } from "@/components/Captcha";
 import { formatGHS } from "@/lib/currency";
 
 interface PublicBill {
@@ -28,6 +29,7 @@ const PayBill = () => {
   const reference = params.get("reference") ?? params.get("trxref") ?? "";
   const qc = useQueryClient();
   const [email, setEmail] = useState("");
+  const [ready, setReady] = useState(!captchaEnabled);
 
   const bill = useQuery({
     queryKey: ["pay-bill", token],
@@ -104,8 +106,9 @@ const PayBill = () => {
               <Input id="pay-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
             </div>
           )}
+          <Captcha onChange={setReady} />
           {pay.isError && <p className="text-sm text-destructive" role="alert">{pay.error instanceof Error ? pay.error.message : "Couldn't start the payment."}</p>}
-          <Button type="submit" className="h-12 w-full" disabled={pay.isPending}>
+          <Button type="submit" className="h-12 w-full" disabled={pay.isPending || !ready}>
             {pay.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Pay {formatGHS(b.total + b.processingFee)}
           </Button>

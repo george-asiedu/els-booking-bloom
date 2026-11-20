@@ -14,6 +14,7 @@ import {
   PaymentResultStatus,
   ResultRow,
 } from "@/components/payment/PaymentResultScreen";
+import { clearGuestCart, isGuestShopper } from "@/lib/api/cart";
 import { formatGHS } from "@/lib/currency";
 
 const OrderCallback = () => {
@@ -36,7 +37,11 @@ const OrderCallback = () => {
 
   // A paid order clears the server cart — refresh the badge.
   useEffect(() => {
-    if (paid) queryClient.invalidateQueries({ queryKey: ["cart"] });
+    if (paid) {
+      // A guest's basket lives on their device: empty it once the order is paid.
+      if (isGuestShopper()) clearGuestCart();
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    }
   }, [paid, queryClient]);
 
   const status: PaymentResultStatus = !reference

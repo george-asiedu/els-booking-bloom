@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Loader2, Settings } from "lucide-react";
+import { HardDrive, KeyRound, Loader2, Settings } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/apiClient";
@@ -126,6 +126,61 @@ const GuestKeyCard = () => {
   );
 };
 
+/** What each Zuri Studios plan includes, and what an extra block costs. */
+const StorageCard = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery({
+    queryKey: ["platform-storage-settings"],
+    queryFn: async () => (await apiRequest<{ data: { standardMb: number; premiumMb: number; blockMb: number; blockPrice: number } }>("/platform/storage-settings", { auth: true })).data,
+  });
+  const [form, setForm] = useState<Record<string, string> | null>(null);
+  const v = form ?? (data ? { standardMb: String(data.standardMb), premiumMb: String(data.premiumMb), blockMb: String(data.blockMb), blockPrice: String(data.blockPrice) } : null);
+  const save = useMutation({
+    mutationFn: () => apiRequest("/platform/storage-settings", { method: "PATCH", auth: true, body: Object.fromEntries(Object.entries(v ?? {}).map(([k, x]) => [k, Number(x)])) }),
+    onSuccess: () => {
+      toast({ title: "Storage plans saved" });
+      setForm(null);
+      qc.invalidateQueries({ queryKey: ["platform-storage-settings"] });
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't save" }),
+  });
+  const fields: { key: string; label: string; hint?: string }[] = [
+    { key: "standardMb", label: "Standard plan includes (MB)" },
+    { key: "premiumMb", label: "Premium plan includes (MB)", hint: "1024 MB is 1 GB" },
+    { key: "blockMb", label: "Extra block size (MB)" },
+    { key: "blockPrice", label: "Extra block price per month (GHS)" },
+  ];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg"><HardDrive className="h-5 w-5 text-primary" /> Storage plans</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          For Zuri Studios only (Zuri Stores has no limit). A studio over its limit can't upload until it deletes files or adds blocks, which are added to its next bill. Changes apply straight away to every studio.
+        </p>
+        {isLoading || !v ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fields.map((f) => (
+              <div key={f.key} className="space-y-1.5">
+                <Label htmlFor={`st-${f.key}`}>{f.label}</Label>
+                <Input id={`st-${f.key}`} type="number" min={0} step={f.key === "blockPrice" ? "0.01" : "1"} value={v[f.key]} onChange={(e) => setForm({ ...v, [f.key]: e.target.value })} />
+                {f.hint && <p className="text-xs text-muted-foreground">{f.hint}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        <Button onClick={() => save.mutate()} disabled={save.isPending || !form}>
+          {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save storage plans
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
 const PlatformSettings = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -208,6 +263,8 @@ const PlatformSettings = () => {
             </CardContent>
           </Card>
         )}
+
+        <StorageCard />
 
         <GuestKeyCard />
 
