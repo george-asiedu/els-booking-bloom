@@ -61,6 +61,8 @@ const AdminCalendar = lazy(() => import("./pages/admin/AdminCalendar"));
 const AdminStaff = lazy(() => import("./pages/admin/AdminStaff"));
 const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
 const AdminExpenses = lazy(() => import("./pages/admin/AdminExpenses"));
+const PayBill = lazy(() => import("./pages/PayBill"));
+const AdminBills = lazy(() => import("./pages/admin/AdminBills"));
 const AdminSales = lazy(() => import("./pages/admin/AdminSales"));
 const AdminStorage = lazy(() => import("./pages/admin/AdminStorage"));
 const RiderDelivery = lazy(() => import("./pages/RiderDelivery"));
@@ -277,6 +279,7 @@ const App = () => (
               />
               <Route path="/order/callback" element={<OrderCallback />} />
               <Route path="/delivery/:token" element={<RiderDelivery />} />
+              <Route path="/pay/:token" element={<PayBill />} />
               <Route path="/gift-cards" element={<GiftCards />} />
               <Route path="/gift-cards/callback" element={<GiftCardCallback />} />
               <Route path="/booking/callback" element={<BookingCallback />} />
@@ -322,6 +325,7 @@ const App = () => (
                 <Route path="expenses" element={<AdminExpenses />} />
                 <Route path="storage" element={<AdminStorage />} />
                 <Route path="sales" element={<AdminSales />} />
+                <Route path="bills" element={<AdminBills />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="contact" element={<AdminContact />} />

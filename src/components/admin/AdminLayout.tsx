@@ -80,7 +80,6 @@ const studioNav = (f: Features): NavGroup[] => [
             { name: "Products", path: "/admin/products", icon: ShoppingBag },
             { name: "Product categories", path: "/admin/product-categories", icon: Tag },
             { name: "Coupons", path: "/admin/coupons", icon: TicketPercent },
-      { name: "Sales", path: "/admin/sales", icon: Flame },
             { name: "Sales", path: "/admin/sales", icon: Flame },
             { name: "Shop settings", path: "/admin/commerce", icon: Store },
           ],
@@ -117,6 +116,7 @@ const storeNav: NavGroup[] = [
       { name: "Products", path: "/admin/products", icon: ShoppingBag },
       { name: "Categories", path: "/admin/product-categories", icon: Tag },
       { name: "Coupons", path: "/admin/coupons", icon: TicketPercent },
+      { name: "Sales", path: "/admin/sales", icon: Flame },
       { name: "Customers", path: "/admin/users", icon: Users },
       { name: "Reviews", path: "/admin/reviews", icon: Star },
       { name: "Store settings", path: "/admin/commerce", icon: Store },
@@ -138,6 +138,7 @@ const moneyAndMore: NavGroup[] = [
     label: "Money",
     items: [
       { name: "Payments", path: "/admin/payments", icon: CreditCard },
+      { name: "Bills", path: "/admin/bills", icon: Receipt },
       { name: "Transactions", path: "/admin/transactions", icon: Receipt },
       { name: "Expenses", path: "/admin/expenses", icon: Wallet },
       { name: "Gift cards", path: "/admin/gift-cards", icon: Gift },
