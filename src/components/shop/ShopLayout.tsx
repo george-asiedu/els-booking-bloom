@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 /**
  * The shop website's frame (shop-website-design): a slim strip, a header with
  * categories, the shop's name in the middle, search and bag, and a footer.
- * Used by every shop page, for a Zuri Storefront and a Premium studio's shop.
+ * Used by every shop page, for a Zuri Stores and a Premium studio's shop.
  */
 export const ShopLayout = ({ children }: { children: ReactNode }) => {
   const { name, config, features } = useStudio();
@@ -241,7 +241,7 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
         <div className="border-t border-border">
           <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
             <span>© {new Date().getFullYear()} {name}</span>
-            <a href="https://zuristudios.com" target="_blank" rel="noreferrer" className="hover:text-foreground">Powered by Zuri Studios</a>
+            <a href="https://zuristudios.com" target="_blank" rel="noreferrer" className="hover:text-foreground">Powered by Zuri</a>
           </div>
         </div>
       </footer>

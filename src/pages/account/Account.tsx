@@ -46,7 +46,7 @@ const Account = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const processing = useProcessing();
-  // A Zuri Storefront has no bookings: its customers see orders first.
+  // A Zuri Stores has no bookings: its customers see orders first.
   const booking = features.booking !== false;
   const initialTab = searchParams.get("tab") || (booking ? "appointments" : "orders");
   const [payingId, setPayingId] = useState<string | null>(null);

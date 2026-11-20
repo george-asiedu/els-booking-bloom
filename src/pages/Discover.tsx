@@ -48,8 +48,8 @@ const Discover = () => {
   });
   useHideSplashWhen(!isLoading);
   useSeo({
-    title: "Find a business on Zuri · Zuri Studios",
-    description: "Studios you can book and shops you can buy from, all on Zuri Studios. Pay directly by Mobile Money or card.",
+    title: "Find a business on Zuri · Zuri",
+    description: "Studios you can book and shops you can buy from, all on Zuri. Pay directly by Mobile Money or card.",
   });
 
   return (

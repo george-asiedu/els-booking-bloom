@@ -140,7 +140,7 @@ const Stat = ({
 
 // ---- page ------------------------------------------------------------------
 
-// A Zuri Storefront has no bookings: it gets the shop dashboard instead.
+// A Zuri Stores has no bookings: it gets the shop dashboard instead.
 const AdminDashboard = () => {
   const { features } = useStudio();
   if (features.booking === false)

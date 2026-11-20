@@ -355,11 +355,11 @@ const Onboarding = () => {
             <p className="mb-5 text-sm text-muted-foreground">
               A booking website for your beauty business, or an online shop for anything you sell.
             </p>
-            {/* Product: Zuri Studios (booking) or Zuri Storefront (a shop alone). */}
+            {/* Product: Zuri (booking) or Zuri Stores (a shop alone). */}
             <div className="mb-8 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Product">
               {([
                 ["studio", "Zuri Studios", "Bookings, payments and a website for your beauty business. Add a shop with Premium.", "STANDARD"],
-                ["storefront", "Zuri Storefront", "An online shop of your own, for clothes, food, perfume or anything else you sell.", "STOREFRONT"],
+                ["storefront", "Zuri Stores", "An online shop of your own, for clothes, food, perfume or anything else you sell.", "STOREFRONT"],
               ] as const).map(([id, title, text, first]) => (
                 <button
                   key={id}

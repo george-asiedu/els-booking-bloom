@@ -13,7 +13,7 @@ import { AppointmentDTO, PaymentReceiptDTO, OrderDTO } from "./api";
 import { formatGHS } from "@/lib/currency";
 
 // Neutral platform fallback; callers pass the current studio's name.
-const DEFAULT_BRAND = "Zuri Studios";
+const DEFAULT_BRAND = "Zuri";
 const PINK: [number, number, number] = [190, 24, 93];
 const GREY: [number, number, number] = [107, 114, 128];
 const DARK: [number, number, number] = [31, 41, 55];

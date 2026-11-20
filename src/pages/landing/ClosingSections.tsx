@@ -78,7 +78,7 @@ export const PricingSection = () => {
                   </span>
                 )}
                 <p className="text-xs font-medium text-muted-foreground">
-                  {plan.product === "storefront" ? "Zuri Storefront · shop only" : "Zuri Studios · booking"}
+                  {plan.product === "storefront" ? "Zuri Stores · shop only" : "Zuri Studios · booking"}
                 </p>
                 <h3 className="mt-1 text-xl font-semibold">{plan.name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>
@@ -213,7 +213,7 @@ export const FooterSection = () => {
 
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
             <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Zuri Studios. All rights reserved.
+              © {new Date().getFullYear()} Zuri. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <a

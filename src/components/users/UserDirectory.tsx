@@ -546,7 +546,7 @@ const UserSheet = ({
                 {!editable && user.role === "CUSTOMER" && (
                   <p className="rounded-md bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
                     Customers update their own name and phone number from their account on your
-                    site. To remove a customer's account, contact Zuri Studios support.
+                    site. To remove a customer's account, contact Zuri support.
                   </p>
                 )}
               </div>

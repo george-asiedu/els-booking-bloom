@@ -109,7 +109,7 @@ export const keyBytes = (base64url: string): Uint8Array<ArrayBuffer> => {
 /**
  * Point the page at its install manifest. The platform uses the static
  * /manifest.webmanifest; a studio's site gets one with its own name and colour,
- * so its customers install "El's Beauty Studio", not "Zuri Studios".
+ * so its customers install "El's Beauty Studio", not "Zuri".
  */
 export const applyStudioManifest = (studio: { name: string; themeColor?: string | null }) => {
   const origin = window.location.origin;

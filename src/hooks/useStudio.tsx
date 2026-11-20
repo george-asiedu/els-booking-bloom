@@ -15,7 +15,7 @@ interface StudioContextType {
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
-const FALLBACK_NAME = "Zuri Studios";
+const FALLBACK_NAME = "Zuri";
 
 const ALL_ON: StudioFeatureFlags = {
   booking: true,

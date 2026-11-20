@@ -156,7 +156,7 @@ export const ApproachSplit = () => (
 const FEATURED = [
   { img: bookingPhone, title: "Your booking website", text: "Your name, your colour, your prices and gallery, at your own web address." },
   { img: paymentsPhone, title: "Payments and deposits", text: "Mobile Money or card. Deposits cut no-shows, and the money comes to you." },
-  { img: shopOwner, title: "An online shop", text: "Sell products with your studio, or run Zuri Storefront for anything you sell." },
+  { img: shopOwner, title: "An online shop", text: "Sell products with your studio, or run Zuri Stores for anything you sell." },
   { img: loyaltyRobe, title: "Loyalty and reviews", text: "Points for every visit, rewards for referrals, and reviews new clients can read." },
 ];
 
@@ -262,7 +262,7 @@ export const TypesCarousel = () => {
           <p className="mt-3 text-muted-foreground">
             Shops, home studios and mobile artists alike. Don't see yours? If you take bookings,
             Zuri works for you. Selling something else?{" "}
-            <Link to="/onboarding" className="font-medium text-foreground underline underline-offset-4">Try Zuri Storefront</Link>.
+            <Link to="/onboarding" className="font-medium text-foreground underline underline-offset-4">Try Zuri Stores</Link>.
           </p>
         </Reveal>
         <div className="relative">

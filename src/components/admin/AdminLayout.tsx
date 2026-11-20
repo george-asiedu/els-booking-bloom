@@ -46,7 +46,7 @@ import { DashboardShell, type NavGroup } from "@/components/dashboard/DashboardS
 
 type Features = ReturnType<typeof useStudio>["features"];
 
-// A studio takes bookings (and may have a shop); a Zuri Storefront is a shop
+// A studio takes bookings (and may have a shop); a Zuri Stores is a shop
 // only, so it gets its own menu with no booking pages.
 const studioNav = (f: Features): NavGroup[] => [
   {

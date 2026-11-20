@@ -11,7 +11,7 @@
 const env = import.meta.env as Record<string, string | undefined>;
 
 export const SITE_DEFAULTS = {
-  name: "Zuri Studios",
+  name: "Zuri",
   // Short line above the hero headline: who the product is for. Deliberately
   // not a list of trades, so no beauty business reads itself as left out.
   heroBadge: "Made for beauty businesses across Ghana",
@@ -25,7 +25,7 @@ export const SITE_DEFAULTS = {
 export const PLATFORM = {
   ...SITE_DEFAULTS,
   description:
-    "Zuri Studios gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
+    "Zuri gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
   // Platform root domain (studios live at <slug>.<rootDomain> in production).
   // Normalised to a bare host: strips any scheme, path, port and stray dots so a
   // misconfigured value (e.g. an API URL) can't produce a broken storefront URL.
@@ -58,7 +58,7 @@ export const YEARLY_FREE_MONTHS = 2;
 export type PlanId = "STANDARD" | "PREMIUM" | "STOREFRONT";
 
 // Two products: Zuri Studios (booking, with an optional shop on Premium) and
-// Zuri Storefront (a shop on its own, for any seller).
+// Zuri Stores (a shop on its own, for any seller).
 export type Product = "studio" | "storefront";
 
 export interface PlanDef {

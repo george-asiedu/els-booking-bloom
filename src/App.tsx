@@ -130,7 +130,7 @@ const SplashController = () => {
 const RootRoute = () => {
   const { features, isLoading } = useStudio();
   if (!studioStore.getSlug()) return <PlatformLanding />;
-  // A Zuri Storefront (shop only) opens on its shop.
+  // A Zuri Stores (shop only) opens on its shop.
   if (!isLoading && features.booking === false) return <ShopHome />;
   return <Index />;
 };

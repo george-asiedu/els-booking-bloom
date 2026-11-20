@@ -159,7 +159,7 @@ const PlatformDashboard = () => {
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Welcome back</h1>
           <p className="text-sm text-muted-foreground">
             {allStudios
-              ? `${allStudios.length} studios and stores on Zuri Studios`
+              ? `${allStudios.length} studios and stores on Zuri`
               : " "}
           </p>
         </div>
@@ -178,7 +178,7 @@ const PlatformDashboard = () => {
           <Stat
             tone="amber"
             title="Your earnings"
-            hint="What studios have paid Zuri Studios"
+            hint="What studios have paid Zuri"
             value={formatGHS(analytics.platformEarnings.thisMonth)}
             period="this month"
             compare={<VsLastMonth now={analytics.platformEarnings.thisMonth} before={analytics.platformEarnings.lastMonth} />}

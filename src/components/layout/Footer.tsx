@@ -141,7 +141,7 @@ export const Footer = () => {
               rel="noreferrer"
               className="text-xs transition-colors hover:text-primary"
             >
-              Powered by Zuri Studios
+              Powered by Zuri
             </a>
           </div>
         </div>

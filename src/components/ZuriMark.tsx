@@ -12,7 +12,7 @@ export const ZURI_NAVY = "#111827";
 
 /** The mark on its navy tile; reads on light and dark backgrounds alike. */
 export const ZuriMark = ({ className, tile = true }: { className?: string; tile?: boolean }) => (
-  <svg viewBox="0 0 160 160" className={cn("h-8 w-8 shrink-0", className)} role="img" aria-label="Zuri Studios">
+  <svg viewBox="0 0 160 160" className={cn("h-8 w-8 shrink-0", className)} role="img" aria-label="Zuri">
     {tile && <rect width="160" height="160" rx="36" fill={ZURI_NAVY} />}
     <g transform="translate(30 30)" fill={ZURI_YELLOW}>
       {Z_PATHS.map((d) => <path key={d} d={d} />)}

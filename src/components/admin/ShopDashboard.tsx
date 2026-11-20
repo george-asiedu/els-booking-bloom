@@ -26,7 +26,7 @@ const TABS = [
 ] as const;
 const compact = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : String(Math.round(v)));
 
-/** The dashboard for a Zuri Storefront: sales, orders, stock and customers. */
+/** The dashboard for a Zuri Stores: sales, orders, stock and customers. */
 export const ShopDashboard = () => {
   const { name, config } = useStudio();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");

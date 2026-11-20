@@ -61,7 +61,7 @@ const RecoveryCodes = ({ codes, label }: { codes: string[]; label: string }) => 
  * Authenticator, 1Password…): set up by scanning a QR code, recovery codes
  * shown once, and turning it off needs the password and a code.
  */
-export const TwoFactorCard = ({ client, label = "Zuri Studios" }: { client: SecurityClient; label?: string }) => {
+export const TwoFactorCard = ({ client, label = "Zuri" }: { client: SecurityClient; label?: string }) => {
   const qc = useQueryClient();
   const { toast } = useToast();
   const key = ["two-factor", client];

@@ -68,7 +68,7 @@ export const PlatformLayout = ({ children }: { children: ReactNode }) => {
         <span className="flex items-center gap-2.5">
           <ZuriMark className="h-6 w-6" />
           <span>
-            <span className="block font-semibold">Zuri Studios</span>
+            <span className="block font-semibold">Zuri</span>
             <span className="block text-xs text-band-foreground/55">Platform console</span>
           </span>
         </span>

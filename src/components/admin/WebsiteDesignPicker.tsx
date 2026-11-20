@@ -55,7 +55,7 @@ export const WebsiteDesignPicker = ({
 }: {
   value: StudioContentDTO;
   onChange: (next: StudioContentDTO) => void;
-  // A Zuri Storefront picks what it sells; the shop design follows from that.
+  // A Zuri Stores picks what it sells; the shop design follows from that.
   shop?: boolean;
 }) => {
   if (shop)
