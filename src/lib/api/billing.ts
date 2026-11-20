@@ -13,6 +13,8 @@ export interface StudioBillingDTO {
   lapsed?: boolean;
   // What this account pays per period for each plan (its own price/discount).
   yourPrices?: Record<"STANDARD" | "PREMIUM" | "STOREFRONT", Record<"MONTHLY" | "YEARLY", number>>;
+  /** Charges on top of the plan (feature request fees, extra storage, training), added to the next renewal. */
+  extras?: { items: { id: string; kind: string; description: string; amount: number }[]; total: number };
   discountPercent?: number;
   discountEndsAt?: string | null;
   // Only on the reply to a renewal: what was just paid for.
@@ -77,6 +79,22 @@ export const studioBillingApi = {
       "/studio/billing/renew/apply",
       { method: "POST", auth: true, body: input },
     );
+    return res.data;
+  },
+  // Pay what's owed on top of the plan now, instead of at the next renewal.
+  async startExtrasPayment(): Promise<{ reference: string; accessCode: string; publicKey: string }> {
+    const res = await apiRequest<Envelope<{ reference: string; accessCode: string; publicKey: string }>>(
+      "/studio/billing/extras",
+      { method: "POST", auth: true },
+    );
+    return res.data;
+  },
+  async applyExtrasPayment(input: { reference: string }): Promise<StudioBillingDTO> {
+    const res = await apiRequest<Envelope<StudioBillingDTO>>("/studio/billing/extras/apply", {
+      method: "POST",
+      auth: true,
+      body: input,
+    });
     return res.data;
   },
 };

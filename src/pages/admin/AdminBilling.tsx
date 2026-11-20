@@ -90,6 +90,41 @@ const AdminBilling = () => {
     }
   };
 
+  // Settle the extras now (feature fees, storage, training) without renewing.
+  const payExtras = async () => {
+    setBusy(true);
+    processing.show(PROCESSING.preparing);
+    try {
+      const { reference, accessCode } = await studioBillingApi.startExtrasPayment();
+      processing.hide();
+      const popup = new PaystackPop();
+      popup.resumeTransaction(accessCode, {
+        onSuccess: async () => {
+          try {
+            processing.show({ title: "Recording your payment", message: "Your payment went through. We're applying it now." });
+            await studioBillingApi.applyExtrasPayment({ reference });
+            queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
+            toast({ title: "Paid", description: "Your extra charges are settled." });
+          } catch (err) {
+            toast({ variant: "destructive", title: "Payment received, but it didn't apply", description: err instanceof Error ? err.message : "Please contact support." });
+          } finally {
+            processing.hide();
+            setBusy(false);
+          }
+        },
+        onCancel: () => setBusy(false),
+        onError: (e: { message?: string }) => {
+          setBusy(false);
+          toast({ variant: "destructive", title: "Payment failed", description: e?.message });
+        },
+      });
+    } catch (error) {
+      processing.hide();
+      setBusy(false);
+      toast({ variant: "destructive", title: "Couldn't start the payment", description: error instanceof Error ? error.message : "Please try again." });
+    }
+  };
+
   const renew = async () => {
     setBusy(true);
     processing.show(PROCESSING.preparing);
@@ -169,6 +204,28 @@ const AdminBilling = () => {
           </div>
         ) : (
           <>
+            {!!billing.extras?.items.length && (
+              <Card>
+                <CardContent className="py-4 text-sm">
+                  <p className="font-medium">{revShare ? "Extra charges" : "Added to your next renewal"}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {billing.extras.items.map((x) => (
+                      <li key={x.id} className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">{x.description}</span>
+                        <span className="tabular-nums">{GHS(x.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 flex justify-between gap-4 border-t border-border pt-1 font-medium">
+                    <span>Extras total</span>
+                    <span className="tabular-nums">{GHS(billing.extras.total)}</span>
+                  </p>
+                  <Button size="sm" variant={revShare ? "default" : "outline"} className="mt-2" disabled={busy} onClick={payExtras}>
+                    Pay {GHS(billing.extras.total)} now
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             {revShare ? (
           <Card>
             <CardContent className="space-y-3 py-6">

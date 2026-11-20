@@ -667,6 +667,14 @@ export const platformApi = {
     return res.data;
   },
 
+  async setFeatureRequestFee(id: string, fee: number): Promise<PlatformFeatureRequest> {
+    const res = await platformRequest<Envelope<PlatformFeatureRequest>>(
+      `/feature-requests/${id}/fee`,
+      { method: "PATCH", body: { fee } },
+    );
+    return res.data;
+  },
+
   async listReviews(): Promise<PlatformReviewRow[]> {
     const res = await platformRequest<Envelope<PlatformReviewRow[]>>("/reviews");
     return res.data;

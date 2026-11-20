@@ -43,6 +43,17 @@ const AdminFeatureRequests = () => {
       }),
   });
 
+  const withdraw = useMutation({
+    mutationFn: (id: string) => featureRequestsApi.withdraw(id),
+    onSuccess: (r) => {
+      queryClient.invalidateQueries({ queryKey: ["feature-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
+      toast({ title: "Request withdrawn", description: r.message });
+    },
+    onError: (err) =>
+      toast({ variant: "destructive", title: "Couldn't withdraw", description: err instanceof Error ? err.message : "Please try again." }),
+  });
+
   const canSubmit =
     title.trim().length >= 3 && description.trim().length >= 5 && !mutation.isPending;
 
@@ -56,7 +67,9 @@ const AdminFeatureRequests = () => {
           </h1>
           <p className="text-muted-foreground">
             Suggest a feature or improvement. We'll review each request and keep
-            its status up to date below.
+            its status up to date below. Building a feature may carry a one-off
+            fee. We'll tell you the amount, and it's added to your next renewal.
+            You can withdraw a request before work starts and any fee is removed.
           </p>
         </div>
 
@@ -129,6 +142,22 @@ const AdminFeatureRequests = () => {
                         <p className="mt-2 text-xs text-muted-foreground">
                           {format(new Date(r.createdAt), "MMM d, yyyy")}
                         </p>
+                        {r.feeAmount != null && r.status !== "DECLINED" && (
+                          <p className="mt-2 text-sm font-medium text-foreground">
+                            {r.feeAmount > 0 ? `Fee: GHS ${r.feeAmount.toFixed(2)}, added to your next renewal` : "No fee for this one"}
+                          </p>
+                        )}
+                        {(r.status === "NEW" || r.status === "PLANNED") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            disabled={withdraw.isPending}
+                            onClick={() => withdraw.mutate(r.id)}
+                          >
+                            Withdraw request
+                          </Button>
+                        )}
                       </div>
                       <Badge className={STATUS_META[r.status].className}>
                         {STATUS_META[r.status].label}

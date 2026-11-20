@@ -4,6 +4,7 @@ import { Loader2, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -56,6 +57,17 @@ const PlatformRequests = () => {
         title: "Update failed",
         description: err instanceof Error ? err.message : "Please try again.",
       }),
+  });
+
+  const [fees, setFees] = useState<Record<string, string>>({});
+  const feeMutation = useMutation({
+    mutationFn: ({ id, fee }: { id: string; fee: number }) => platformApi.setFeatureRequestFee(id, fee),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform", "feature-requests"] });
+      toast({ title: "Fee set", description: "The studio has been told, and it's added to their next renewal." });
+    },
+    onError: (err) =>
+      toast({ variant: "destructive", title: "Couldn't set the fee", description: err instanceof Error ? err.message : "Please try again." }),
   });
 
   return (
@@ -121,6 +133,36 @@ const PlatformRequests = () => {
                     <p className="mt-2 text-xs text-muted-foreground">
                       {format(new Date(r.createdAt), "MMM d, yyyy")}
                     </p>
+                    {r.status !== "DONE" && r.status !== "DECLINED" && (
+                      <form
+                        className="mt-3 flex flex-wrap items-center gap-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const fee = Number(fees[r.id] ?? r.feeAmount ?? "");
+                          if (Number.isFinite(fee) && fees[r.id] !== "") feeMutation.mutate({ id: r.id, fee });
+                        }}
+                      >
+                        <label htmlFor={`fee-${r.id}`} className="text-xs text-muted-foreground">Fee (GHS)</label>
+                        <Input
+                          id={`fee-${r.id}`}
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="h-8 w-28"
+                          placeholder={r.feeAmount != null ? String(r.feeAmount) : "e.g. 200"}
+                          value={fees[r.id] ?? ""}
+                          onChange={(e) => setFees({ ...fees, [r.id]: e.target.value })}
+                        />
+                        <Button type="submit" size="sm" variant="outline" disabled={feeMutation.isPending || (fees[r.id] ?? "") === ""}>
+                          {r.feeAmount != null ? "Update fee" : "Set fee"}
+                        </Button>
+                        {r.feeAmount != null && (
+                          <span className="text-xs text-muted-foreground">
+                            {r.feeAmount > 0 ? `Currently GHS ${r.feeAmount.toFixed(2)}` : "Currently free"}
+                          </span>
+                        )}
+                      </form>
+                    )}
                   </div>
                   <div className="shrink-0">
                     <Select
