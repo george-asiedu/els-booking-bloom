@@ -255,6 +255,12 @@ export const ordersApi = {
     return mapCheckout(res.data);
   },
 
+  // Pay a waiting order with Mobile Money from the checkout page (guests too).
+  async chargeMomo(input: { reference: string; phone: string; provider: string }): Promise<{ reference: string; status: string; displayText: string | null; amount: number }> {
+    const res = await apiRequest<Envelope<{ reference: string; status: string; displayText: string | null; amount: number }>>("/orders/charge/momo", { method: "POST", body: input });
+    return res.data;
+  },
+
   async guestCheckout(input: GuestCheckoutInput): Promise<CheckoutResult> {
     const res = await apiRequest<Envelope<RawCheckout>>(
       "/orders/guest-checkout",

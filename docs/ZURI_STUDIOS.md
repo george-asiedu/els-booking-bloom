@@ -1,128 +1,180 @@
-# Zuri Studios
+# Zuri
 
 **Your own booking site or online shop, ready today.**
 
-Zuri Studios lets a small business get its own branded website, online booking and online shop in a day, with no developer and no agency bill. Customers pay by Mobile Money or card, and each business is paid into its own account.
+Zuri gives a small business its own branded website, online booking and online shop in a day, with no developer and no agency bill. Customers pay by Mobile Money or card and each business is paid into its own account. Behind the website sits a dashboard that runs the day and tells the owner what to do next.
+
+Zuri has two products on one platform:
+
+- **Zuri Studios** is for businesses that take appointments (salons, barbers, spas, nail and lash artists, tailors, photographers, trainers). Premium adds an online shop.
+- **Zuri Stores** is for businesses that sell products (clothing, watches, perfume, accessories, food, anything you can ship or hand over).
 
 ---
 
 ## 1. The problem
 
-Small businesses in Ghana and across Africa (salons, barbers, spas, tailors, boutiques, perfume and watch sellers) run on WhatsApp, Instagram DMs and paper notebooks. That costs them money every day.
+Small businesses in Ghana and across Africa run on WhatsApp, Instagram DMs and paper notebooks. That costs them money every day.
 
 | The problem | What it costs the business |
 |---|---|
-| **Bookings by DM and phone call.** Replies are slow, slots get double-booked, and nobody confirms. | Lost customers, no-shows, hours of back-and-forth every day. |
-| **No real website.** A social page is not a brand, and it doesn't show up on Google. | New customers can't find them or trust them. |
-| **Taking payment is awkward.** Customers send screenshots of Mobile Money transfers that someone has to check by hand. | Fraud risk, wrong amounts, late confirmations, unpaid orders. |
-| **Websites and apps are expensive.** An agency charges thousands and takes weeks; marketplaces take a cut of every sale and own the customer. | Most small businesses never get a proper site. |
-| **Deliveries are chaotic.** Orders live in chat threads, riders ring customers for directions, and nobody knows what was delivered. | Missed deliveries, disputes, no proof it arrived. |
-| **No numbers.** Takings, costs, stock and repeat customers sit in someone's head or a notebook. | Owners can't tell what is profitable or what to restock. |
+| **Bookings by DM and phone call.** Slow replies, double-booked slots, nobody confirms. | Lost customers, no-shows, hours of back-and-forth. |
+| **No real website.** A social page is not a brand and doesn't show up on Google. | New customers can't find or trust them. |
+| **Taking payment is awkward.** Screenshots of Mobile Money transfers that someone checks by hand. | Fraud risk, wrong amounts, late confirmations. |
+| **Websites and apps are expensive.** An agency charges thousands and takes weeks; marketplaces take a cut of every sale. | Most small businesses never get a proper site. |
+| **Deliveries are chaotic.** Orders live in chat threads, riders ring customers for directions, nobody knows what arrived. | Missed deliveries, disputes, no proof. |
+| **Walk-ins are untracked.** Cash and transfers for people who didn't book online never reach any record. | The owner can't see the real picture. |
+| **No numbers, and no one to read them.** Takings, costs and stock sit in someone's head. | Owners can't tell what is profitable, who has stopped coming, or what to restock. |
 | **Customers forget and cancel.** | Empty chairs and wasted stock. |
+| **New software is hard to learn.** | Owners give up before it pays off. |
 
-## 2. How Zuri Studios solves it
+## 2. How Zuri solves it
 
 | Problem | Zuri's answer |
 |---|---|
-| Bookings by DM | A **24/7 booking page** that only offers real free times, follows the business's opening hours and closed days, and can assign a specific staff member or chair. |
-| No website | A **branded site in a day**: the business's own name, colours, logo, photos and address, with search-engine and link-preview support so customers find it. |
-| Awkward payment | **Paystack checkout** with Mobile Money and cards. Each business's money is **settled to its own account**, and orders and bookings confirm automatically. |
-| Expensive sites | A **simple subscription** (monthly or yearly) and a small platform fee on payments taken through the app, with no developer needed. |
-| Chaotic deliveries | **Clear order stages, a rider link and a handover code**: the customer is told at every step, and an order is marked delivered only when the customer's 4-digit code is entered. |
-| No numbers | **Reports, expenses and profit** in one place, plus customer history and low-stock alerts. |
-| Forgetting and cancelling | **Reminders** (email, push, WhatsApp), a waitlist for full days, and **cancellations the business approves**. |
+| Bookings by DM | A **24/7 booking page** that offers only real free times, follows opening hours and closed days, and can assign a specific staff member. Customers can book **without creating an account**. |
+| No website | A **branded site in a day**: the business's name, colours, logo and photos on its own address, set up to be found on Google and to preview well when shared. |
+| Awkward payment | **Paystack checkout** with Mobile Money and cards, settled **into the business's own account**. Bookings and orders confirm automatically. |
+| Expensive sites | A **simple subscription** (monthly or yearly) and a small platform fee on in-app payments. No developer. |
+| Chaotic deliveries | **Clear order stages, delivery areas and times, a link for the rider and a handover code** the customer gives to confirm delivery. |
+| Untracked walk-ins | **Bills with a payment link and QR code**, a record of every bill paid online, at the counter or cancelled. |
+| No numbers | **Insights**: findings ranked by money at stake, with the next step one tap away. Plus expenses and profit. |
+| Forgetting and cancelling | **Reminders** (email, push, WhatsApp), a waitlist for full days, deposits, and cancellations the business approves. |
+| Hard to learn | **Free online training** inside the dashboard and a free live session. In-person training on request. |
 
-## 3. Two products, one platform
+## 3. Plans
 
-- **Zuri Studio** is for service businesses that take appointments (salons, barbers, spas, nail artists, tailors, studios). It includes an optional shop.
-- **Zuri Storefront** is for businesses that sell products (clothing, watches, perfume, accessories). It is a shop-only account with no appointments.
+| | Standard | Premium | Stores |
+|---|---|---|---|
+| Product | Zuri Studios | Zuri Studios | Zuri Stores |
+| Online bookings and scheduling | Yes | Yes | No |
+| Own website and address | Yes | Yes | Yes |
+| Mobile Money and card payments | Yes | Yes | Yes |
+| Online shop, cart and checkout | No | Yes | Yes |
+| **Business insights** | No | **Yes** | **Yes** |
+| Included storage | 500 MB | 1 GB | Not limited |
+| Extra storage | 500 MB for GHS 5 a month | 500 MB for GHS 5 a month | Not needed |
 
-Each business gets its own address (for example `yourname.zuristudios.com`) and can connect its own domain.
+Each plan can be paid monthly or yearly (the year is two months cheaper). Anything the business owes on top of its plan (a feature fee, extra storage, in-person training) is shown on its Billing page and added to the next renewal, or paid straight away.
 
 ## 4. Features
 
 ### For customers
-- **Book in minutes**: choose a service and a time (and a staff member if the business offers it), then pay a deposit or in full.
-- **Shop online**: browse products, pick size and colour, pay with Mobile Money or card, and check out as a guest or with an account.
-- **Track every order** from paid, to preparing, to out for delivery, to delivered, with the expected time and a handover code.
-- **Pay less, your way**: loyalty points, coupons and gift cards.
-- **Gift cards**: buy for a friend, redeem at checkout, and see codes and balances in your account.
-- **Ask to cancel or reschedule** from your account and be told the outcome.
-- **Join the waitlist** when a day is full and get a message when a slot opens.
-- **Install it on your phone** like an app, and get push notifications.
+- **Book in minutes**: choose a service, a time and, if offered, a person. Pay a deposit or in full. **No account needed**; an account adds loyalty points, history and gift cards.
+- **Shop online**: browse products, choose size and colour, keep several items in a **basket kept on your own device**, then check out as a guest or signed in. The basket moves into your account when you sign in.
+- **Delivery that you can follow**: pick your **delivery area** (it sets the fee) and a **day and time window**, leave a note for the rider, and watch the order go from paid, to preparing, to out for delivery, to delivered. You get a 4-digit **handover code** to give the rider.
+- **Pay safely**: Mobile Money or card, with a security check on guest actions.
+- **Pay a bill from your phone**: a walk-in scans a QR code or opens a link, pays, and gets a receipt by email.
+- **Gift cards and packages**: buy for a friend, redeem at checkout, see codes and balances in your account.
+- **Join the waitlist** when a day is full.
+- **Ask to cancel or reschedule** and be told the outcome.
+- **Install it** on your phone like an app, with push notifications and a number on the icon for unread ones.
 - **Discover** local businesses on the Zuri marketplace.
+- Receipts as **PDF attachments**, and every email comes **from the business's own name**.
 
 ### For business owners
-- **Appointments**: calendar, services, staff and chairs, opening hours, closed days, deposits, a waitlist, and no-show tracking. The calendar works offline.
-- **Shop and orders**: products with sizes and colours, categories, coupons and reviews. Orders move through stages (to prepare, preparing, out or ready, delivered) with "Overdue" flags on anything that is stuck.
-- **Delivery that works**: delivery areas with their own fees, delivery time windows customers choose from, a note for the rider, a **rider link** (shared by WhatsApp) showing address, call button and items, and delivery confirmed by the customer's handover code. Pickups are confirmed with the same code at the counter.
-- **Payments**: Paystack settles to the business directly. Each business chooses whether the **customer pays the processing fee or the business does**.
-- **Cancellations**: customer cancellations need the business's approval; the business is notified instantly and can mark a refund as paid outside the app.
-- **Notifications**: an inbox bell and push notifications on every dashboard.
-- **Gift cards and packages** that customers buy online.
-- **Reminders and reviews**: appointment reminders by email, push and WhatsApp, plus automatic review requests after a visit.
-- **Money**: expenses and profit, monthly reports, CSV exports, and low-stock alerts.
-- **Customers**: a customer directory with spending insights and private notes.
-- **Your brand**: logo, colours, photos, promotions, contact details, a custom domain, and branded emails signed with your business name.
+- **Appointments**: calendar (works offline), services, staff, opening hours, closed days, deposits, waitlist, no-show tracking, and customers who miss twice pay in full next time.
+- **Shop and orders**: products with sizes, colours, stock and cost price; categories; coupons; reviews; **scheduled sales** such as Black Friday (a % off on chosen weekdays between two dates, with a banner, switching on and off by itself).
+- **Delivery**: stages with "Overdue" flags, delivery areas with their own fees, delivery time windows, a rider link to send on WhatsApp (address, call button, items, no account needed), handover codes for delivery and pickup, and a record of failed deliveries and why.
+- **Bills for walk-ins**: build a bill from services, products or custom lines; get a link and QR code; send it on WhatsApp; the customer is emailed the bill and a receipt. Over- or under-payments are refused and flagged for a refund.
+- **Payments**: settled to the business's own account. The business chooses whether the customer or the business covers the card and Mobile Money fee.
+- **Cancellations**: customer cancellations need the business's approval, with an instant notification, and a way to record a refund paid outside the app.
+- **Insights** (Premium and Zuri Stores): see section 5.
+- **Money**: expenses and profit by month, monthly reports, CSV exports of bookings, orders, customers and expenses, low-stock alerts.
+- **Customers**: a directory with spending history and private notes.
+- **Gift cards and packages** sold online.
+- **Reminders and reviews**: appointment reminders by email, push and WhatsApp; automatic review requests after a visit.
+- **Storage** (Zuri Studios): see how much is used and by what, add 500 MB blocks, and recover deleted gallery items from a 30-day trash.
+- **Notifications**: an inbox bell and push on every dashboard, with a badge on the installed app's icon.
+- **Your brand**: logo, colours, photos, promotions, contact details, a custom domain.
+- **Learn Zuri**: free guided steps, a free live online session, and a way to ask for in-person training (a fee confirmed first).
+- **Feature requests**: suggest a feature with up to 5 pictures; a fee (set by Zuri, told to you first) can be withdrawn before work starts.
 - **Security**: two-step sign-in for admin accounts.
-- **Grow**: refer another business and earn credit; appear on the Discover marketplace.
+- **Grow**: refer another business and earn credit; appear on the Zuri marketplace.
 
 ### For the Zuri team
-- A platform dashboard for businesses, subscriptions and plans, monthly billing through Paystack, and the Discover directory.
+- A platform console: businesses, subscriptions and plans, billing promos, transactions and earnings, scheduled jobs, audit and activity logs.
+- **Storage plans** (included amounts, block size and price) and a usage panel on each business.
+- **Guest access key** that can be rotated in one click (the old one works for 24 hours).
+- **Training**: set the live session and manage in-person requests and fees.
+- **Feature requests** with pictures and fees.
+- Background work runs in a **separate worker service**, so it never slows the website.
 
-## 5. Benefits
+## 5. Insights: what to do, not just charts
+
+The Insights page for Premium and Zuri Stores businesses answers "so what should I do?":
+
+| What it notices | Example | One-tap action |
+|---|---|---|
+| Regulars going quiet | "12 regulars are overdue, worth about GHS 1,400 a month." | WhatsApp message ready to send |
+| Quiet days ahead | "Tuesday afternoons are 20% booked." | Set up a promotion |
+| No-shows | "9 no-shows cost about GHS 720; 3 people caused 5." | Payment settings |
+| Stock | "The hoodie sells 4 a week and 6 are left." | Open products |
+| Late orders | "4 orders have waited too long." | Open orders |
+| Money owed | "GHS 640 in unpaid bills." | Resend payment links |
+| What earns most | Services by money per hour; products by profit | |
+| Customers | New and returning, repeat rate, 90-day retention, best customers | |
+| Busy hours and team | A day-and-hour grid; each person's share of the work | |
+| Promotions | Sale-day takings against usual; each coupon's average order; gift cards owed | |
+| Goal and pace | "GHS 3,200 of 5,000, on pace for 4,300, 12 days left." | |
+
+It also arrives without opening the app: a **Monday email** with the week and the top three actions, and **urgent alerts** (sold out, very late orders, old unpaid bills) at most once a week each. Both can be switched off. With little history it says "not enough yet" instead of inventing trends.
+
+## 6. Benefits
 
 **For business owners**
-- **Live in a day**, not weeks: no developer, no hosting to manage.
-- **Get paid directly**: payments settle into your own account, with a small, transparent platform fee instead of a marketplace's cut of every order.
-- **Fewer no-shows and empty slots**: reminders, deposits, waitlist.
-- **Fewer headaches**: no double-bookings, no screenshot payment checks, no "where is my order?" calls.
-- **Look professional** and get found on Google.
-- **Know your numbers**: income, expenses, profit and best customers.
-- **Predictable cost**: a simple subscription plus a small fee on in-app payments.
+- Live in a day, no developer, no hosting to manage.
+- Get paid directly into your own account, with a small, transparent platform fee instead of a marketplace's cut.
+- Fewer no-shows and empty slots: reminders, deposits, waitlist.
+- No more screenshot payment checks, double-bookings or "where is my order?" calls.
+- Every sale, bill and delivery on record, including walk-ins.
+- Know what to do next: which customers to win back, what to restock, which days to promote.
+- Learn it free, at your own pace.
 
 **For customers**
-- Book or buy at any hour without messaging anyone.
-- Pay safely with Mobile Money or card, with instant confirmation.
+- Book or buy at any hour without messaging anyone, and without making an account.
+- Pay safely and get an instant confirmation and receipt.
 - Always know where an order is, and prove it arrived.
 
-## 6. Who it is for
+## 7. Who it is for
 
-**Primary: small and growing service businesses in Ghana**
+**Primary: service businesses in Ghana**
 - Hair salons, barbers, braiders, nail and lash technicians
 - Spas, massage and beauty clinics
 - Tailors, photographers, studios and trainers
 
-**Primary: small online sellers**
-- Clothing and fashion boutiques, watches, perfumes, accessories
-- Instagram and WhatsApp-based sellers who want a real shop
+**Primary: online sellers**
+- Fashion boutiques, watches, perfumes, accessories
+- Instagram and WhatsApp sellers who want a real shop
 
 **Secondary**
-- Multi-staff businesses that need chair or staff scheduling
-- Businesses in other African markets that use Mobile Money and card payments
-- Customers who want to find and book local businesses (through the Discover marketplace)
+- Multi-person teams that need staff scheduling
+- Businesses elsewhere in Africa that use Mobile Money and cards
+- Customers who want to find and book local businesses on Discover
 
-**Who it is not for (yet):** large chains with complex multi-branch needs, and businesses that need payment methods Paystack does not support.
+**Not yet for:** large chains with complex multi-branch needs, and businesses that need payment methods Paystack does not support.
 
-## 7. How it works
+## 8. How it works
 
-1. **Sign up** and choose Studio or Storefront.
+1. **Sign up** and choose Zuri Studios or Zuri Stores.
 2. **Add your brand**: name, logo, colours, photos.
-3. **Add services or products**, hours and delivery areas.
-4. **Connect payments** with your Paystack account.
-5. **Share your link.** Customers book and buy; you get notified and get paid.
+3. **Add services or products**, hours, and delivery areas and times.
+4. **Connect payments** with your payout account.
+5. **Share your link.** Customers book and buy; you are notified and paid.
+6. **Learn as you go** with the free guided steps, and read your Insights each week.
 
-## 8. Why Zuri, not the alternatives
+## 9. Why Zuri, not the alternatives
 
-| | WhatsApp + notebook | Agency-built website | Marketplace listing | **Zuri Studios** |
+| | WhatsApp and a notebook | Agency-built website | Marketplace listing | **Zuri** |
 |---|---|---|---|---|
 | Live in a day | Yes | No | Yes | **Yes** |
 | Your own brand and address | No | Yes | No | **Yes** |
 | Online booking with real availability | No | Extra cost | Sometimes | **Yes** |
 | Mobile Money and card payments | Manual | Extra cost | Yes | **Yes, paid to you** |
 | Delivery tracking and proof | No | No | Platform-controlled | **Yes** |
+| Walk-in bills with a payment link | No | No | No | **Yes** |
+| Tells you what to do next | No | No | No | **Yes (Premium and Stores)** |
 | Fees | None, but costly in time | High up front | Commission on every sale | **Subscription plus a small payment fee** |
 
 ---
 
-*Zuri Studios. Your own site in a day.*
+*Zuri. Your own site in a day.*

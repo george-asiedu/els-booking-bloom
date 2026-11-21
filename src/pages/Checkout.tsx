@@ -163,7 +163,23 @@ const Checkout = () => {
           giftCardCode: giftCard?.code,
         });
         // Paid in full with a gift card: straight to the confirmation.
-        window.location.href = res.authorization_url || `/order/callback?reference=${encodeURIComponent(res.reference)}`;
+        if (res.paid_with_gift_card) {
+          navigate(`/order/callback?reference=${encodeURIComponent(res.reference)}`);
+          return;
+        }
+        // Otherwise pay right here, by Mobile Money or card.
+        setPaymentTarget({
+          reference: res.reference,
+          amount: res.total,
+          email: res.email,
+          access_code: res.access_code,
+          subaccount: res.subaccount,
+          public_key: res.public_key,
+          processing_fee: res.processing_fee,
+        });
+        setPaymentOpen(true);
+        setBusy(false);
+        processing.hide();
       } catch (error) {
         setBusy(false);
         processing.hide();
@@ -286,7 +302,7 @@ const Checkout = () => {
                 )}
               </div>
             )}
-            {isGuest && <Captcha />}
+            {isGuest && !paymentOpen && <Captcha />}
             <button type="button" className={cn(SHOP_CTA, "w-full")} disabled={busy || isLoading} onClick={proceed}>
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Proceed to payment
@@ -344,6 +360,7 @@ const Checkout = () => {
         onOpenChange={setPaymentOpen}
         target={paymentTarget}
         title="Pay for your order"
+        momoCharge={(phone, provider) => ordersApi.chargeMomo({ reference: paymentTarget?.reference ?? "", phone, provider })}
         onSuccess={(reference) => navigate(`/order/callback?reference=${encodeURIComponent(reference)}`)}
       />
     </Layout>

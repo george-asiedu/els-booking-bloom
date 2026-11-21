@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/apiClient";
 import { Captcha, captchaEnabled } from "@/components/Captcha";
+import { PaymentDialog } from "@/components/payment/PaymentDialog";
+import type { PaymentTarget } from "@/lib/api";
 import { formatGHS } from "@/lib/currency";
 
 interface PublicBill {
@@ -45,10 +47,16 @@ const PayBill = () => {
     if (reference && bill.data?.status === "UNPAID" && !verify.isPending && !verify.isSuccess && !verify.isError) verify.mutate();
   }, [reference, bill.data?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pay here, by Mobile Money or card, in a dialog (no leaving the page).
+  const [target, setTarget] = useState<PaymentTarget | null>(null);
+  const [dialog, setDialog] = useState(false);
   const pay = useMutation({
     mutationFn: async () =>
-      (await apiRequest<{ data: { authorizationUrl: string } }>(`/bills/pay/${token}/start`, { method: "POST", body: { email: email || undefined } })).data,
-    onSuccess: (d) => window.location.assign(d.authorizationUrl),
+      (await apiRequest<{ data: { authorizationUrl: string; accessCode: string; reference: string; total: number; processingFee: number; publicKey: string } }>(`/bills/pay/${token}/start`, { method: "POST", body: { email: email || undefined } })).data,
+    onSuccess: (d) => {
+      setTarget({ reference: d.reference, amount: d.total, email: email || bill.data?.customerEmail || "", access_code: d.accessCode, subaccount: null, public_key: d.publicKey, processing_fee: d.processingFee });
+      setDialog(true);
+    },
   });
 
   const b = bill.data;
@@ -106,7 +114,7 @@ const PayBill = () => {
               <Input id="pay-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
             </div>
           )}
-          <Captcha onChange={setReady} />
+          {!dialog && <Captcha onChange={setReady} />}
           {pay.isError && <p className="text-sm text-destructive" role="alert">{pay.error instanceof Error ? pay.error.message : "Couldn't start the payment."}</p>}
           <Button type="submit" className="h-12 w-full" disabled={pay.isPending || !ready}>
             {pay.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -115,6 +123,16 @@ const PayBill = () => {
           <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" /> Pay by Mobile Money or card, secured by Paystack.</p>
         </form>
       )}
+      <PaymentDialog
+        open={dialog}
+        onOpenChange={setDialog}
+        target={target}
+        title={`Pay bill ${b.number}`}
+        momoCharge={(phone, provider) =>
+          apiRequest<{ data: { reference: string; status: string; displayText: string | null; amount: number } }>(`/bills/pay/${token}/momo`, { method: "POST", body: { phone, provider, email: email || bill.data?.customerEmail || undefined } }).then((r) => r.data)
+        }
+        onSuccess={(reference) => { window.location.assign(`/pay/${token}?reference=${encodeURIComponent(reference)}`); }}
+      />
     </main>
   );
 };
