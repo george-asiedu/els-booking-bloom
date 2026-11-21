@@ -105,6 +105,7 @@ export const PLANS: PlanDef[] = [
       "An online shop with cart and checkout",
       "Sell products during booking",
       "Payments settled straight to your account",
+      "Business insights: what to act on, not just charts",
       "1 GB of storage. Need more? 500 MB is GHS 5 a month",
     ],
   },
@@ -122,6 +123,7 @@ export const PLANS: PlanDef[] = [
       "Mobile Money & card payments, paid to your account",
       "Customer accounts, loyalty points & referrals",
       "Promotions and discount banners",
+      "Business insights: what to act on, not just charts",
     ],
   },
 ];

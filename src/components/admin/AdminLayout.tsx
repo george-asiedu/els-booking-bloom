@@ -30,6 +30,7 @@ import {
   Star,
   Store,
   Flame,
+  Sparkles,
   Tag,
   TicketPercent,
   User,
@@ -57,6 +58,7 @@ const studioNav = (f: Features): NavGroup[] => [
     items: [
       { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
       { name: "Setup", path: "/admin/onboarding", icon: Rocket },
+      { name: "Insights", path: "/admin/insights", icon: Sparkles },
       { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
     ],
   },
@@ -108,6 +110,7 @@ const storeNav: NavGroup[] = [
     items: [
       { name: "Overview", path: "/admin", icon: LayoutDashboard },
       { name: "Setup", path: "/admin/onboarding", icon: Rocket },
+      { name: "Insights", path: "/admin/insights", icon: Sparkles },
     ],
   },
   {
