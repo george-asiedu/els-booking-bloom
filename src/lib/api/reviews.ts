@@ -21,6 +21,7 @@ interface RawReview {
   createdAt: string;
   user?: { email: string; profile?: { fullName: string | null } | null } | null;
   service?: { name: string } | null;
+  product?: { name: string } | null;
 }
 
 const normalizeReview = (r: RawReview): ReviewDTO => ({
@@ -35,7 +36,8 @@ const normalizeReview = (r: RawReview): ReviewDTO => ({
         email: r.user.email,
       }
     : null,
-  services: r.service ? { name: r.service.name } : null,
+  // Product reviews show the product where a service would be.
+  services: r.service ? { name: r.service.name } : r.product ? { name: r.product.name } : null,
 });
 
 export interface CreateReviewInput {

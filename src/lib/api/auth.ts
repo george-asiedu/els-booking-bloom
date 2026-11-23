@@ -1,5 +1,5 @@
 import { apiRequest, tokenStore, AuthUser } from "../apiClient";
-import { Envelope, TokenPair } from "./core";
+import { Envelope } from "./core";
 
 // ---------------- Auth ----------------
 
@@ -11,23 +11,22 @@ export interface SignupPayload {
   referralCode?: string;
 }
 
-const persistAuth = (data: { user: AuthUser; token: TokenPair }): AuthUser => {
-  tokenStore.setToken(data.token.accessToken);
+const persistAuth = (data: { user: AuthUser }): AuthUser => {
   tokenStore.setUser(data.user);
   return data.user;
 };
 
 export const authApi = {
-  async login(email: string, password: string): Promise<AuthUser> {
-    const res = await apiRequest<Envelope<{ user: AuthUser; token: TokenPair }>>(
+  async login(email: string, password: string, totp?: string): Promise<AuthUser> {
+    const res = await apiRequest<Envelope<{ user: AuthUser }>>(
       "/auth/login",
-      { method: "POST", body: { email, password } },
+      { method: "POST", body: { email, password, ...(totp ? { totp } : {}) } },
     );
     return persistAuth(res.data);
   },
 
   async signup(payload: SignupPayload): Promise<AuthUser> {
-    const res = await apiRequest<Envelope<{ user: AuthUser; token: TokenPair }>>(
+    const res = await apiRequest<Envelope<{ user: AuthUser }>>(
       "/auth/signup",
       { method: "POST", body: payload },
     );
@@ -42,6 +41,18 @@ export const authApi = {
     } finally {
       tokenStore.clear();
     }
+  },
+
+  // Optional email confirmation, offered in the customer's account.
+  async emailStatus(): Promise<boolean> {
+    const res = await apiRequest<Envelope<{ verified: boolean }>>("/auth/email-status", { auth: true });
+    return res.data.verified;
+  },
+  async sendEmailCode(): Promise<void> {
+    await apiRequest("/auth/email-code", { method: "POST", auth: true });
+  },
+  async confirmEmailCode(code: string): Promise<void> {
+    await apiRequest("/auth/email-code/confirm", { method: "POST", auth: true, body: { code } });
   },
 
   async forgotPassword(email: string): Promise<string> {

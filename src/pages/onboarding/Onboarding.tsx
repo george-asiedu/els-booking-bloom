@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SHOP_CATEGORIES, type ShopCategoryId } from "@/lib/shopCategories";
 import { SignupSuccess } from "@/components/onboarding/SignupSuccess";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
-import { PLATFORM, PLANS, planPrice } from "@/config/platform";
+import { PLATFORM, PLANS, planPrice, productOf } from "@/config/platform";
 import { BrandLogo } from "@/components/BrandLogo";
 import { subscriptionSetup } from "@/lib/setupFee";
 import {
@@ -41,15 +42,36 @@ const Onboarding = () => {
   const processing = useProcessing();
 
   const [step, setStep] = useState(1);
-  const [plan, setPlan] = useState<Plan>(
-    params.get("plan") === "PREMIUM" ? "PREMIUM" : "STANDARD",
-  );
+  const [plan, setPlan] = useState<Plan>(() => {
+    const p = params.get("plan");
+    return p === "PREMIUM" || p === "STOREFRONT" ? p : "STANDARD";
+  });
+  // What the shop will sell: picks the shop website's design (Premium's shop
+  // and Storefront; required for Storefront).
+  const [shopCategory, setShopCategory] = useState<ShopCategoryId | null>(null);
+  const product = productOf(plan);
+  const sellsProducts = plan !== "STANDARD";
   const [cadence, setCadence] = useState<Cadence>(
     params.get("cadence") === "YEARLY" ? "YEARLY" : "MONTHLY",
   );
   const [billingMode, setBillingMode] = useState<BillingMode>("SUBSCRIPTION");
   const [cfg, setCfg] = useState<OnboardingConfig | null>(null);
 
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; percent: number } | null>(null);
+  const checkPromo = async () => {
+    try {
+      setPromo(await onboardingApi.checkPromo(promoInput.trim(), plan));
+    } catch (err) {
+      setPromo(null);
+      toast({ variant: "destructive", title: "Promo not applied", description: err instanceof Error ? err.message : "Please check the code." });
+    }
+  };
+  const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [emailToken, setEmailToken] = useState("");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
@@ -76,9 +98,15 @@ const Onboarding = () => {
   const commissionPct =
     plan === "PREMIUM"
       ? cfg?.commissionPremiumPercent ?? 0
-      : cfg?.commissionStandardPercent ?? 0;
+      : plan === "STOREFRONT"
+        ? cfg?.commissionStorefrontPercent ?? 0
+        : cfg?.commissionStandardPercent ?? 0;
   const setupFee =
-    plan === "PREMIUM" ? cfg?.setupFeePremium ?? 0 : cfg?.setupFeeStandard ?? 0;
+    plan === "PREMIUM"
+      ? cfg?.setupFeePremium ?? 0
+      : plan === "STOREFRONT"
+        ? cfg?.setupFeeStorefront ?? 0
+        : cfg?.setupFeeStandard ?? 0;
   const revShare = billingMode === "REVENUE_SHARE";
   // Subscription setup fee for the selected plan, when the platform sets one.
   const subSetup = revShare ? null : subscriptionSetup(cfg, plan, cadence);
@@ -174,6 +202,47 @@ const Onboarding = () => {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
     passwordValid;
 
+  // Email check between the details and payment. A confirmed address stays
+  // confirmed unless the owner changes it.
+  const sendCode = async () => {
+    setCodeBusy(true);
+    try {
+      await onboardingApi.sendEmailCode(email.trim());
+      setCodeSentTo(email.trim().toLowerCase());
+      setCode("");
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "We couldn't send the code",
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setCodeBusy(false);
+    }
+  };
+  const continueFromDetails = () => {
+    if (emailToken && verifiedEmail === email.trim().toLowerCase()) setStep(3);
+    else void sendCode();
+  };
+  const confirmCode = async () => {
+    setCodeBusy(true);
+    try {
+      const token = await onboardingApi.confirmEmailCode(email.trim(), code);
+      setEmailToken(token);
+      setVerifiedEmail(email.trim().toLowerCase());
+      setCodeSentTo(null);
+      setStep(3);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Code not accepted",
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setCodeBusy(false);
+    }
+  };
+
   const pay = async () => {
     setSubmitting(true);
     processing.show(PROCESSING.creatingStudio);
@@ -182,11 +251,15 @@ const Onboarding = () => {
         name: name.trim(),
         slug,
         ownerEmail: email.trim(),
+        emailToken,
+        promoCode: promo?.code ?? undefined,
+        ...(params.get("ref") ? { ref: params.get("ref")! } : {}),
         ownerPassword: password,
         ownerFullName: fullName.trim() || undefined,
         plan,
         cadence,
         billingMode,
+        ...(sellsProducts && shopCategory ? { shopCategory } : {}),
       });
       setReference(res.reference);
 
@@ -278,10 +351,31 @@ const Onboarding = () => {
           />
         ) : step === 1 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
-            <h1 className="mb-1 font-serif text-2xl font-bold">Choose your plan</h1>
-            <p className="mb-6 text-sm text-muted-foreground">
-              Booking is always included. Add the online shop with Premium.
+            <h1 className="mb-1 font-serif text-2xl font-bold">What are you setting up?</h1>
+            <p className="mb-5 text-sm text-muted-foreground">
+              A booking website for your beauty business, or an online shop for anything you sell.
             </p>
+            {/* Product: Zuri (booking) or Zuri Stores (a shop alone). */}
+            <div className="mb-8 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Product">
+              {([
+                ["studio", "Zuri Studios", "Bookings, payments and a website for your beauty business. Add a shop with Premium.", "STANDARD"],
+                ["storefront", "Zuri Stores", "An online shop of your own, for clothes, food, perfume or anything else you sell.", "STOREFRONT"],
+              ] as const).map(([id, title, text, first]) => (
+                <button
+                  key={id}
+                  role="radio"
+                  aria-checked={product === id}
+                  onClick={() => product !== id && setPlan(first)}
+                  className={`rounded-xl border p-4 text-left transition-colors ${
+                    product === id ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <span className="font-semibold">{title}</span>
+                  <p className="mt-1 text-xs text-muted-foreground">{text}</p>
+                </button>
+              ))}
+            </div>
+            <h2 className="mb-3 font-semibold">Choose your plan</h2>
             <div className="mb-6 inline-flex rounded-full border border-border p-1">
               {(["MONTHLY", "YEARLY"] as const).map((c) => (
                 <button
@@ -295,8 +389,8 @@ const Onboarding = () => {
                 </button>
               ))}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {PLANS.map((p) => (
+            <div className={`grid gap-4 ${product === "studio" ? "sm:grid-cols-2" : "max-w-md"}`}>
+              {PLANS.filter((p) => p.product === product).map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setPlan(p.id)}
@@ -347,6 +441,36 @@ const Onboarding = () => {
                 </button>
               ))}
             </div>
+            {/* What they'll sell: sets up the shop's design. */}
+            {sellsProducts && (
+              <div className="mt-8">
+                <h2 className="mb-1 font-semibold">
+                  What will you sell?
+                  {plan === "PREMIUM" && <span className="font-normal text-muted-foreground"> (optional)</span>}
+                </h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  We'll set up your shop with a design made for it. You just add your products.
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="What you'll sell">
+                  {SHOP_CATEGORIES.map((c) => (
+                    <button
+                      key={c.id}
+                      role="radio"
+                      aria-checked={shopCategory === c.id}
+                      onClick={() => setShopCategory(c.id)}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                        shopCategory === c.id
+                          ? "border-primary bg-accent font-medium"
+                          : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <c.icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Billing mode — only when the platform offers revenue-share. */}
             {cfg?.revenueShareEnabled && (
               <div className="mt-8">
@@ -400,17 +524,23 @@ const Onboarding = () => {
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Link>
               </Button>
-              <Button className="flex-1" onClick={() => setStep(2)}>
+              <Button
+                className="flex-1"
+                disabled={plan === "STOREFRONT" && !shopCategory}
+                onClick={() => setStep(2)}
+              >
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
         ) : step === 2 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
-            <h1 className="mb-6 font-serif text-2xl font-bold">Your studio details</h1>
+            <h1 className="mb-6 font-serif text-2xl font-bold">
+              {product === "storefront" ? "Your shop details" : "Your studio details"}
+            </h1>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ob-name">Studio name</Label>
+                <Label htmlFor="ob-name">{product === "storefront" ? "Shop name" : "Studio name"}</Label>
                 <Input
                   id="ob-name"
                   value={name}
@@ -478,14 +608,45 @@ const Onboarding = () => {
                 </ul>
               </div>
             </div>
-            <div className="mt-8 flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button className="flex-1" disabled={!detailsValid} onClick={() => setStep(3)}>
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
+            {codeSentTo === email.trim().toLowerCase() ? (
+              <div className="mt-6 space-y-3 rounded-lg border p-4">
+                <div>
+                  <Label htmlFor="ob-code">Enter the code we emailed you</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    We sent a 6-digit code to {codeSentTo}. It expires in 15 minutes.
+                  </p>
+                </div>
+                <Input
+                  id="ob-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  className="font-mono tracking-widest"
+                />
+                <div className="flex gap-3">
+                  <Button variant="outline" disabled={codeBusy} onClick={sendCode}>
+                    Send a new code
+                  </Button>
+                  <Button className="flex-1" disabled={codeBusy || code.length !== 6} onClick={confirmCode}>
+                    {codeBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm email
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-8 flex gap-3">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <Button className="flex-1" disabled={!detailsValid || codeBusy} onClick={continueFromDetails}>
+                  {codeBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         ) : step === 3 ? (
           <div className="rounded-2xl border border-border bg-card p-8">
@@ -503,10 +664,30 @@ const Onboarding = () => {
               <Row label="Studio" value={name} />
               <Row label="Web address" value={`${slug}`} mono />
               <Row label="Owner" value={email} />
+              <div className="flex gap-2 border-t border-border pt-3">
+                <Input
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value)}
+                  placeholder="Promo code (optional)"
+                  aria-label="Promo code"
+                  className="uppercase placeholder:normal-case"
+                />
+                <Button type="button" variant="outline" disabled={!promoInput.trim()} onClick={checkPromo}>
+                  Apply
+                </Button>
+              </div>
+              {promo && (
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  {promo.code}: {promo.percent}% off today's payment.
+                </p>
+              )}
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-semibold">Due today</span>
                 <span className="font-serif text-xl font-bold text-primary">
-                  {GHS(dueToday)}
+                  {promo && dueToday > 0 && (
+                    <span className="mr-2 text-sm font-normal text-muted-foreground line-through">{GHS(dueToday)}</span>
+                  )}
+                  {GHS(Math.round(dueToday * (1 - (promo?.percent ?? 0) / 100) * 100) / 100)}
                   {!revShare && !subSetup && (
                     <span className="text-sm font-normal text-muted-foreground">
                       /{cadence === "MONTHLY" ? "mo" : "yr"}

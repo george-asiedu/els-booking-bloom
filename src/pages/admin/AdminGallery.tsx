@@ -151,8 +151,8 @@ const AdminGallery = () => {
       setDeleteId(null);
       setOpenId(null);
       toast({
-        title: "Image deleted",
-        description: "The image has been removed from your gallery.",
+        title: "Moved to the trash",
+        description: "You can restore it from the Storage page for 30 days.",
       });
     },
     onError: (error) => {
@@ -218,7 +218,7 @@ const AdminGallery = () => {
           </div>
           <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Media
+            Add media
           </Button>
         </div>
 
@@ -232,7 +232,7 @@ const AdminGallery = () => {
               <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No media in your gallery</p>
               <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
-                Upload Your First Media
+                Upload your first media
               </Button>
             </CardContent>
           </Card>
@@ -286,7 +286,7 @@ const AdminGallery = () => {
                           )}
                         />
                         {image.media_type === "video" && (
-                          <span className="absolute left-2 top-2 rounded bg-foreground/70 px-1.5 py-0.5 text-[10px] font-medium text-background">
+                          <span className="absolute left-2 top-2 rounded bg-band/70 px-1.5 py-0.5 text-[10px] font-medium text-band-foreground">
                             Video
                           </span>
                         )}
@@ -342,7 +342,7 @@ const AdminGallery = () => {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload Media</DialogTitle>
+            <DialogTitle>Upload media</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -437,9 +437,9 @@ const AdminGallery = () => {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete from your gallery?</AlertDialogTitle>
+            <AlertDialogTitle>Move to the trash?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes it for good. To take it off your site but keep it, switch it off instead.
+              It comes off your site now and waits in the trash for 30 days, where you can restore it. It still counts towards your storage until it is deleted for good. To hide it but keep it, switch it off instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -448,7 +448,7 @@ const AdminGallery = () => {
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Move to trash
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

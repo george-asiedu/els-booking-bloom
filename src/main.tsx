@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { apiRequest, maybeResolveCustomDomain } from "@/lib/apiClient";
 import { loadPlatformConfig, type PublicPlatformConfig } from "@/config/platform";
+import { registerServiceWorker } from "@/lib/pwa";
 
 // Before the first render (both behind the loading screen):
 //  - on a studio's custom domain, resolve which studio it is, so every
@@ -16,4 +17,5 @@ Promise.allSettled([
   ),
 ]).finally(() => {
   createRoot(document.getElementById("root")!).render(<App />);
+  registerServiceWorker();
 });

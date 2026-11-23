@@ -38,6 +38,11 @@ export interface DirectoryUserDetail extends Omit<DirectoryUser, "bookings"> {
     amount: number;
   }[];
   recentOrders: { id: string; orderNumber: string; total: number; status: string; createdAt: string }[];
+  favouriteService?: string | null;
+  lastVisit?: string | null;
+  noShows?: number;
+  /** The business's private notes (studio admins only). */
+  notes?: string;
 }
 
 export interface DirectoryPage {

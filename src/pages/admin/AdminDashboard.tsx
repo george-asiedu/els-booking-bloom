@@ -1,3 +1,4 @@
+import { isOpenOrder } from "@/lib/api/orders";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -30,6 +31,8 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
 import { YourMoneyCard } from "@/components/admin/YourMoneyCard";
+import { KpiTile, type Tone } from "@/components/dashboard/KpiTile";
+import { ShopDashboard } from "@/components/admin/ShopDashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +87,7 @@ const STATUS: Record<AppointmentDTO["status"], { label: string; className: strin
   confirmed: { label: "Confirmed", className: "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300" },
   completed: { label: "Completed", className: "bg-muted text-muted-foreground" },
   cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground line-through" },
+  no_show: { label: "No-show", className: "bg-rose-100 text-rose-900 dark:bg-rose-500/15 dark:text-rose-300" },
 };
 
 /** "+20%" against last month, or a plain note when there's nothing to compare. */
@@ -121,33 +125,34 @@ const Stat = ({
   value,
   children,
   to,
+  tone,
 }: {
   label: string;
   value: string;
   children?: React.ReactNode;
   to?: string;
-}) => {
-  const body = (
-    <Card className={cn("h-full", to && "transition-colors hover:border-primary/40")}>
-      <CardContent className="space-y-1.5 p-5">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-        {children}
-      </CardContent>
-    </Card>
-  );
-  return to ? (
-    <Link to={to} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      {body}
-    </Link>
-  ) : (
-    body
-  );
-};
+  tone: Tone;
+}) => (
+  <KpiTile label={label} value={value} to={to} tone={tone}>
+    {children}
+  </KpiTile>
+);
 
 // ---- page ------------------------------------------------------------------
 
+// A Zuri Stores has no bookings: it gets the shop dashboard instead.
 const AdminDashboard = () => {
+  const { features } = useStudio();
+  if (features.booking === false)
+    return (
+      <AdminLayout>
+        <ShopDashboard />
+      </AdminLayout>
+    );
+  return <StudioDashboard />;
+};
+
+const StudioDashboard = () => {
   const { name: studioName, config, features } = useStudio();
   const now = new Date();
   const today = startOfDay(now);
@@ -225,7 +230,7 @@ const AdminDashboard = () => {
   // Waiting on the studio.
   const toConfirm = appointments.filter((a) => a.status === "pending").length;
   const newTimes = appointments.filter((a) => a.status === "pending_reschedule").length;
-  const toFulfil = (ordersQuery.data ?? []).filter((o) => o.status === "paid").length;
+  const toFulfil = (ordersQuery.data ?? []).filter((o) => isOpenOrder(o)).length;
   const toApprove = (reviewsQuery.data ?? []).filter((r) => !r.approved).length;
   const outOfStock = (productsQuery.data ?? []).filter(
     (p) => p.active && p.track_stock && p.stock <= 0,
@@ -269,7 +274,7 @@ const AdminDashboard = () => {
         {/* Heading */}
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
               {greeting(now)}
             </h1>
             <p className="text-muted-foreground">
@@ -295,6 +300,7 @@ const AdminDashboard = () => {
             {/* Headline numbers */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Stat
+                tone="amber"
                 label="Today"
                 value={`${todays.length} ${todays.length === 1 ? "appointment" : "appointments"}`}
                 to="/admin/appointments"
@@ -308,6 +314,7 @@ const AdminDashboard = () => {
                 </p>
               </Stat>
               <Stat
+                tone="green"
                 label="Money received this month"
                 value={money.data ? formatGHS(money.data.received.thisMonth) : "—"}
                 to="/admin/transactions"
@@ -318,10 +325,11 @@ const AdminDashboard = () => {
                   <p className="text-xs text-muted-foreground">Payments in, minus refunds</p>
                 )}
               </Stat>
-              <Stat label="Bookings this month" value={String(bookingsNow)} to="/admin/analytics">
+              <Stat tone="blue" label="Bookings this month" value={String(bookingsNow)} to="/admin/analytics">
                 <Change now={bookingsNow} before={bookingsBefore} />
               </Stat>
               <Stat
+                tone="rose"
                 label="Waiting on you"
                 value={String(waiting)}
                 to={toConfirm ? "/admin/appointments?status=pending" : undefined}

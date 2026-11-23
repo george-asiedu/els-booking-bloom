@@ -33,6 +33,7 @@ export const Footer = () => {
     ...(features.gallery ? [{ label: "Gallery", to: "/gallery" }] : []),
     ...(features.commerce ? [{ label: "Shop", to: "/shop" }] : []),
     { label: "Book an appointment", to: "/book" },
+    { label: "Gift cards", to: "/gift-cards" },
     { label: "Contact", to: "/contact" },
   ];
 
@@ -140,7 +141,7 @@ export const Footer = () => {
               rel="noreferrer"
               className="text-xs transition-colors hover:text-primary"
             >
-              Made with Zuri Studios
+              Powered by Zuri
             </a>
           </div>
         </div>

@@ -88,3 +88,18 @@ export const slotRunsPastClose = (
   if (start === null || close === null || !serviceMinutes) return false;
   return start + serviceMinutes > close;
 };
+
+/**
+ * With staff: a slot is open for one person when none of their bookings (or
+ * an unassigned one) overlaps it. For "anyone", it's open when at least one of
+ * the people who do the service is free.
+ */
+export const slotIsBusyForStaff = (
+  slotLabel: string,
+  serviceMinutes: number | null,
+  busy: BusySlot[],
+  staffIds: string[],
+): boolean =>
+  !staffIds.some(
+    (id) => !slotIsBusy(slotLabel, serviceMinutes, busy.filter((b) => !b.staffId || b.staffId === id)),
+  );

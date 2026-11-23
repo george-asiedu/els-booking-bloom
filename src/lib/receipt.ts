@@ -1,3 +1,4 @@
+import { isPaidOrder } from "@/lib/api/orders";
 import type { jsPDF } from "jspdf";
 
 // jsPDF is ~600 kB. It's only needed when someone actually clicks a download
@@ -12,7 +13,7 @@ import { AppointmentDTO, PaymentReceiptDTO, OrderDTO } from "./api";
 import { formatGHS } from "@/lib/currency";
 
 // Neutral platform fallback; callers pass the current studio's name.
-const DEFAULT_BRAND = "Zuri Studios";
+const DEFAULT_BRAND = "Zuri";
 const PINK: [number, number, number] = [190, 24, 93];
 const GREY: [number, number, number] = [107, 114, 128];
 const DARK: [number, number, number] = [31, 41, 55];
@@ -363,7 +364,7 @@ export const downloadOrderReceipt = async (order: OrderDTO, brand: BrandInput = 
   doc.text("Total", left, y);
   doc.text(money(order.total), right, y, { align: "right" });
   y += 22;
-  if (order.status === "paid" || order.status === "fulfilled") {
+  if (isPaidOrder(order)) {
     doc.setTextColor(...GREY);
     doc.text("Amount paid", left, y);
     doc.setTextColor(...DARK);
@@ -373,7 +374,7 @@ export const downloadOrderReceipt = async (order: OrderDTO, brand: BrandInput = 
   y += 30;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  drawStatus(doc, order.status, y, order.status === "paid" || order.status === "fulfilled" ? "success" : order.status === "cancelled" ? "error" : "warning");
+  drawStatus(doc, isPaidOrder(order) ? "paid" : order.status, y, isPaidOrder(order) ? "success" : order.status === "cancelled" ? "error" : "warning");
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);

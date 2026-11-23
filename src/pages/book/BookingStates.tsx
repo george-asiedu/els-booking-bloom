@@ -18,7 +18,7 @@ export const BookingSuccess = ({
             <CheckCircle className="h-10 w-10 text-primary" />
           </div>
           <h1 className="text-3xl font-serif font-bold text-foreground mb-4">
-            Booking Request Received!
+            Booking request received
           </h1>
           <p className="text-muted-foreground mb-6">
             Thank you for booking with {studioName}. Your request is
@@ -31,7 +31,7 @@ export const BookingSuccess = ({
               <Link to="/account?tab=appointments">View my appointments</Link>
             </Button>
             <Button variant="outline" onClick={onBookAnother}>
-              Book Another Appointment
+              Book another appointment
             </Button>
           </div>
         </div>

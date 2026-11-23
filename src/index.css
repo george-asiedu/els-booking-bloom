@@ -11,40 +11,50 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 20 33% 98%;
-    --foreground: 340 20% 15%;
+    /* Zuri palette (Trendloom): yellow and ink on white. */
+    --background: 0 0% 100%;
+    --foreground: 214 33% 10%;
 
+    --band: 214 33% 10%;
+    --tile-amber: 40 100% 94%;
+    --tile-green: 140 45% 93%;
+    --tile-blue: 214 80% 95%;
+    --tile-rose: 350 70% 95%;
+    --tile-violet: 260 60% 96%;
+    --band-foreground: 0 0% 100%;
     --card: 0 0% 100%;
-    --card-foreground: 340 20% 15%;
+    --card-foreground: 214 33% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 340 20% 15%;
+    --popover-foreground: 214 33% 10%;
 
-    /* Zuri cranberry pink (#C23B65) for buttons and links: 5.1:1 with white
-       text, 4.9:1 on the page. The logo's own
-       pink (#FF3175, --rose) is for things without text. */
-    --primary: 341 53% 50%;
-    --primary-foreground: 0 0% 100%;
+    /* Yellow-500 (#FBC500) fills with ink text (10.6:1). Yellow is unreadable
+       as text on white (1.7:1), so text and icons in the primary colour use
+       --primary-ink, a deepened shade (4.5:1). theme.ts recomputes both
+       when a studio picks its own primary colour. */
+    --primary: 46 100% 49%;
+    --primary-foreground: 214 33% 10%;
+    --primary-ink: var(--studio-ink-light, 46 100% 29%);
 
-    --secondary: 340 20% 95%;
-    --secondary-foreground: 340 20% 20%;
+    --secondary: 220 33% 97%;
+    --secondary-foreground: 214 33% 10%;
 
-    --muted: 340 15% 93%;
-    --muted-foreground: 340 10% 45%;
+    --muted: 220 20% 96%;
+    --muted-foreground: 210 9% 40%;
 
-    --accent: 340 100% 94%;
-    --accent-foreground: 340 85% 38%;
+    --accent: var(--studio-tint-light, 46 100% 94%);
+    --accent-foreground: var(--studio-ink-light, 46 100% 24%);
 
-    --destructive: 0 65% 55%;
+    --destructive: 0 96% 37%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 340 20% 88%;
-    --input: 340 20% 88%;
-    --ring: 340 100% 60%;
+    --border: 220 13% 90%;
+    --input: 220 13% 88%;
+    --ring: 46 100% 49%;
 
-    --rose: 340 100% 60%;
-    --rose-light: 340 100% 96%;
-    --gold: 38 70% 50%;
+    --rose: 46 100% 49%;
+    --rose-light: var(--studio-tint-light, 46 100% 94%);
+    --gold: 46 100% 49%;
 
     /* Toast type accents (left border + icon tint). Backgrounds stay on the
        theme surface; only the accent is coloured. */
@@ -111,37 +121,46 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 340 20% 8%;
-    --foreground: 340 10% 95%;
+    /* Yellow and white on ink. */
+    --background: 214 33% 7%;
+    --foreground: 0 0% 98%;
 
-    --card: 340 20% 12%;
-    --card-foreground: 340 10% 95%;
+    --band: 214 30% 14%;
+    --tile-amber: 40 45% 16%;
+    --tile-green: 150 30% 14%;
+    --tile-blue: 214 40% 17%;
+    --tile-rose: 350 30% 16%;
+    --tile-violet: 260 25% 17%;
+    --band-foreground: 210 20% 96%;
+    --card: 214 30% 11%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 340 20% 12%;
-    --popover-foreground: 340 10% 95%;
+    --popover: 214 30% 11%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 340 100% 62%;
-    --primary-foreground: 340 20% 8%;
+    --primary: 46 100% 49%;
+    --primary-foreground: 214 33% 10%;
+    --primary-ink: var(--studio-ink-dark, 46 100% 49%);
 
-    --secondary: 340 15% 18%;
-    --secondary-foreground: 340 10% 95%;
+    --secondary: 214 22% 16%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 340 15% 18%;
-    --muted-foreground: 340 10% 60%;
+    --muted: 214 22% 16%;
+    --muted-foreground: 213 10% 66%;
 
-    --accent: 340 25% 22%;
-    --accent-foreground: 340 100% 76%;
+    --accent: var(--studio-tint-dark, 46 60% 14%);
+    --accent-foreground: var(--studio-ink-dark, 46 100% 60%);
 
-    --destructive: 0 55% 45%;
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 340 15% 20%;
-    --input: 340 15% 22%;
-    --ring: 340 100% 62%;
+    --border: 214 20% 19%;
+    --input: 214 20% 22%;
+    --ring: 46 100% 49%;
 
-    --rose: 340 100% 62%;
-    --rose-light: 340 30% 20%;
-    --gold: 38 60% 55%;
+    --rose: 46 100% 49%;
+    --rose-light: var(--studio-tint-dark, 46 60% 14%);
+    --gold: 46 100% 55%;
     /* Slightly brighter accents for dark surfaces. */
     --toast-success: 157 48% 52%;
     --toast-info: 228 94% 72%;
@@ -184,12 +203,32 @@ All colors MUST be HSL.
   opacity: 1;
   transform: none;
 }
+
+/* Landing hero: the photo settles from a slight zoom while the words rise
+   in, one after another. Runs once on load. */
+.hero-zoom {
+  animation: hero-zoom 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hero-rise {
+  animation: hero-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes hero-zoom {
+  from { transform: scale(1.08); }
+  to { transform: scale(1); }
+}
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .reveal-in {
+  .reveal-in,
+  .hero-zoom,
+  .hero-rise {
     opacity: 1;
     transform: none;
     transition: none;
+    animation: none;
   }
 }
 
@@ -286,5 +325,19 @@ All colors MUST be HSL.
   }
   p {
     text-wrap: pretty;
+  }
+}
+/* Primary as TEXT uses the readable ink shade (see --primary-ink). Fills,
+   borders and rings keep the true primary. */
+@layer utilities {
+  .text-primary,
+  .hover\:text-primary:hover,
+  .focus\:text-primary:focus,
+  .group:hover .group-hover\:text-primary,
+  .data-\[state\=active\]\:text-primary[data-state="active"] {
+    color: hsl(var(--primary-ink));
+  }
+  .hover\:text-primary\/90:hover {
+    color: hsl(var(--primary-ink) / 0.9);
   }
 }

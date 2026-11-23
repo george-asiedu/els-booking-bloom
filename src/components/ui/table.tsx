@@ -12,12 +12,17 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
 Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
-  // The one table look across the app: a soft tint of the brand colour in
-  // the header, alternating row shades in the body (see TableBody).
+  // The one table look across the app. Light theme: a dark header and
+  // alternating row shades (see TableBody). Dark theme: a soft brand tint and
+  // plain rows, so nothing light shows there.
   ({ className, ...props }, ref) => (
     <thead
       ref={ref}
-      className={cn("bg-primary/10 dark:bg-primary/15 [&_tr]:border-b [&_tr]:border-primary/15 [&_tr:hover]:bg-transparent", className)}
+      className={cn(
+        "bg-band text-band-foreground [&_th]:text-band-foreground [&_tr]:border-b [&_tr]:border-band [&_tr:hover]:!bg-transparent",
+        "dark:bg-primary/15 dark:text-foreground dark:[&_th]:text-foreground/80 dark:[&_tr]:border-primary/15",
+        className,
+      )}
       {...props}
     />
   ),
@@ -28,7 +33,10 @@ const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes
   ({ className, ...props }, ref) => (
     <tbody
       ref={ref}
-      className={cn("[&_tr:last-child]:border-0 [&>tr:nth-child(even)]:bg-muted/40", className)}
+      className={cn(
+        "[&_tr:last-child]:border-0 [&>tr:nth-child(even)]:bg-muted/70 dark:[&>tr:nth-child(even)]:bg-transparent",
+        className,
+      )}
       {...props}
     />
   ),

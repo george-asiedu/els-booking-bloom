@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { platformApi, PlatformBillingConfig } from "@/lib/platformApi";
+import { BillingPromos } from "@/components/platform/BillingPromos";
 import { PlatformLayout } from "./PlatformLayout";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
@@ -15,15 +16,17 @@ import { YEARLY_FREE_MONTHS } from "@/config/platform";
 const yearlyFrom = (monthly: number) =>
   Math.round(monthly * (12 - YEARLY_FREE_MONTHS) * 100) / 100;
 
-type Plan = "STANDARD" | "PREMIUM";
+type Plan = "STANDARD" | "PREMIUM" | "STOREFRONT";
 type Cadence = "MONTHLY" | "YEARLY";
 const PLANS: { id: Plan; name: string }[] = [
   { id: "STANDARD", name: "Standard" },
   { id: "PREMIUM", name: "Premium" },
+  { id: "STOREFRONT", name: "Storefront" },
 ];
+const PLAN_KEY = { STANDARD: "Standard", PREMIUM: "Premium", STOREFRONT: "Storefront" } as const;
 
 const priceKey = (plan: Plan, cadence: Cadence) =>
-  `price${plan === "PREMIUM" ? "Premium" : "Standard"}${cadence === "YEARLY" ? "Yearly" : "Monthly"}` as const;
+  `price${PLAN_KEY[plan]}${cadence === "YEARLY" ? "Yearly" : "Monthly"}` as const;
 
 const PlatformBilling = () => {
   const queryClient = useQueryClient();
@@ -71,7 +74,7 @@ const PlatformBilling = () => {
   const num = (v: string) => (v === "" ? 0 : Number(v));
   const set = (patch: Partial<PlatformBillingConfig>) => setForm({ ...form, ...patch });
   const setupFee = (plan: Plan) =>
-    plan === "PREMIUM" ? form.subscriptionSetupFeePremium : form.subscriptionSetupFeeStandard;
+    form[`subscriptionSetupFee${PLAN_KEY[plan]}` as const];
   const coverMonths = (cadence: Cadence) =>
     cadence === "YEARLY" ? form.setupFeeMonthsYearly : form.setupFeeMonthsMonthly;
 
@@ -140,19 +143,13 @@ const PlatformBilling = () => {
               fee to 0 to turn it off for that plan.
             </p>
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-3">
               {PLANS.map((plan) => (
                 <Field
                   key={plan.id}
                   label={`${plan.name} setup fee`}
                   value={setupFee(plan.id)}
-                  onChange={(v) =>
-                    set(
-                      plan.id === "PREMIUM"
-                        ? { subscriptionSetupFeePremium: num(v) }
-                        : { subscriptionSetupFeeStandard: num(v) },
-                    )
-                  }
+                  onChange={(v) => set({ [`subscriptionSetupFee${PLAN_KEY[plan.id]}`]: num(v) })}
                   suffix="GHS"
                 />
               ))}
@@ -163,7 +160,7 @@ const PlatformBilling = () => {
                 <p className="font-medium">How long the setup fee covers</p>
                 <p className="text-sm text-muted-foreground">
                   This depends on how a studio chooses to pay, not on which plan it picks. It's
-                  the same for Standard and Premium.
+                  the same for every plan.
                 </p>
               </div>
               <div className="grid gap-6 sm:grid-cols-2">
@@ -240,7 +237,7 @@ const PlatformBilling = () => {
               The plan a studio picks sets its commission and one-time activation fee. This is
               separate from the setup fee above.
             </p>
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-3">
               <div className="space-y-4">
                 <p className="font-semibold">Standard</p>
                 <Field
@@ -273,6 +270,22 @@ const PlatformBilling = () => {
                   suffix="GHS"
                 />
               </div>
+              <div className="space-y-4">
+                <p className="font-semibold">Storefront</p>
+                <Field
+                  label="Commission per transaction"
+                  value={form.commissionStorefrontPercent}
+                  onChange={(v) => set({ commissionStorefrontPercent: num(v) })}
+                  suffix="%"
+                  max={100}
+                />
+                <Field
+                  label="One-time activation fee"
+                  value={form.setupFeeStorefront}
+                  onChange={(v) => set({ setupFeeStorefront: num(v) })}
+                  suffix="GHS"
+                />
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">
               An activation fee of 0 means revenue-share studios are created immediately with no
@@ -280,6 +293,8 @@ const PlatformBilling = () => {
             </p>
           </CardContent>
         </Card>
+
+        <BillingPromos />
 
         <div className="sticky bottom-4 flex justify-end">
           <Button onClick={() => save.mutate()} disabled={save.isPending} size="lg" className="shadow-lg">

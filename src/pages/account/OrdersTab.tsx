@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { DetailsSheet } from "@/components/ui/details-sheet";
 import { format } from "date-fns";
 import { Download, Package, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatGHS } from "@/lib/currency";
@@ -9,6 +13,17 @@ import { downloadOrderReceipt, type DocumentBrand } from "@/lib/receipt";
 import type { CartDTO, OrderDTO } from "@/lib/api";
 import { orderStatusColors, orderStatusLabel } from "./accountFormat";
 import { LoadMore } from "./AccountParts";
+import { CancelRequestButton, cancellationRows } from "@/components/account/CancelRequest";
+import { StatusTabs, TabEmpty } from "@/components/dashboard/StatusTabs";
+import { OrderTimeline } from "@/components/account/OrderTimeline";
+import { isOpenOrder } from "@/lib/api/orders";
+
+const ORDER_TABS = [
+  { key: "open", label: "In progress", empty: "No orders on the way" },
+  { key: "fulfilled", label: "Delivered", empty: "No delivered or collected orders yet" },
+  { key: "pending_payment", label: "Awaiting payment", empty: "Nothing waiting for payment" },
+  { key: "cancelled", label: "Cancelled", empty: "No cancelled orders" },
+];
 
 interface OrdersTabProps {
   cart: CartDTO | undefined;
@@ -18,7 +33,13 @@ interface OrdersTabProps {
   brand: DocumentBrand;
 }
 
-export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTabProps) => (
+export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTabProps) => {
+  // The order whose details drawer is open.
+  const [open, setOpen] = useState<OrderDTO | null>(null);
+  const [tab, setTab] = useState("open");
+  const inTab = (o: OrderDTO, key: string) => (key === "open" ? isOpenOrder(o) : o.status === key);
+  const shown = orders.filter((o) => inTab(o, tab));
+  return (
   <>
     {/* Current cart */}
     {cart && cart.items.length > 0 && (
@@ -51,62 +72,138 @@ export const OrdersTab = ({ cart, orders, pager, shopEnabled, brand }: OrdersTab
 
     {/* Order history */}
     <div>
-      <h2 className="text-xl font-semibold text-foreground mb-4">My Orders</h2>
-      {orders.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">You haven't placed any orders yet.</p>
-            {shopEnabled && (
+      <h2 className="text-xl font-semibold text-foreground mb-4">My orders</h2>
+      <StatusTabs
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={ORDER_TABS.map((t) => ({ key: t.key, label: t.label, count: orders.filter((o) => inTab(o, t.key)).length }))}
+      />
+      {shown.length === 0 ? (
+        <TabEmpty
+          icon={<Package />}
+          title={orders.length === 0 ? "You haven't placed any orders yet" : ORDER_TABS.find((t) => t.key === tab)!.empty}
+          action={
+            orders.length === 0 && shopEnabled ? (
               <Button asChild>
                 <Link to="/shop">Start shopping</Link>
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            ) : undefined
+          }
+        />
       ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <Card key={order.id}>
-              <CardContent className="py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-foreground">{order.order_number}</p>
-                      <Badge className={orderStatusColors[order.status]}>
-                        {orderStatusLabel[order.status]}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {order.items.map((i) => `${i.name} x${i.quantity}`).join(", ")}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {format(new Date(order.created_at), "MMM d, yyyy")} ·{" "}
-                      {order.fulfillment === "delivery" ? "Delivery" : "Pickup"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-bold text-foreground tabular-nums">
-                      {formatGHS(order.total)}
-                    </span>
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Fulfilment</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {shown.map((order) => (
+                <TableRow key={order.id} onOpen={() => setOpen(order)}>
+                  <TableCell className="whitespace-nowrap font-medium">{order.order_number}</TableCell>
+                  <TableCell className="min-w-[12rem] text-sm text-muted-foreground">
+                    {order.items.map((i) => `${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity}`).join(", ")}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{format(new Date(order.created_at), "d MMM yyyy")}</TableCell>
+                  <TableCell>{order.fulfillment === "delivery" ? "Delivery" : "Pickup"}</TableCell>
+                  <TableCell>
+                    <Badge className={cn("whitespace-nowrap", orderStatusColors[order.status])}>
+                      {orderStatusLabel[order.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">{formatGHS(order.total)}</TableCell>
+                  <TableCell className="text-right">
                     {order.status === "pending_payment" ? (
                       <Button size="sm" asChild>
                         <Link to="/cart">Pay</Link>
                       </Button>
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => downloadOrderReceipt(order, brand)}>
-                        <Download className="h-4 w-4 mr-1" />
+                        <Download className="mr-1 h-4 w-4" />
                         Receipt
                       </Button>
                     )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
       <LoadMore query={pager} label="Load more orders" />
     </div>
+    {open && (
+      <DetailsSheet
+        media={<OrderTimeline order={open} />}
+        open
+        onClose={() => setOpen(null)}
+        title={`Order ${open.order_number}`}
+        subtitle={format(new Date(open.created_at), "d MMMM yyyy, HH:mm")}
+        badges={
+          <Badge className={cn("whitespace-nowrap", orderStatusColors[open.status])}>
+            {orderStatusLabel[open.status]}
+          </Badge>
+        }
+        sections={[
+          {
+            title: "Items",
+            items: open.items.map((i) => ({
+              label: `${i.name}${[i.color, i.size && `Size ${i.size}`].filter(Boolean).length ? ` (${[i.color, i.size && `Size ${i.size}`].filter(Boolean).join(", ")})` : ""} × ${i.quantity}`,
+              value: formatGHS(i.line_total),
+            })),
+          },
+          {
+            title: "Payment",
+            items: [
+              { label: "Subtotal", value: formatGHS(open.subtotal) },
+              ...(open.discount_amount > 0 ? [{ label: "Discount", value: `-${formatGHS(open.discount_amount)}` }] : []),
+              ...(open.delivery_fee > 0 ? [{ label: "Delivery", value: formatGHS(open.delivery_fee) }] : []),
+              { label: "Total", value: <span className="font-semibold">{formatGHS(open.total)}</span> },
+              { label: "Paid on", value: open.paid_at ? format(new Date(open.paid_at), "d MMM yyyy, HH:mm") : "Not paid yet" },
+              { label: "Reference", value: open.reference, mono: true },
+              ...cancellationRows(open),
+            ],
+          },
+          {
+            title: open.fulfillment === "delivery" ? "Delivery" : "Pickup",
+            items:
+              open.fulfillment === "delivery"
+                ? [
+                    { label: "Address", value: open.delivery_address },
+                    { label: "Phone", value: open.delivery_phone },
+                  ]
+                : [{ label: "Collect from", value: "The studio, once it's ready" }],
+          },
+        ]}
+        footer={
+          open.status === "pending_payment" ? (
+            <Button className="w-full" asChild>
+              <Link to="/cart">Pay for this order</Link>
+            </Button>
+          ) : (
+            <div className="flex w-full flex-col gap-2">
+              <Button className="w-full" variant="outline" onClick={() => downloadOrderReceipt(open, brand)}>
+                <Download className="mr-2 h-4 w-4" />
+                Download receipt
+              </Button>
+              {(open.status === "paid" || open.status === "preparing") && !open.cancel_requested_at && (
+                <CancelRequestButton kind="orders" id={open.id} paid={open.total} invalidate={["my-orders"]} onDone={() => setOpen(null)} />
+              )}
+            </div>
+          )
+        }
+      />
+    )}
   </>
-);
+  );
+};

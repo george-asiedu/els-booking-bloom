@@ -108,7 +108,7 @@ const ResetPassword = () => {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>New Password</FormLabel>
+                        <FormLabel>New password</FormLabel>
                         <FormControl>
                           <PasswordInput placeholder="••••••••" {...field} />
                         </FormControl>
@@ -121,7 +121,7 @@ const ResetPassword = () => {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
+                        <FormLabel>Confirm password</FormLabel>
                         <FormControl>
                           <PasswordInput placeholder="••••••••" {...field} />
                         </FormControl>
@@ -144,7 +144,7 @@ const ResetPassword = () => {
                     to="/login"
                     className="text-primary hover:underline font-medium"
                   >
-                    Back to Sign In
+                    Back to sign in
                   </Link>
                 </p>
               </div>

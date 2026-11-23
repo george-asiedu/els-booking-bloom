@@ -43,14 +43,15 @@ export const useOnboardingStatus = () => {
   });
 
   const steps: OnboardingStep[] = [
-    {
+    // A Zuri Stores has no services; its products step is added below.
+    ...(features.booking === false ? [] : [{
       key: "service",
       label: "Add your first service",
       description: "List a service customers can book.",
       done: (services?.length ?? 0) > 0,
       path: "/admin/services",
       cta: "Add a service",
-    },
+    }]),
     {
       key: "branding",
       label: "Add your branding",

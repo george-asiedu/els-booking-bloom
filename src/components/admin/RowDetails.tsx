@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { DetailsSheet, type DetailItem } from "@/components/ui/details-sheet";
@@ -11,6 +12,7 @@ import type {
   ReviewDTO,
   ServiceDTO,
 } from "@/lib/api";
+import { whatsappLink } from "@/lib/whatsapp";
 import { formatGHS } from "@/lib/currency";
 
 // The details drawers the studio admin's tables open when a row is clicked.
@@ -27,7 +29,42 @@ const channel = (c: string | null | undefined) =>
 
 type Close = { onClose: () => void };
 
-export const AppointmentDetails = ({ item, onClose }: { item: AppointmentDTO | null } & Close) => {
+// The cancellation request and any refund the business recorded itself.
+const cancellationSection = (item: {
+  status: string;
+  cancel_requested_at: string | null;
+  cancel_request_reason: string | null;
+  refunded_outside: { at: string; amount: number; note: string | null } | null;
+}) =>
+  (item.cancel_requested_at || item.refunded_outside)
+    ? [
+        {
+          title: "Cancellation",
+          items: [
+            ...(item.cancel_requested_at
+              ? [
+                  { label: "Customer asked to cancel", value: when(item.cancel_requested_at) },
+                  ...(item.cancel_request_reason ? [{ label: "Reason", value: item.cancel_request_reason }] : []),
+                ]
+              : []),
+            ...(item.refunded_outside
+              ? [
+                  { label: "Refunded by you", value: formatGHS(item.refunded_outside.amount) },
+                  { label: "Refunded on", value: when(item.refunded_outside.at) },
+                  ...(item.refunded_outside.note ? [{ label: "How", value: item.refunded_outside.note }] : []),
+                ]
+              : []),
+          ] as DetailItem[],
+        },
+      ]
+    : [];
+
+export const AppointmentDetails = ({
+  item,
+  onClose,
+  footer,
+  missed,
+}: { item: AppointmentDTO | null; footer?: ReactNode; /** This customer's missed bookings. */ missed?: number } & Close) => {
   const p = item?.payment;
   const refunded = p?.refunded_amount ?? 0;
   return (
@@ -53,12 +90,14 @@ export const AppointmentDetails = ({ item, onClose }: { item: AppointmentDTO | n
                   { label: "Phone", value: item.phone },
                   { label: "Email", value: item.email },
                   { label: "Has an account", value: yesNo(Boolean(item.user_id)) },
+                  ...(missed ? [{ label: "Missed bookings", value: `${missed}${missed >= 2 ? " (must pay in full)" : ""}` }] : []),
                 ],
               },
               {
                 title: "Appointment",
                 items: [
                   { label: "Service", value: item.services?.name },
+                  ...(item.staff ? [{ label: "With", value: item.staff.name }] : []),
                   { label: "Category", value: item.services?.category },
                   { label: "Duration", value: item.services?.duration },
                   { label: "Date", value: format(parseISO(item.appointment_date), "EEE d MMM yyyy") },
@@ -93,14 +132,16 @@ export const AppointmentDetails = ({ item, onClose }: { item: AppointmentDTO | n
                     ] as DetailItem[])
                   : [{ label: "Payment", value: "Pay at the studio" }],
               },
+              ...cancellationSection(item),
             ]
           : []
       }
+      footer={footer}
     />
   );
 };
 
-export const OrderDetails = ({ item, onClose }: { item: OrderDTO | null } & Close) => (
+export const OrderDetails = ({ item, onClose, footer }: { item: OrderDTO | null; footer?: ReactNode } & Close) => (
   <DetailsSheet
     open={Boolean(item)}
     onClose={onClose}
@@ -121,8 +162,30 @@ export const OrderDetails = ({ item, onClose }: { item: OrderDTO | null } & Clos
               items: [
                 { label: "Name", value: item.customer_name },
                 { label: "Email", value: item.customer_email },
-                { label: "Phone", value: item.customer_phone ?? item.delivery_phone },
+                {
+                  label: "Phone",
+                  value: (() => {
+                    const phone = item.customer_phone ?? item.delivery_phone;
+                    const href = whatsappLink(phone, `Hello ${(item.customer_name ?? "").split(" ")[0] || "there"}, this is about your order ${item.order_number}.`);
+                    return (
+                      <span>
+                        {phone}
+                        {href && (
+                          <a href={href} target="_blank" rel="noreferrer" className="ml-2 text-xs underline underline-offset-2">
+                            Message on WhatsApp
+                          </a>
+                        )}
+                      </span>
+                    );
+                  })(),
+                },
                 ...(item.fulfillment === "delivery" ? [{ label: "Deliver to", value: item.delivery_address }] : []),
+                ...(item.delivery_zone ? [{ label: "Area", value: item.delivery_zone }] : []),
+                ...(item.delivery_slot ? [{ label: "Customer chose", value: item.delivery_slot }] : []),
+                ...(item.delivery_note ? [{ label: "Note for the rider", value: item.delivery_note }] : []),
+                ...(item.delivery_eta ? [{ label: item.fulfillment === "delivery" ? "Expected" : "Collect by", value: item.delivery_eta }] : []),
+                ...(item.delivered_at ? [{ label: item.fulfillment === "delivery" ? "Delivered" : "Collected", value: when(item.delivered_at) }] : []),
+                ...(item.delivery_failed_reason && item.status === "out_for_delivery" ? [{ label: "Delivery failed", value: item.delivery_failed_reason }] : []),
               ],
             },
             {
@@ -162,9 +225,11 @@ export const OrderDetails = ({ item, onClose }: { item: OrderDTO | null } & Clos
                 ...(item.appointment_id ? [{ label: "Paid with a booking", value: "Yes" }] : []),
               ],
             },
+            ...cancellationSection(item),
           ]
         : []
     }
+    footer={footer}
   />
 );
 

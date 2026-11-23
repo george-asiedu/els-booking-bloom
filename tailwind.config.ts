@@ -15,6 +15,12 @@ export default {
   	},
   	extend: {
   		colors: {
+  			// Dark sections: ink on the light theme, a dark surface on the dark one
+  			// (bg-foreground would flip to near-white there).
+  			band: {
+  				DEFAULT: 'hsl(var(--band))',
+  				foreground: 'hsl(var(--band-foreground))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

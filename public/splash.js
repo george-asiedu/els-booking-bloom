@@ -51,7 +51,7 @@
     zuri.src = "/zuri-mark.png";
     zuri.alt = "";
     mark.appendChild(zuri);
-    nameEl.textContent = "Zuri Studios";
+    nameEl.textContent = "Zuri";
   }
 
   window.__hideSplash = function () {

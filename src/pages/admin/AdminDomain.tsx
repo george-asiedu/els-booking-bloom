@@ -61,7 +61,7 @@ const AdminDomain = () => {
     mutationFn: () => studioAdminApi.verifyDomain(),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["studio-domain"] });
-      if (res.verified) toast({ title: "Domain verified 🎉" });
+      if (res.verified) toast({ title: "Domain verified", description: "Your website now opens on your own address." });
     },
     onError: (e: Error) =>
       toast({ variant: "destructive", title: "Not verified yet", description: e.message }),

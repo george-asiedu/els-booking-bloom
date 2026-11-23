@@ -52,6 +52,8 @@ export interface PaymentInfoDTO {
 
 export interface AppointmentDTO {
   id: string;
+  /** Only on a booking just made without an account: what lets the guest pay. */
+  guest_token?: string | undefined;
   full_name: string;
   phone: string;
   email: string | null;
@@ -62,7 +64,7 @@ export interface AppointmentDTO {
   design_image_url: string | null;
   // pending_reschedule: the customer moved the booking and the studio hasn't
   // approved the new slot yet (the server's PENDING_RESCHEDULE).
-  status: "pending" | "confirmed" | "pending_reschedule" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "pending_reschedule" | "completed" | "cancelled" | "no_show";
   user_id: string | null;
   created_at: string;
   total_price: number;
@@ -71,6 +73,13 @@ export interface AppointmentDTO {
   amount_due: number;
   payment: PaymentInfoDTO | null;
   services: AppointmentServiceDTO | null;
+  /** The customer asked to cancel; the studio hasn't decided yet. */
+  cancel_requested_at: string | null;
+  cancel_request_reason: string | null;
+  /** The studio paid the customer back itself and recorded it. */
+  refunded_outside: { at: string; amount: number; note: string | null } | null;
+  /** The staff member it's with, when the studio has staff. */
+  staff: { id: string; name: string } | null;
 }
 
 // ---------------- Raw server shapes ----------------
@@ -89,6 +98,12 @@ export interface RawService {
 }
 
 export interface RawAppointment {
+  staff?: { id: string; name: string } | null;
+  cancelRequestedAt?: string | null;
+  cancelRequestReason?: string | null;
+  refundedOutsideAt?: string | null;
+  refundedOutsideAmount?: number | null;
+  refundedOutsideNote?: string | null;
   id: string;
   fullName: string;
   phone: string;
@@ -152,6 +167,7 @@ export const normalizeService = (s: RawService): ServiceDTO => {
 
 export const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
   id: a.id,
+  guest_token: (a as { guestToken?: string }).guestToken,
   full_name: a.fullName,
   phone: a.phone,
   email: a.email,
@@ -189,5 +205,11 @@ export const normalizeAppointment = (a: RawAppointment): AppointmentDTO => ({
         price: a.service.price,
         category: a.service.category,
       }
+    : null,
+  staff: a.staff ?? null,
+  cancel_requested_at: a.cancelRequestedAt ?? null,
+  cancel_request_reason: a.cancelRequestReason ?? null,
+  refunded_outside: a.refundedOutsideAt
+    ? { at: a.refundedOutsideAt, amount: a.refundedOutsideAmount ?? 0, note: a.refundedOutsideNote ?? null }
     : null,
 });

@@ -1,328 +1,344 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShoppingBag, ShoppingCart, Loader2, ImageOff } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronRight, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Layout } from "@/components/layout/Layout";
-import { StudioPageHero } from "@/components/storefront/StudioPageHero";
-import { Reveal } from "@/components/Reveal";
-import { ToastAction } from "@/components/ui/toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  productsApi,
-  productCategoriesApi,
-  commerceApi,
-  cartApi,
-  galleryApi,
-  ProductDTO,
-} from "@/lib/api";
-import { ApiError } from "@/lib/apiClient";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { setPendingCartAdd, takePendingCartAdd } from "@/lib/pendingCart";
-import { cn } from "@/lib/utils";
+import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
+import { Breadcrumbs, ProductCard } from "@/components/shop/ProductCard";
+import { commerceApi, productCategoriesApi, productsApi, type ProductDTO } from "@/lib/api";
+import { useHideSplashWhen } from "@/lib/splash";
+import { useStudio } from "@/hooks/useStudio";
 import { formatGHS } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 
-const GHS = formatGHS;
-const titleize = (slug: string) =>
-  slug
-    .split("-")
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(" ");
+const PER_PAGE = 12;
+type Sort = "newest" | "recommended" | "low" | "high";
 
+const AUDIENCES = { men: "MEN", women: "WOMEN" } as const;
+type AudienceParam = keyof typeof AUDIENCES;
+/** Men's pages show men's and everyone's pieces; women's likewise. */
+const forAudience = (p: ProductDTO, a: AudienceParam | null) => !a || p.audience === "UNISEX" || p.audience === AUDIENCES[a];
+// Best rated, then marked popular, then newest.
+const recommended = (a: ProductDTO, b: ProductDTO) =>
+  (b.rating_average ?? 0) - (a.rating_average ?? 0) || Number(b.popular) - Number(a.popular);
+
+/** All products (categories-design): filters beside a paged grid. */
 const Shop = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [addingId, setAddingId] = useState<string | null>(null);
-  const [activeCat, setActiveCat] = useState("all");
+  const { isLoading: studioLoading } = useStudio();
+  const [params] = useSearchParams();
+  const query = (params.get("q") ?? "").trim().toLowerCase();
+  const brand = params.get("brand");
+  const audienceRaw = params.get("audience");
+  const audience: AudienceParam | null = audienceRaw === "men" || audienceRaw === "women" ? audienceRaw : null;
+  const [cats, setCats] = useState<string[]>([]);
+  const [range, setRange] = useState<[number, number] | null>(null);
+  const [size, setSize] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>(null);
+  const [inStock, setInStock] = useState(false);
+  const [onSale, setOnSale] = useState(false);
+  const [sort, setSort] = useState<Sort>("newest");
+  const [page, setPage] = useState(1);
+
+  // The header's category links and the home page's circles land here.
+  useEffect(() => {
+    const c = params.get("category");
+    setCats(c ? [c] : []);
+    setOnSale(params.get("sale") === "1");
+    setPage(1);
+  }, [params]);
 
   const { data: commerce } = useQuery({
     queryKey: ["commerce-settings"],
     queryFn: () => commerceApi.getSettings(),
   });
-  const productsQuery = useInfiniteQuery({
-    queryKey: ["public-products", "cursor-pages"],
-    queryFn: ({ pageParam }) => productsApi.listActivePage(pageParam),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ["public-products"],
+    queryFn: () => productsApi.listActive(),
   });
-  const products = productsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const isLoading = productsQuery.isLoading;
   const { data: categories = [] } = useQuery({
     queryKey: ["public-product-categories"],
     queryFn: () => productCategoriesApi.listActive(),
   });
-  const { data: gallery = [] } = useQuery({
-    queryKey: ["public-gallery"],
-    queryFn: () => galleryApi.listActive(),
-  });
+  useHideSplashWhen(!studioLoading && !isLoading);
 
-  const viewCartAction = (
-    <ToastAction altText="View cart" onClick={() => navigate("/cart")}>
-      View cart
-    </ToastAction>
+  const maxPrice = useMemo(
+    () => Math.ceil(Math.max(0, ...products.map((p) => p.effective_price))),
+    [products],
   );
+  const [lo, hi] = range ?? [0, maxPrice];
 
-  // Resume an add-to-cart a guest attempted before being sent to log in.
-  useEffect(() => {
-    if (user && user.role !== "ADMIN") {
-      const pid = takePendingCartAdd();
-      if (pid) {
-        cartApi
-          .addItem(pid, 1)
-          .then(() => {
-            queryClient.invalidateQueries({ queryKey: ["cart"] });
-            toast({
-              title: "Added to cart",
-              description: "Picked up where you left off.",
-              action: viewCartAction,
-            });
-          })
-          .catch(() => {});
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const addMutation = useMutation({
-    mutationFn: (productId: string) => cartApi.addItem(productId, 1),
-    onMutate: (productId) => setAddingId(productId),
-    onSuccess: (_d, productId) => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      const p = products.find((x) => x.id === productId);
-      toast({
-        title: "Added to cart",
-        description: p ? `${p.name} added to your bag.` : "Item added to your cart.",
-        action: viewCartAction,
-      });
-    },
-    onError: (error, productId) => {
-      if (error instanceof ApiError && error.status === 401) {
-        setPendingCartAdd(productId);
-        return;
-      }
-      toast({
-        variant: "destructive",
-        title: "Couldn't add to cart",
-        description: error instanceof Error ? error.message : "Please try again.",
-      });
-    },
-    onSettled: () => setAddingId(null),
-  });
-
-  const handleAdd = (product: ProductDTO) => {
-    if (!user) {
-      setPendingCartAdd(product.id);
-      navigate("/login?redirect=/shop");
-      return;
-    }
-    if (user.role === "ADMIN") {
-      toast({
-        variant: "destructive",
-        title: "Admins can't shop",
-        description: "Use a customer account to make purchases.",
-      });
-      return;
-    }
-    addMutation.mutate(product.id);
+  const matches = products.filter(
+    (p) =>
+      forAudience(p, audience) &&
+      (!brand || p.brand === brand) &&
+      (!query || p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)) &&
+      p.effective_price >= lo &&
+      p.effective_price <= hi &&
+      (!size || p.sizes.includes(size)) &&
+      (!color || p.colors.some((c) => c.name === color)) &&
+      (!inStock || p.in_stock) &&
+      (!onSale || p.on_promo),
+  );
+  const pool = products.filter((p) => forAudience(p, audience));
+  const allSizes = [...new Set(pool.flatMap((p) => p.sizes))];
+  const allColors = [...new Map(pool.flatMap((p) => p.colors).map((c) => [c.name, c])).values()];
+  // Only categories with something in them for this audience.
+  const shownCategories = categories.filter((c) => pool.some((p) => p.category === c.slug));
+  const filtered = matches.filter((p) => !cats.length || cats.includes(p.category));
+  const sorted = [...filtered].sort((a, b) =>
+    sort === "low"
+      ? a.effective_price - b.effective_price
+      : sort === "high"
+        ? b.effective_price - a.effective_price
+        : sort === "recommended"
+          ? recommended(a, b)
+          : (b.created_at ?? "").localeCompare(a.created_at ?? ""),
+  );
+  const pages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
+  const current = Math.min(page, pages);
+  const shown = sorted.slice((current - 1) * PER_PAGE, current * PER_PAGE);
+  const single = cats.length === 1 ? categories.find((c) => c.slug === cats[0]) : null;
+  const who = audience === "men" ? "Men's" : audience === "women" ? "Women's" : null;
+  const title = query
+    ? `Results for "${query}"`
+    : brand
+      ? brand
+    : single
+      ? who
+        ? `${who} ${single.name.toLowerCase()}`
+        : single.name
+      : who
+        ? `${who} collection`
+        : "All products";
+  const clear = () => {
+    setCats([]);
+    setRange(null);
+    setSize(null);
+    setColor(null);
+    setInStock(false);
+    setOnSale(false);
+    setPage(1);
+  };
+  const changed = (fn: () => void) => {
+    fn();
+    setPage(1);
   };
 
-  const nameBySlug = new Map(categories.map((c) => [c.slug, c.name]));
-  const catName = (slug: string) => nameBySlug.get(slug) ?? titleize(slug);
-  const present = Array.from(new Set(products.map((p) => p.category)));
-  const orderedSlugs = categories.map((c) => c.slug);
-  const tabSlugs = [
-    ...orderedSlugs.filter((s) => present.includes(s)),
-    ...present.filter((s) => !orderedSlugs.includes(s)),
-  ];
-  const filtered =
-    activeCat === "all" ? products : products.filter((p) => p.category === activeCat);
-
-  // Shop turned off by the admin.
   if (commerce && !commerce.enabled) {
     return (
       <Layout>
-        <section className="py-24">
-          <div className="container mx-auto max-w-md px-4 text-center">
-            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-            <h1 className="mb-2 font-serif text-2xl font-bold text-foreground">
-              The shop is currently closed
-            </h1>
-            <p className="mb-6 text-muted-foreground">Please check back soon.</p>
-            <Button asChild>
-              <Link to="/">Back to home</Link>
-            </Button>
-          </div>
+        <section className="container mx-auto max-w-md px-4 py-24 text-center">
+          <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h1 className="mb-2 font-serif text-2xl font-bold">The shop is currently closed</h1>
+          <p className="mb-6 text-muted-foreground">Please check back soon.</p>
+          <Button asChild><Link to="/">Back to home</Link></Button>
         </section>
       </Layout>
     );
   }
 
-  const heroImg =
-    products.find((p) => p.image_url)?.image_url ?? gallery.find((g) => g.media_type === "image")?.image_url ?? null;
+  const section = "border-b border-border px-5 py-5";
+  const heading = "mb-4 text-sm font-semibold text-foreground";
+  const filters = (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card text-sm">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <span className="font-semibold">Filter</span>
+        <button type="button" onClick={clear} className="text-xs text-muted-foreground hover:text-foreground">
+          Clear all
+        </button>
+      </div>
+      {shownCategories.length > 0 && (
+        <div className={section}>
+          <ul className="space-y-1">
+            {shownCategories.map((c) => {
+              const on = cats.includes(c.slug);
+              return (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => changed(() => setCats(on ? cats.filter((x) => x !== c.slug) : [...cats, c.slug]))}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent",
+                      on ? "font-medium text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    <span>{c.name}</span>
+                    <span className="flex items-center gap-1 text-xs tabular-nums">
+                      {matches.filter((p) => p.category === c.slug).length}
+                      <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+      {maxPrice > 0 && (
+        <div className={section}>
+          <p className={heading}>Price</p>
+          <Slider
+            min={0}
+            max={maxPrice}
+            step={1}
+            value={[lo, hi]}
+            onValueChange={(v) => changed(() => setRange([v[0], v[1]]))}
+            aria-label="Price range"
+          />
+          <div className="mt-4 flex justify-between gap-3 text-xs tabular-nums">
+            <span className="rounded-lg border border-border px-3 py-1.5">{formatGHS(lo)}</span>
+            <span className="rounded-lg border border-border px-3 py-1.5">{formatGHS(hi)}</span>
+          </div>
+        </div>
+      )}
+      {allColors.length > 0 && (
+        <div className={section}>
+          <p className={heading}>Colours</p>
+          <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+            {allColors.map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                aria-pressed={color === c.name}
+                onClick={() => changed(() => setColor(color === c.name ? null : c.name))}
+                className="flex flex-col items-center gap-1"
+              >
+                <span
+                  className={cn(
+                    "h-8 w-8 rounded-lg border border-border ring-offset-2 ring-offset-card",
+                    color === c.name && "ring-2 ring-foreground",
+                  )}
+                  style={{ backgroundColor: c.hex }}
+                />
+                <span className="line-clamp-1 text-[11px] text-muted-foreground">{c.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {allSizes.length > 0 && (
+        <div className={section}>
+          <p className={heading}>Size</p>
+          <div className="grid grid-cols-3 gap-2">
+            {allSizes.map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                aria-pressed={size === sz}
+                onClick={() => changed(() => setSize(size === sz ? null : sz))}
+                className={cn(
+                  "h-9 rounded-lg border text-xs",
+                  size === sz ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                )}
+              >
+                {sz}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="px-5 py-5">
+        <p className={heading}>Availability</p>
+        <div className="space-y-2.5">
+          <label className="flex cursor-pointer items-center gap-2.5">
+            <Checkbox checked={inStock} onCheckedChange={(on) => changed(() => setInStock(!!on))} /> In stock
+          </label>
+          <label className="flex cursor-pointer items-center gap-2.5">
+            <Checkbox checked={onSale} onCheckedChange={(on) => changed(() => setOnSale(!!on))} /> On sale
+          </label>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Layout>
-      <StudioPageHero
-        eyebrow="Shop"
-        title="Products we use and sell"
-        description="The products we use in the studio, available to buy online."
-        image={heroImg}
-        variant="commerce"
-      />
-
-      <section className="py-14 md:py-20">
-        <div className="container mx-auto px-4">
-          {isLoading ? (
-            <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="h-72 w-full rounded-2xl" />
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            <div className="mx-auto max-w-md py-16 text-center">
-              <ShoppingBag className="mx-auto mb-4 h-10 w-10 text-primary/40" />
-              <h2 className="font-serif text-2xl font-bold">
-                Something beautiful is coming.
-              </h2>
-              <p className="mt-2 text-muted-foreground">
-                This studio hasn't added products yet. Check back soon.
+      <section className="container mx-auto grid gap-8 px-4 py-8 lg:grid-cols-[260px_1fr]">
+        <aside className="hidden lg:block">{filters}</aside>
+        <div>
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <Breadcrumbs items={[{ label: "Shop", to: "/shop/products" }, ...(who ? [{ label: who.replace("'s", "") , to: `/shop/products?audience=${audience}` }] : []), { label: title }]} />
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {filtered.length} {filtered.length === 1 ? "piece" : "pieces"}
               </p>
-              <Button className="mt-6" asChild>
-                <Link to="/services">Explore services</Link>
-              </Button>
             </div>
-          ) : (
-            <>
-              {tabSlugs.length > 1 && (
-                <div className="mb-10 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {["all", ...tabSlugs].map((slug) => (
-                    <button
-                      key={slug}
-                      onClick={() => setActiveCat(slug)}
-                      className={cn(
-                        "shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
-                        activeCat === slug
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {slug === "all" ? "All products" : catName(slug)}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
-                {filtered.map((product, i) => (
-                  <Reveal key={product.id} delay={(i % 4) * 60}>
-                    <div className="group flex h-full flex-col">
-                      <Link
-                        to={`/shop/${product.id}`}
-                        className="relative block aspect-square overflow-hidden rounded-2xl bg-secondary"
-                      >
-                        {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center">
-                            <ImageOff className="h-10 w-10 text-muted-foreground" />
-                          </span>
-                        )}
-                        <span className="absolute left-2 top-2 flex gap-1">
-                          {product.popular && (
-                            <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
-                              Popular
-                            </span>
-                          )}
-                          {product.on_promo && (
-                            <span
-                              className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
-                              style={{ backgroundColor: "hsl(var(--toast-success))" }}
-                            >
-                              Sale
-                            </span>
-                          )}
-                        </span>
-                        {!product.in_stock && (
-                          <span className="absolute inset-0 flex items-center justify-center bg-background/60">
-                            <span className="rounded-full bg-card px-3 py-1 text-xs font-medium">
-                              Out of stock
-                            </span>
-                          </span>
-                        )}
-                      </Link>
-
-                      <div className="flex flex-1 flex-col pt-3">
-                        <Link to={`/shop/${product.id}`} className="min-w-0">
-                          <h3 className="line-clamp-1 font-medium transition-colors group-hover:text-primary">
-                            {product.name}
-                          </h3>
-                        </Link>
-                        <div className="mt-1 flex items-baseline gap-2">
-                          {product.on_promo ? (
-                            <>
-                              <span className="text-xs text-muted-foreground line-through">
-                                {GHS(product.price)}
-                              </span>
-                              <span className="font-semibold text-primary">
-                                {GHS(product.effective_price)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="font-semibold text-primary">
-                              {GHS(product.price)}
-                            </span>
-                          )}
-                          {product.in_stock && (
-                            <span
-                              className={cn(
-                                "ml-auto text-xs",
-                                product.track_stock && product.stock <= 5
-                                  ? "text-amber-600"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {product.track_stock
-                                ? `${product.stock} left`
-                                : "In stock"}
-                            </span>
-                          )}
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="mt-3 w-full"
-                          disabled={!product.in_stock || addingId === product.id}
-                          onClick={() => handleAdd(product)}
-                        >
-                          {addingId === product.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <ShoppingCart className="mr-2 h-4 w-4" />
-                          )}
-                          {product.in_stock ? "Add to cart" : "Out of stock"}
-                        </Button>
-                      </div>
-                    </div>
-                  </Reveal>
+            <div className="flex items-center gap-4">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="lg:hidden">
+                    <SlidersHorizontal className="mr-2 h-4 w-4" /> Filter
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="overflow-y-auto">
+                  <SheetHeader><SheetTitle>Filter</SheetTitle></SheetHeader>
+                  <div className="mt-6">{filters}</div>
+                </SheetContent>
+              </Sheet>
+              {/* New and Recommended as text tabs, as in the design; price sorts in the menu. */}
+              <div className="flex items-center gap-4 text-sm" role="tablist" aria-label="Sort">
+                {(["newest", "recommended"] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="tab"
+                    aria-selected={sort === k}
+                    onClick={() => setSort(k)}
+                    className={cn("font-medium", sort === k ? "text-foreground underline decoration-primary decoration-2 underline-offset-8" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    {k === "newest" ? "New" : "Recommended"}
+                  </button>
                 ))}
               </div>
-              {productsQuery.hasNextPage && (
-                <div className="mt-10 text-center">
-                  <Button variant="outline" onClick={() => productsQuery.fetchNextPage()} disabled={productsQuery.isFetchingNextPage}>
-                    {productsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Load more products
-                  </Button>
-                </div>
+              <Select value={sort === "low" || sort === "high" ? sort : ""} onValueChange={(v) => setSort(v as Sort)}>
+                <SelectTrigger className="h-9 w-32" aria-label="Sort by price"><SelectValue placeholder="Price" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Price: low to high</SelectItem>
+                  <SelectItem value="high">Price: high to low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+              {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-[4/5]" />)}
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="py-20 text-center">
+              <p className="font-serif text-xl">Nothing matches those filters</p>
+              <Button variant="outline" className="mt-4" onClick={clear}>Clear filters</Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6">
+              {shown.map((p) => <ProductCard key={p.id} product={p} />)}
+            </div>
+          )}
+
+          {pages > 1 && (
+            <nav aria-label="Pages" className="mt-10 flex items-center justify-center gap-1 text-sm">
+              {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-current={n === current ? "page" : undefined}
+                  onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  className={cn("h-10 w-10 rounded-lg", n === current ? "bg-primary text-primary-foreground" : "hover:bg-accent")}
+                >
+                  {n}
+                </button>
+              ))}
+              {current < pages && (
+                <button type="button" onClick={() => { setPage(current + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="h-10 px-3 hover:bg-accent">Next →</button>
               )}
-            </>
+            </nav>
           )}
         </div>
       </section>

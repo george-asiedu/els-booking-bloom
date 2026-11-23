@@ -3,11 +3,26 @@ import { CursorPage, Envelope, cursorPage, cursorQuery } from "./core";
 
 // ---------------- Commerce: orders ----------------
 
-export type OrderStatus = "pending_payment" | "paid" | "fulfilled" | "cancelled";
+export type OrderStatus =
+  | "pending_payment"
+  | "paid"
+  | "preparing"
+  | "ready_for_pickup"
+  | "out_for_delivery"
+  | "fulfilled"
+  | "cancelled";
+
+/** Paid, at any stage up to and including handed over. */
+export const isPaidOrder = (o: { status: OrderStatus }) =>
+  o.status === "paid" || o.status === "preparing" || o.status === "ready_for_pickup" || o.status === "out_for_delivery" || o.status === "fulfilled";
+/** Paid but not yet handed over: still needs the shop's attention. */
+export const isOpenOrder = (o: { status: OrderStatus }) => isPaidOrder(o) && o.status !== "fulfilled";
 export type Fulfillment = "pickup" | "delivery";
 
 export interface OrderItemDTO {
   name: string;
+  size?: string | null;
+  color?: string | null;
   unit_price: number;
   cost_price: number;
   quantity: number;
@@ -39,6 +54,18 @@ export interface OrderDTO {
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;
+  cancel_requested_at: string | null;
+  cancel_request_reason: string | null;
+  refunded_outside: { at: string; amount: number; note: string | null } | null;
+  /** Delivery and pickup details. The handover code only reaches the customer. */
+  delivery_note: string | null;
+  delivery_zone: string | null;
+  delivery_slot: string | null;
+  delivery_eta: string | null;
+  status_updated_at: string | null;
+  handover_code: string | null;
+  delivered_at: string | null;
+  delivery_failed_reason: string | null;
 }
 
 export interface RawOrder {
@@ -63,7 +90,20 @@ export interface RawOrder {
   customerName?: string | null;
   customerEmail?: string | null;
   customerPhone?: string | null;
-  items: { name: string; unitPrice: number; costPrice?: number; quantity: number }[];
+  cancelRequestedAt?: string | null;
+  cancelRequestReason?: string | null;
+  deliveryNote?: string | null;
+  deliveryZone?: string | null;
+  deliverySlot?: string | null;
+  deliveryEta?: string | null;
+  statusUpdatedAt?: string | null;
+  handoverCode?: string | null;
+  deliveredAt?: string | null;
+  deliveryFailReason?: string | null;
+  refundedOutsideAt?: string | null;
+  refundedOutsideAmount?: number | null;
+  refundedOutsideNote?: string | null;
+  items: { name: string; unitPrice: number; costPrice?: number; quantity: number; size?: string | null; color?: string | null }[];
   user?: { email: string; profile?: { fullName: string | null } | null } | null;
 }
 
@@ -72,6 +112,8 @@ export const normalizeOrder = (o: RawOrder): OrderDTO => {
     const cost = i.costPrice ?? 0;
     return {
       name: i.name,
+      size: i.size ?? null,
+      color: i.color ?? null,
       unit_price: i.unitPrice,
       cost_price: cost,
       quantity: i.quantity,
@@ -94,6 +136,19 @@ export const normalizeOrder = (o: RawOrder): OrderDTO => {
     delivery_fee: o.deliveryFee,
     total: o.total,
     refunded_amount: o.refundedAmount ?? 0,
+    delivery_note: o.deliveryNote ?? null,
+    delivery_zone: o.deliveryZone ?? null,
+    delivery_slot: o.deliverySlot ?? null,
+    delivery_eta: o.deliveryEta ?? null,
+    status_updated_at: o.statusUpdatedAt ?? null,
+    handover_code: o.handoverCode ?? null,
+    delivered_at: o.deliveredAt ?? null,
+    delivery_failed_reason: o.deliveryFailReason ?? null,
+    cancel_requested_at: o.cancelRequestedAt ?? null,
+    cancel_request_reason: o.cancelRequestReason ?? null,
+    refunded_outside: o.refundedOutsideAt
+      ? { at: o.refundedOutsideAt, amount: o.refundedOutsideAmount ?? 0, note: o.refundedOutsideNote ?? null }
+      : null,
     profit,
     reference: o.reference,
     paid_at: o.paidAt,
@@ -113,10 +168,16 @@ export interface CheckoutInput {
   deliveryPhone?: string;
   applyPoints?: boolean;
   referralCode?: string;
+  couponCode?: string;
+  giftCardCode?: string;
+  deliveryNote?: string;
+  deliveryZoneId?: string;
+  deliveryDate?: string;
+  deliveryWindow?: string;
 }
 
 export interface GuestCheckoutInput {
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; quantity: number; size?: string; color?: string }[];
   name: string;
   email: string;
   phone: string;
@@ -124,6 +185,12 @@ export interface GuestCheckoutInput {
   deliveryAddress?: string;
   deliveryPhone?: string;
   referralCode?: string;
+  couponCode?: string;
+  giftCardCode?: string;
+  deliveryNote?: string;
+  deliveryZoneId?: string;
+  deliveryDate?: string;
+  deliveryWindow?: string;
 }
 
 export interface CheckoutResult {
@@ -133,6 +200,10 @@ export interface CheckoutResult {
   order_id: string;
   order_number: string;
   total: number;
+  /** Included in `total`: the Paystack fee the customer pays on top. */
+  processing_fee: number;
+  /** A gift card paid the whole order: nothing to charge. */
+  paid_with_gift_card: boolean;
   email: string;
   subaccount: string | null;
   public_key: string;
@@ -145,6 +216,8 @@ interface RawCheckout {
   orderId: string;
   orderNumber?: string;
   total: number;
+  processingFee?: number;
+  paidWithGiftCard?: boolean;
   email: string;
   subaccount: string | null;
   publicKey: string;
@@ -157,12 +230,22 @@ const mapCheckout = (d: RawCheckout): CheckoutResult => ({
   order_id: d.orderId,
   order_number: d.orderNumber ?? "",
   total: d.total,
+  processing_fee: d.processingFee ?? 0,
+  paid_with_gift_card: Boolean(d.paidWithGiftCard),
   email: d.email,
   subaccount: d.subaccount,
   public_key: d.publicKey,
 });
 
 export const ordersApi = {
+  async checkCoupon(code: string, subtotal: number): Promise<{ code: string; discount: number }> {
+    const res = await apiRequest<Envelope<{ code: string; discount: number }>>("/orders/coupon", {
+      method: "POST",
+      body: { code, subtotal },
+    });
+    return res.data;
+  },
+
   async checkout(input: CheckoutInput): Promise<CheckoutResult> {
     const res = await apiRequest<Envelope<RawCheckout>>("/orders/checkout", {
       method: "POST",
@@ -170,6 +253,12 @@ export const ordersApi = {
       body: input,
     });
     return mapCheckout(res.data);
+  },
+
+  // Pay a waiting order with Mobile Money from the checkout page (guests too).
+  async chargeMomo(input: { reference: string; phone: string; provider: string }): Promise<{ reference: string; status: string; displayText: string | null; amount: number }> {
+    const res = await apiRequest<Envelope<{ reference: string; status: string; displayText: string | null; amount: number }>>("/orders/charge/momo", { method: "POST", body: input });
+    return res.data;
   },
 
   async guestCheckout(input: GuestCheckoutInput): Promise<CheckoutResult> {
@@ -232,12 +321,20 @@ export const ordersApi = {
     );
     return normalizeOrder(res.data);
   },
-  async updateStatus(id: string, status: OrderStatus): Promise<OrderDTO> {
-    const res = await apiRequest<Envelope<RawOrder>>(`/orders/${id}/status`, {
+  async updateStatus(id: string, status: OrderStatus, eta?: string): Promise<OrderDTO> {
+    return (await ordersApi.moveStage(id, status, eta)).order;
+  },
+  /** Move an order to a stage; going out for delivery returns the rider's link. */
+  async moveStage(id: string, status: OrderStatus, eta?: string): Promise<{ order: OrderDTO; riderLink: string | null }> {
+    const res = await apiRequest<Envelope<RawOrder> & { riderLink?: string }>(`/orders/${id}/status`, {
       method: "PATCH",
       auth: true,
-      body: { status: status.toUpperCase() },
+      body: { status: status.toUpperCase(), ...(eta ? { eta } : {}) },
     });
-    return normalizeOrder(res.data);
+    return { order: normalizeOrder(res.data), riderLink: res.riderLink ?? null };
+  },
+  /** At the counter: the customer's code confirms a pickup. */
+  async confirmHandover(id: string, code: string): Promise<void> {
+    await apiRequest(`/orders/${id}/handover`, { method: "POST", auth: true, body: { code } });
   },
 };

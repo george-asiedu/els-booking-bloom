@@ -144,7 +144,7 @@ export const ChangeServiceDialog = ({
               </dl>
               <p className="mt-2 text-xs text-muted-foreground">
                 {netPaid > chosen.price
-                  ? `The customer has paid ${formatGHS(netPaid - chosen.price)} more than this costs. Refunds aren't available in the app, so settle the difference with them directly.`
+                  ? `The customer has paid ${formatGHS(netPaid - chosen.price)} more than this costs. Settle the difference with them directly.`
                   : netPaid < chosen.price
                     ? `${formatGHS(chosen.price - netPaid)} will be left to pay.`
                     : "Nothing further to pay."}

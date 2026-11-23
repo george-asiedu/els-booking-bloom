@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User, ShoppingBag } from "lucide-react";
+import { Menu, X, User, ShoppingBag, MapPin, Phone } from "lucide-react";
 import { StudioMark } from "@/components/StudioMark";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
-import { cartApi, commerceApi } from "@/lib/api";
+import { cartApi, commerceApi, contactInfoApi, promoApi } from "@/lib/api";
 
 const navLinks = [
   { name: "Home", path: "/" },
@@ -38,6 +38,32 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   // solid + blur + border once scrolled (and on every non-overlay page).
   const transparent = overlay && !scrolled && !isOpen;
 
+  // Pages pad their content by the header's real height (it grows with the
+  // info strip and shrinks on scroll), so nothing hides beneath it.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const set = () =>
+      document.documentElement.style.setProperty("--site-header-h", `${el.offsetHeight}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // For the homepage info strip.
+  const { data: contact } = useQuery({
+    queryKey: ["contact-info"],
+    queryFn: () => contactInfoApi.get(),
+  });
+  const { data: promos = [] } = useQuery({
+    queryKey: ["promo-banners", "booking"],
+    queryFn: () => promoApi.listActive("booking"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const offer = promos[0];
+
   // Hide the shop entirely when the admin has disabled it.
   const { data: commerce } = useQuery({
     queryKey: ["commerce-settings"],
@@ -49,15 +75,17 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
   const visibleLinks = navLinks.filter((l) => {
     if (l.path === "/shop") return shopEnabled;
     if (l.path === "/gallery") return features.gallery;
+    // A shop-only Storefront has no services or booking.
+    if (l.path === "/services" || l.path === "/book") return features.booking !== false;
     return true;
   });
 
   // Show a cart icon with a live item count for logged-in customers.
   const isCustomer = !!user && user.role !== "ADMIN";
   const { data: cart } = useQuery({
-    queryKey: ["cart"],
+    queryKey: ["cart", user ? "me" : "guest"],
     queryFn: () => cartApi.getMine(),
-    enabled: isCustomer,
+    enabled: user?.role !== "ADMIN",
   });
   const cartCount = cart?.count ?? 0;
 
@@ -76,13 +104,46 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
 
   return (
     <header
+      ref={headerRef}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-[background-color,border-color,box-shadow] duration-300",
         transparent
-          ? "border-b border-transparent bg-transparent"
+          ? // Over the hero photo: white text and icons so they read on it.
+            "border-b border-transparent bg-transparent [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/85 [&_button.inline-flex]:text-white"
           : "border-b border-border bg-background/80 shadow-sm backdrop-blur-md",
       )}
     >
+      {/* Info strip on every page, scrolling with the header: address, the
+          current offer, phone. On phones just the offer. */}
+      {(offer || contact?.address || contact?.phone) && (
+        <div
+          className={cn(
+            "text-xs",
+            transparent
+              ? "border-b border-white/15 bg-black/35 text-white backdrop-blur-sm"
+              : "bg-band text-band-foreground",
+          )}
+        >
+          <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-2">
+            <span className="hidden min-w-0 items-center gap-1.5 truncate md:flex">
+              {contact?.showAddress && contact.address && (
+                <>
+                  <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden /> {contact.address}
+                </>
+              )}
+            </span>
+            <span className="mx-auto truncate text-center font-medium md:mx-0">{offer?.message}</span>
+            <span className="hidden shrink-0 items-center gap-1.5 md:flex">
+              {contact?.showPhone && contact.phone && (
+                <>
+                  <Phone className="h-3.5 w-3.5" aria-hidden />
+                  <a href={`tel:${contact.phone}`} className="hover:underline">{contact.phone}</a>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
       <nav
         className={cn(
           "container mx-auto px-4 transition-[padding] duration-300",
@@ -113,21 +174,23 @@ export const Navbar = ({ overlay = false }: { overlay?: boolean }) => {
                 {link.name}
               </Link>
             ))}
-            {isCustomer && shopEnabled && <CartButton />}
+            {user?.role !== "ADMIN" && shopEnabled && <CartButton />}
             <Button variant="ghost" size="icon" asChild>
               <Link to={user ? "/account" : "/login"}>
                 <User className="h-5 w-5" />
               </Link>
             </Button>
             <ThemeToggle />
-            <Button size="sm" className="ml-2" asChild>
-              <Link to="/book">Book an appointment</Link>
-            </Button>
+            {features.booking !== false && (
+              <Button size="sm" className="ml-2" asChild>
+                <Link to="/book">Book an appointment</Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-2 md:hidden">
-            {isCustomer && shopEnabled && <CartButton />}
+            {user?.role !== "ADMIN" && shopEnabled && <CartButton />}
             <ThemeToggle />
             <Button
               variant="ghost"

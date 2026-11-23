@@ -71,6 +71,16 @@ export const galleryApi = {
     return normalizeGalleryImage(res.data);
   },
 
+  // A picture already in the studio's media (e.g. from the image maker).
+  async addImageUrl(imageUrl: string, title: string, category: string): Promise<GalleryImageDTO> {
+    const res = await apiRequest<Envelope<RawGalleryImage>>("/gallery", {
+      method: "POST",
+      auth: true,
+      body: { imageUrl, title, category },
+    });
+    return normalizeGalleryImage(res.data);
+  },
+
   async addVideoLink(url: string, title: string, category: string): Promise<GalleryImageDTO> {
     const res = await apiRequest<Envelope<RawGalleryImage>>("/gallery", {
       method: "POST", auth: true, body: { externalUrl: url, title, category },

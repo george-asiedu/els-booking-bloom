@@ -1,3 +1,4 @@
+import { applyStudioManifest } from "@/lib/pwa";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useStudio } from "@/hooks/useStudio";
@@ -22,7 +23,9 @@ export const StudioTheme = () => {
 
   useEffect(() => {
     applyStudioTheme(neutral ? null : config?.branding ?? null);
-    document.title = !neutral && config?.name ? config.name : PLATFORM.name;
+    // A page that sets its own title (useSeo) keeps it; this is the fallback.
+    const fallback = !neutral && config?.name ? config.name : PLATFORM.name;
+    if (!document.title.includes(fallback)) document.title = fallback;
     if (!neutral && config) {
       rememberStudioSplash({
         name: config.name,
@@ -30,7 +33,9 @@ export const StudioTheme = () => {
         primaryColor: config.branding.primaryColor,
       });
     }
-  }, [neutral, config]);
+    // A studio's own site installs under the studio's name.
+    if (hasStudio && config) applyStudioManifest({ name: config.name, themeColor: config.branding.primaryColor });
+  }, [neutral, hasStudio, config]);
 
   return null;
 };

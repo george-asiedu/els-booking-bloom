@@ -110,7 +110,7 @@ const Reviews = () => {
                 <CheckCircle className="h-10 w-10 text-primary" />
               </div>
               <h1 className="text-3xl font-serif font-bold text-foreground mb-4">
-                Thank You!
+                Thank you
               </h1>
               <p className="text-muted-foreground mb-6">
                 Your review has been submitted and will be visible once approved.
@@ -157,7 +157,7 @@ const Reviews = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="general">General Review</SelectItem>
+                            <SelectItem value="general">General review</SelectItem>
                             {services.map((service) => (
                               <SelectItem key={service.id} value={service.id}>
                                 {service.name}

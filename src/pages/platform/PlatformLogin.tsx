@@ -1,3 +1,5 @@
+import { ZuriMark } from "@/components/ZuriMark";
+import { SignInCodeStep } from "@/components/auth/SignInCodeStep";
 import { useState } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -34,6 +36,8 @@ type FormValues = z.infer<typeof schema>;
 
 const PlatformLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
+  // Set once the password checked out and the account asks for a code.
+  const [codeFor, setCodeFor] = useState<FormValues | null>(null);
   const navigate = useNavigate();
   const { user, signIn } = usePlatformAuth();
   const { toast } = useToast();
@@ -46,9 +50,14 @@ const PlatformLogin = () => {
   // Already signed in — skip the form.
   if (user) return <Navigate to="/platform" replace />;
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: FormValues, code?: string) => {
     setIsLoading(true);
-    const { error } = await signIn(data.email, data.password);
+    const { error, needsCode } = await signIn(data.email, data.password, code);
+    if (needsCode) {
+      setCodeFor(data);
+      setIsLoading(false);
+      return;
+    }
     if (error) {
       toast({
         variant: "destructive",
@@ -67,19 +76,22 @@ const PlatformLogin = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mb-4 flex items-center justify-center gap-2">
-            <img src="/zuri-mark.png" alt="" className="h-7 w-auto" width={76} height={28} />
+            <ZuriMark className="h-7 w-7" />
             <span className="font-serif text-2xl font-semibold">
               Platform Console
             </span>
           </div>
-          <CardTitle>Super Admin Login</CardTitle>
+          <CardTitle>Super admin login</CardTitle>
           <CardDescription>
             Manage the studios on your platform
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {codeFor ? (
+            <SignInCodeStep loading={isLoading} onSubmit={(c) => onSubmit(codeFor, c)} onBack={() => setCodeFor(null)} />
+          ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit((d) => onSubmit(d))} className="space-y-4">
               <FormField
                 control={form.control}
                 name="email"
@@ -120,10 +132,11 @@ const PlatformLogin = () => {
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                Sign in
               </Button>
             </form>
           </Form>
+          )}
         </CardContent>
       </Card>
     </div>

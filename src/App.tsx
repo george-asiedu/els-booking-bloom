@@ -1,12 +1,14 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
+import { InstallGuide } from "@/components/security/InstallApp";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ProcessingProvider } from "@/components/ProcessingOverlay";
+import { useStudio } from "@/hooks/useStudio";
 import { AuthProvider } from "@/hooks/useAuth";
 import { StudioProvider } from "@/hooks/useStudio";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
@@ -29,8 +31,12 @@ const Services = lazy(() => import("./pages/Services"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Book = lazy(() => import("./pages/Book"));
 const Shop = lazy(() => import("./pages/Shop"));
+const ShopHome = lazy(() => import("./pages/ShopHome"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
 const OrderCallback = lazy(() => import("./pages/OrderCallback"));
 const BookingCallback = lazy(() => import("./pages/BookingCallback"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -50,6 +56,21 @@ const AdminHours = lazy(() => import("./pages/admin/AdminHours"));
 const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminAppearance = lazy(() => import("./pages/admin/AdminAppearance"));
 const AdminFeatureRequests = lazy(() => import("./pages/admin/AdminFeatureRequests"));
+const AdminSecurity = lazy(() => import("./pages/admin/AdminSecurity"));
+const AdminCalendar = lazy(() => import("./pages/admin/AdminCalendar"));
+const AdminStaff = lazy(() => import("./pages/admin/AdminStaff"));
+const AdminVouchers = lazy(() => import("./pages/admin/AdminVouchers"));
+const AdminExpenses = lazy(() => import("./pages/admin/AdminExpenses"));
+const AdminInsights = lazy(() => import("./pages/admin/AdminInsights"));
+const AdminLearn = lazy(() => import("./pages/admin/AdminLearn"));
+const PlatformTraining = lazy(() => import("./pages/platform/PlatformTraining"));
+const PayBill = lazy(() => import("./pages/PayBill"));
+const AdminBills = lazy(() => import("./pages/admin/AdminBills"));
+const AdminSales = lazy(() => import("./pages/admin/AdminSales"));
+const AdminStorage = lazy(() => import("./pages/admin/AdminStorage"));
+const RiderDelivery = lazy(() => import("./pages/RiderDelivery"));
+const GiftCards = lazy(() => import("./pages/GiftCards"));
+const GiftCardCallback = lazy(() => import("./pages/GiftCards").then((m) => ({ default: m.GiftCardCallback })));
 const AdminOnboarding = lazy(() => import("./pages/admin/AdminOnboarding"));
 const AdminPromos = lazy(() => import("./pages/admin/AdminPromos"));
 const AdminBilling = lazy(() => import("./pages/admin/AdminBilling"));
@@ -87,6 +108,7 @@ const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings"))
 const StudioEntry = lazy(() => import("./pages/StudioEntry"));
 const StudioLogin = lazy(() => import("./pages/StudioLogin"));
 const PlatformLanding = lazy(() => import("./pages/PlatformLanding"));
+const Discover = lazy(() => import("./pages/Discover"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
 const Terms = lazy(() => import("./pages/legal/Terms"));
@@ -112,8 +134,13 @@ const SplashController = () => {
 // The apex "/" shows the Zuri platform landing page, unless a studio is active
 // (subdomain in prod, or /s/:slug / impersonation locally) — then it's that
 // studio's storefront.
-const RootRoute = () =>
-  studioStore.getSlug() ? <Index /> : <PlatformLanding />;
+const RootRoute = () => {
+  const { features, isLoading } = useStudio();
+  if (!studioStore.getSlug()) return <PlatformLanding />;
+  // A Zuri Stores (shop only) opens on its shop.
+  if (!isLoading && features.booking === false) return <ShopHome />;
+  return <Index />;
+};
 
 // Guards all /admin/* pages once and keeps the sidebar mounted while a page's
 // chunk loads (only the content area shows a spinner), so navigating between
@@ -182,12 +209,14 @@ const App = () => (
           <BrowserRouter>
             <ScrollToTop />
             <SessionGuard />
+            <InstallGuide />
             <StudioTheme />
             <Suspense fallback={<PageLoader />}>
             <SplashController />
             <Routes>
               <Route path="/" element={<RootRoute />} />
               <Route path="/welcome" element={<PlatformLanding />} />
+              <Route path="/discover" element={<Discover />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/onboarding/callback" element={<Onboarding />} />
               <Route path="/privacy" element={<Privacy />} />
@@ -205,6 +234,14 @@ const App = () => (
               <Route path="/book" element={<Book />} />
               <Route
                 path="/shop"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <ShopHome />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/shop/products"
                 element={
                   <FeatureRoute feature="commerce">
                     <Shop />
@@ -227,7 +264,27 @@ const App = () => (
                   </FeatureRoute>
                 }
               />
+              <Route
+                path="/wishlist"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Wishlist />
+                  </FeatureRoute>
+                }
+              />
+              <Route
+                path="/checkout"
+                element={
+                  <FeatureRoute feature="commerce">
+                    <Checkout />
+                  </FeatureRoute>
+                }
+              />
               <Route path="/order/callback" element={<OrderCallback />} />
+              <Route path="/delivery/:token" element={<RiderDelivery />} />
+              <Route path="/pay/:token" element={<PayBill />} />
+              <Route path="/gift-cards" element={<GiftCards />} />
+              <Route path="/gift-cards/callback" element={<GiftCardCallback />} />
               <Route path="/booking/callback" element={<BookingCallback />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
@@ -259,10 +316,21 @@ const App = () => (
                 <Route path="reviews" element={<AdminReviews />} />
                 <Route path="appearance" element={<AdminAppearance />} />
                 <Route path="promos" element={<AdminPromos />} />
+                <Route path="coupons" element={<AdminCoupons />} />
                 <Route path="billing" element={<AdminBilling />} />
                 <Route path="testimonial" element={<AdminTestimonial />} />
                 <Route path="domain" element={<AdminDomain />} />
                 <Route path="feature-requests" element={<AdminFeatureRequests />} />
+                <Route path="security" element={<AdminSecurity />} />
+                <Route path="calendar" element={<AdminCalendar />} />
+                <Route path="staff" element={<AdminStaff />} />
+                <Route path="gift-cards" element={<AdminVouchers />} />
+                <Route path="expenses" element={<AdminExpenses />} />
+                <Route path="storage" element={<AdminStorage />} />
+                <Route path="sales" element={<AdminSales />} />
+                <Route path="bills" element={<AdminBills />} />
+                <Route path="learn" element={<AdminLearn />} />
+                <Route path="insights" element={<AdminInsights />} />
                 <Route path="onboarding" element={<AdminOnboarding />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="contact" element={<AdminContact />} />
@@ -293,6 +361,7 @@ const App = () => (
                   <Route path="users" element={<PlatformUsers />} />
                   <Route path="earnings" element={<PlatformEarnings />} />
                   <Route path="requests" element={<PlatformRequests />} />
+                  <Route path="training" element={<PlatformTraining />} />
                 <Route path="reviews" element={<PlatformReviews />} />
                 <Route path="transactions" element={<PlatformTransactions />} />
                   <Route path="billing" element={<PlatformBilling />} />

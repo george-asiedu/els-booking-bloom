@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { planLabel } from "@/config/platform";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CalendarClock } from "lucide-react";
 import { studioBillingApi, StudioBillingDTO } from "@/lib/api";
@@ -38,7 +39,7 @@ export const BillingBadge = () => {
       title="Billing & plan"
     >
       <CalendarClock className="h-3.5 w-3.5" />
-      {b.plan === "PREMIUM" ? "Premium" : "Standard"}
+      {planLabel(b.plan)}
       {" · "}
       {revShare
         ? `${b.commissionPercent}% per sale`
