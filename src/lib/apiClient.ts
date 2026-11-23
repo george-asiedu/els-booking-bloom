@@ -1,13 +1,14 @@
 // Low-level API client for the ELS-Server Express API.
-// Handles base URL, bearer-token auth, JSON (de)serialization and error shaping.
+// Handles base URL, cookie sessions, JSON (de)serialization and error shaping.
 
+import { resetCaptcha, takeCaptchaToken } from "@/components/Captcha";
 import { getDeviceId } from "./deviceIdentity";
 
-const API_URL: string =
+const CONFIGURED_API_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
   "http://localhost:5000/api";
 
-const TOKEN_KEY = "els_token";
+const TOKEN_KEY = "els_token"; // Old sessions: only ever removed now.
 const USER_KEY = "els_user";
 const STUDIO_SLUG_KEY = "els_studio_slug";
 
@@ -17,13 +18,9 @@ export interface AuthUser {
   role: "CUSTOMER" | "ADMIN";
 }
 
+// The session itself is an HttpOnly cookie that scripts can't read; this only
+// remembers who's signed in, for the UI.
 export const tokenStore = {
-  getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-  },
-  setToken(token: string) {
-    localStorage.setItem(TOKEN_KEY, token);
-  },
   getUser(): AuthUser | null {
     const raw = localStorage.getItem(USER_KEY);
     if (!raw) return null;
@@ -45,9 +42,26 @@ export const tokenStore = {
 // Root domain of the platform (e.g. "app.example.com"). When set, a request to
 // "<slug>.app.example.com" resolves to that studio's slug. Left empty in local
 // dev, where the slug comes from impersonation or the server default instead.
+// A bare host, however it's written in the env ("http://localhost:8080" -> "localhost").
+// The guest key (for booking, paying and buying without an account) is read
+// from the API when first needed, so the platform can rotate it without a new
+// release. A request refused because the key changed fetches the new one and
+// tries once more.
+let guestKey: string | null = null;
+const loadGuestKey = async (force = false): Promise<string> => {
+  if (guestKey && !force) return guestKey;
+  const res = await fetch(`${API_URL}/platform/guest-key`, { headers: { "X-Zuri-Client": "web" }, cache: "no-store" });
+  const json = (await res.json().catch(() => null)) as { data?: { key?: string } } | null;
+  if (!res.ok || !json?.data?.key) throw new ApiError("Couldn't start this request. Please try again.", res.status);
+  guestKey = json.data.key;
+  return guestKey;
+};
 const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN as string | undefined)
   ?.trim()
-  .toLowerCase();
+  .toLowerCase()
+  .replace(/^https?:\/\//, "")
+  .replace(/[/?#].*$/, "")
+  .replace(/:\d+$/, "");
 
 // Labels that are never a studio slug (platform surfaces / conventions).
 const RESERVED_SUBDOMAINS = new Set([
@@ -65,7 +79,7 @@ const RESERVED_SUBDOMAINS = new Set([
 const subdomainSlug = (() => {
   if (typeof window === "undefined") return null;
   const host = window.location.hostname.toLowerCase();
-  // Local dev / IPs never carry a studio subdomain.
+  // Local dev / IPs never carry a studio subdomain (els.localhost does).
   if (
     host === "localhost" ||
     host.startsWith("127.") ||
@@ -139,6 +153,16 @@ const isCustomHost = (): boolean => {
   return true;
 };
 
+// A studio's own domain forwards /api to the server, so the session cookie
+// belongs to that domain (browsers block cookies from another site).
+// Locally, els.localhost and localhost are different sites, so the API is
+// called on the same name to keep the session cookie.
+export const API_URL: string = window.location.hostname.endsWith(".localhost")
+  ? CONFIGURED_API_URL.replace("//localhost", `//${window.location.hostname}`)
+  : isCustomHost() && !window.location.hostname.endsWith(".vercel.app")
+    ? `${window.location.origin}/api`
+    : CONFIGURED_API_URL;
+
 /**
  * When served from a studio's custom domain, resolve that host to a studio slug
  * and store it so every request is scoped correctly. No-op on localhost, the
@@ -189,12 +213,21 @@ interface RequestOptions {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** A machine-readable reason from the API, e.g. "TOTP_REQUIRED". */
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
+
+/** The first `errors[].code` in an API error body, if any. */
+export const errorCode = (json: unknown): string | undefined => {
+  const first = (json as { errors?: { code?: unknown }[] } | null)?.errors?.[0];
+  return typeof first?.code === "string" ? first.code : undefined;
+};
 
 // Global handler invoked once when an authenticated request comes back 401 —
 // i.e. the access token has expired or been invalidated. The app registers a
@@ -210,16 +243,36 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
+  // The security check's token works once, so take it here and use the same
+  // one if the request has to be tried again.
+  const captcha = takeCaptchaToken();
+  try {
+    return await send<T>(path, options, false, captcha);
+  } catch (e) {
+    // The guest key was rotated since this page loaded: get the new one, retry once.
+    if (path.includes("guest") && e instanceof ApiError && e.status === 401) return send<T>(path, options, true, captcha);
+    throw e;
+  } finally {
+    // A used token is spent: ask for a fresh check for the next try.
+    if (captcha) resetCaptcha();
+  }
+}
+
+async function send<T>(path: string, options: RequestOptions, refreshGuestKey: boolean, captcha: string): Promise<T> {
   const { method = "GET", body, formData, auth = false } = options;
 
   const headers: Record<string, string> = {};
   if (path === "/auth/login" || path === "/auth/signup") {
     headers["X-Device-Id"] = getDeviceId();
   }
-  const token = tokenStore.getToken();
-  if (auth && token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  // Proves the request came from this app (see the CSRF check in the API).
+  headers["X-Zuri-Client"] = "web";
+  // Guest endpoints (no account) need the app's guest key.
+  if (path.includes("guest")) headers["X-Guest-Key"] = await loadGuestKey(refreshGuestKey);
+  // The security check, for the requests that start something as a guest.
+  if (captcha && (path === "/appointments/guest" || path === "/orders/guest-checkout" || path === "/payments/charge/momo" || path === "/orders/charge/momo" || /^\/bills\/pay\/[^/]+\/momo$/.test(path) || path === "/payments/guest/charge/momo" || /^\/bills\/pay\/[^/]+\/start$/.test(path)))
+    headers["X-Captcha-Token"] = captcha;
+  const signedIn = Boolean(tokenStore.getUser());
 
   // Scope the request to a specific studio when one is active (e.g. during
   // super-admin impersonation). Absent, the server uses its default studio.
@@ -240,6 +293,7 @@ export async function apiRequest<T>(
     method,
     headers,
     body: payload,
+    credentials: "include",
   });
 
   let json: unknown = null;
@@ -253,17 +307,17 @@ export async function apiRequest<T>(
   }
 
   if (!res.ok) {
-    // An expired/invalid token on an authenticated request. There is no
+    // An expired/invalid session on an authenticated request. There is no
     // silent refresh, so clear the dead session and let the app redirect to
-    // login. Guarded on `token` so failed logins (no token) don't trigger it.
-    if (res.status === 401 && auth && token) {
+    // login. Guarded on `signedIn` so failed logins don't trigger it.
+    if (res.status === 401 && auth && signedIn) {
       tokenStore.clear();
       unauthorizedHandler?.();
     }
     const message =
       (json as { message?: string } | null)?.message ||
       `Request failed with status ${res.status}`;
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, errorCode(json));
   }
 
   return json as T;

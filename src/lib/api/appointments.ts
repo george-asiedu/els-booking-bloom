@@ -15,17 +15,22 @@ export interface CreateAppointmentInput {
   notes?: string | null;
   design_image?: File | null;
   apply_points?: boolean;
+  /** A staff member's id, or "any" / undefined for whoever is free. */
+  staff_id?: string | null;
+  voucher_code?: string;
+  /** Book without an account: no design photo or points, and the response carries a payment token. */
+  guest?: boolean;
 }
 
 
 export const appointmentsApi = {
   async create(input: CreateAppointmentInput): Promise<AppointmentDTO> {
-    const designImageUrl = input.design_image ? await uploadStudioMedia(input.design_image, "appointments") : undefined;
+    const designImageUrl = input.design_image && !input.guest ? await uploadStudioMedia(input.design_image, "appointments") : undefined;
 
-    const res = await apiRequest<Envelope<RawAppointment>>("/appointments", {
+    const res = await apiRequest<Envelope<RawAppointment>>(input.guest ? "/appointments/guest" : "/appointments", {
       method: "POST",
-      auth: true, // optionalAuth server-side; token attached if present
-      body: { fullName: input.full_name, phone: input.phone, email: input.email, serviceId: input.service_id, appointmentDate: input.appointment_date, appointmentTime: input.appointment_time, notes: input.notes, applyPoints: input.apply_points ? "true" : undefined, designImageUrl },
+      auth: !input.guest, // optionalAuth server-side; token attached if present
+      body: { fullName: input.full_name, phone: input.phone, email: input.email, serviceId: input.service_id, appointmentDate: input.appointment_date, appointmentTime: input.appointment_time, notes: input.notes, applyPoints: input.apply_points ? "true" : undefined, designImageUrl, staffId: input.staff_id ?? undefined, voucherCode: input.voucher_code },
     });
     return normalizeAppointment(res.data);
   },
@@ -66,6 +71,12 @@ export const appointmentsApi = {
     const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments?${cursorQuery(undefined, 100)}`, {
       auth: true,
     });
+    return res.data.map(normalizeAppointment);
+  },
+
+  /** Every booking between two dates (yyyy-MM-dd, inclusive), for the calendar. */
+  async calendar(from: string, to: string): Promise<AppointmentDTO[]> {
+    const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments/calendar?from=${from}&to=${to}`, { auth: true });
     return res.data.map(normalizeAppointment);
   },
 

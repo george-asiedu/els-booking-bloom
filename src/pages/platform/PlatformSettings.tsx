@@ -1,6 +1,9 @@
 import { useEffect, useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Settings } from "lucide-react";
+import { HardDrive, KeyRound, Loader2, Settings } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
+import { apiRequest } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { platformApi, type PlatformSiteSettings } from "@/lib/platformApi";
 import { PlatformLayout } from "./PlatformLayout";
+import { NotificationsCard } from "@/components/security/NotificationsCard";
+import { TwoFactorCard } from "@/components/security/TwoFactorCard";
 import { SITE_DEFAULTS } from "@/config/platform";
 
 // Shown as placeholders: what a blank field means.
@@ -51,6 +56,130 @@ const FIELDS: {
     hint: "The studio address opened by \"See a real studio's page\", e.g. els for els.zuristudios.com.",
   },
 ];
+
+interface GuestKeyStatus {
+  endsWith: string;
+  rotatedAt: string | null;
+  previousValidUntil: string | null;
+}
+
+/** The key the web app sends for guest bookings, payments and orders. */
+const GuestKeyCard = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery({
+    queryKey: ["platform-guest-key"],
+    queryFn: async () => (await apiRequest<{ data: GuestKeyStatus }>("/platform/guest-key/status", { auth: true })).data,
+  });
+  const rotate = useMutation({
+    mutationFn: () => apiRequest<{ message: string }>("/platform/guest-key/rotate", { method: "POST", auth: true }),
+    onSuccess: (r) => {
+      toast({ title: "Guest key rotated", description: r.message });
+      qc.invalidateQueries({ queryKey: ["platform-guest-key"] });
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't rotate the key" }),
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <KeyRound className="h-5 w-5 text-primary" /> Guest access key
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p className="text-muted-foreground">
+          Customers without an account need this key to book, pay or buy. The app picks up the new one by itself when you rotate it, and the old key keeps working for 24 hours so pages that are already open don't break. Rotate it if you think it has leaked or is being misused.
+        </p>
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : data ? (
+          <dl className="grid gap-1">
+            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Current key</dt><dd className="font-mono">gk_••••{data.endsWith}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Last changed</dt><dd>{data.rotatedAt ? format(new Date(data.rotatedAt), "d MMM yyyy, h:mm a") : "Never"}</dd></div>
+            {data.previousValidUntil && (
+              <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Previous key stops working</dt><dd>{format(new Date(data.previousValidUntil), "d MMM, h:mm a")}</dd></div>
+            )}
+          </dl>
+        ) : null}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" disabled={rotate.isPending}>
+              {rotate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Rotate key
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Rotate the guest key?</AlertDialogTitle>
+              <AlertDialogDescription>
+                A new key is made now. The app uses it automatically. The current key stops working after 24 hours.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => rotate.mutate()}>Rotate key</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+};
+
+/** What each Zuri Studios plan includes, and what an extra block costs. */
+const StorageCard = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery({
+    queryKey: ["platform-storage-settings"],
+    queryFn: async () => (await apiRequest<{ data: { standardMb: number; premiumMb: number; blockMb: number; blockPrice: number } }>("/platform/storage-settings", { auth: true })).data,
+  });
+  const [form, setForm] = useState<Record<string, string> | null>(null);
+  const v = form ?? (data ? { standardMb: String(data.standardMb), premiumMb: String(data.premiumMb), blockMb: String(data.blockMb), blockPrice: String(data.blockPrice) } : null);
+  const save = useMutation({
+    mutationFn: () => apiRequest("/platform/storage-settings", { method: "PATCH", auth: true, body: Object.fromEntries(Object.entries(v ?? {}).map(([k, x]) => [k, Number(x)])) }),
+    onSuccess: () => {
+      toast({ title: "Storage plans saved" });
+      setForm(null);
+      qc.invalidateQueries({ queryKey: ["platform-storage-settings"] });
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't save" }),
+  });
+  const fields: { key: string; label: string; hint?: string }[] = [
+    { key: "standardMb", label: "Standard plan includes (MB)" },
+    { key: "premiumMb", label: "Premium plan includes (MB)", hint: "1024 MB is 1 GB" },
+    { key: "blockMb", label: "Extra block size (MB)" },
+    { key: "blockPrice", label: "Extra block price per month (GHS)" },
+  ];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg"><HardDrive className="h-5 w-5 text-primary" /> Storage plans</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          For Zuri Studios only (Zuri Stores has no limit). A studio over its limit can't upload until it deletes files or adds blocks, which are added to its next bill. Changes apply straight away to every studio.
+        </p>
+        {isLoading || !v ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fields.map((f) => (
+              <div key={f.key} className="space-y-1.5">
+                <Label htmlFor={`st-${f.key}`}>{f.label}</Label>
+                <Input id={`st-${f.key}`} type="number" min={0} step={f.key === "blockPrice" ? "0.01" : "1"} value={v[f.key]} onChange={(e) => setForm({ ...v, [f.key]: e.target.value })} />
+                {f.hint && <p className="text-xs text-muted-foreground">{f.hint}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        <Button onClick={() => save.mutate()} disabled={save.isPending || !form}>
+          {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save storage plans
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
 const PlatformSettings = () => {
   const qc = useQueryClient();
@@ -134,6 +263,19 @@ const PlatformSettings = () => {
             </CardContent>
           </Card>
         )}
+
+        <StorageCard />
+
+        <GuestKeyCard />
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Your sign-in and alerts</h2>
+          <TwoFactorCard client="platform" />
+          <NotificationsCard
+            client="platform"
+            description="New feature requests from studios, on this device."
+          />
+        </div>
       </div>
     </PlatformLayout>
   );

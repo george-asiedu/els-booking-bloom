@@ -92,7 +92,7 @@ export const PaymentResultScreen = ({
                   <CheckCircle className="h-10 w-10 text-primary" />
                 </div>
                 <h1 className="mb-2 font-serif text-3xl font-bold text-foreground">
-                  Payment successful!
+                  Payment successful
                 </h1>
                 <p className="mb-6 text-muted-foreground">
                   {successMessage ??

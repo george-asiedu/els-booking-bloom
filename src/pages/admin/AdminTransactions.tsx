@@ -1,3 +1,4 @@
+import { ExportButton } from "@/components/admin/ExportButton";
 import { useState } from "react";
 import { RefundDetails } from "@/components/admin/RowDetails";
 import type { RefundDTO } from "@/lib/api";
@@ -136,6 +137,9 @@ const AdminTransactions = () => {
             Every payment on your studio — bookings, shop orders, and your own
             subscription renewals.
           </p>
+          <div className="mt-3">
+            <ExportButton kind="transactions" />
+          </div>
         </div>
 
         <SummaryCards

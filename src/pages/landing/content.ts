@@ -5,6 +5,9 @@ import nails1 from "@/assets/gallery/nails-1.jpg";
 import nails2 from "@/assets/gallery/nails-2.jpg";
 import lashes1 from "@/assets/gallery/lashes-1.jpg";
 import lashes2 from "@/assets/gallery/lashes-2.jpg";
+import siteEls from "@/assets/landing/site-els.webp";
+import siteZara from "@/assets/landing/site-zara.webp";
+import siteTrendlux from "@/assets/landing/site-trendlux.webp";
 import { formatGHS } from "@/lib/currency";
 
 export const GHS = formatGHS;
@@ -18,13 +21,15 @@ export interface DemoStudio {
   tags: string[];
   featured: { name: string; price: number; duration: string };
   gallery: string[];
+  site: string; // capture of the homepage, one template per studio
 }
 
 export const STUDIOS: DemoStudio[] = [
   {
     key: "els",
+    site: siteEls,
     name: "El's Beauty Studio",
-    slug: "elsbeautystudio",
+    slug: "els",
     accent: "341 53% 50%",
     tags: ["Nails", "Lashes", "Braids", "Facials"],
     featured: { name: "Gel Extensions", price: 180, duration: "60 min" },
@@ -32,20 +37,22 @@ export const STUDIOS: DemoStudio[] = [
   },
   {
     key: "zara",
-    name: "Nailed by Zara",
-    slug: "nailedbyzara",
+    site: siteZara,
+    name: "Nailed By Zara",
+    slug: "nailed-by-zara",
     accent: "286 34% 52%",
     tags: ["Acrylics", "Gel", "Nail art", "Pedicure"],
     featured: { name: "Full Set Acrylics", price: 160, duration: "75 min" },
     gallery: [nails2, nails1, lashes2],
   },
   {
-    key: "ama",
-    name: "Glow by Ama",
-    slug: "glowbyama",
+    key: "trendlux",
+    site: siteTrendlux,
+    name: "TrendLux",
+    slug: "trendlux",
     accent: "18 58% 52%",
-    tags: ["Facials", "Makeup", "Waxing", "Brows"],
-    featured: { name: "Glow Facial", price: 220, duration: "50 min" },
+    tags: ["Clothing", "Watches", "Perfumes", "Accessories"],
+    featured: { name: "Outbound Top-Handle Bag", price: 690, duration: "In stock" },
     gallery: [lashes1, lashes2, nails1],
   },
 ];
@@ -108,11 +115,12 @@ export const FAQ = [
   },
 ];
 
+// Root-relative, so they also work from other platform pages (Discover).
 export const NAV_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#how", label: "How it works" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#for-studios", label: "For studios" },
+  { href: "/#features", label: "Features" },
+  { href: "/#how", label: "How it works" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/discover", label: "Find a business" },
 ];
 
 // How a prospective studio gets in touch: WhatsApp when configured, else email.

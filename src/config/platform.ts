@@ -11,7 +11,7 @@
 const env = import.meta.env as Record<string, string | undefined>;
 
 export const SITE_DEFAULTS = {
-  name: "Zuri Studios",
+  name: "Zuri",
   // Short line above the hero headline: who the product is for. Deliberately
   // not a list of trades, so no beauty business reads itself as left out.
   heroBadge: "Made for beauty businesses across Ghana",
@@ -25,7 +25,7 @@ export const SITE_DEFAULTS = {
 export const PLATFORM = {
   ...SITE_DEFAULTS,
   description:
-    "Zuri Studios gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
+    "Zuri gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
   // Platform root domain (studios live at <slug>.<rootDomain> in production).
   // Normalised to a bare host: strips any scheme, path, port and stray dots so a
   // misconfigured value (e.g. an API URL) can't produce a broken storefront URL.
@@ -46,7 +46,8 @@ function normalizeDomain(v: string | undefined): string {
 // /s/<slug> preview in dev. Opened in a new tab so the landing page is kept.
 export const studioUrl = (slug: string) =>
   PLATFORM.rootDomain
-    ? `${window.location.protocol}//${slug}.${PLATFORM.rootDomain}`
+    ? // The port only appears locally (els.localhost:8080); production has none.
+      `${window.location.protocol}//${slug}.${PLATFORM.rootDomain}${window.location.port ? `:${window.location.port}` : ""}`
     : `/s/${slug}`;
 
 // A yearly plan is priced at 12 months minus this many. The server derives
@@ -54,10 +55,15 @@ export const studioUrl = (slug: string) =>
 // platformService), so the "save 2 months" label is always true.
 export const YEARLY_FREE_MONTHS = 2;
 
-export type PlanId = "STANDARD" | "PREMIUM";
+export type PlanId = "STANDARD" | "PREMIUM" | "STOREFRONT";
+
+// Two products: Zuri Studios (booking, with an optional shop on Premium) and
+// Zuri Stores (a shop on its own, for any seller).
+export type Product = "studio" | "storefront";
 
 export interface PlanDef {
   id: PlanId;
+  product: Product;
   name: string;
   blurb: string;
   monthly: number; // GHS
@@ -73,11 +79,13 @@ const STANDARD_FEATURES = [
   "Loyalty points & referrals",
   "Reviews & photo/video gallery",
   "A banner for offers and promotions",
+  "500 MB of storage for photos and videos",
 ];
 
 export const PLANS: PlanDef[] = [
   {
     id: "STANDARD",
+    product: "studio",
     name: "Standard",
     blurb: "Everything you need to take bookings and get paid.",
     monthly: 150,
@@ -86,6 +94,7 @@ export const PLANS: PlanDef[] = [
   },
   {
     id: "PREMIUM",
+    product: "studio",
     name: "Premium",
     blurb: "Standard, plus an online shop to sell your products.",
     monthly: 350,
@@ -96,9 +105,32 @@ export const PLANS: PlanDef[] = [
       "An online shop with cart and checkout",
       "Sell products during booking",
       "Payments settled straight to your account",
+      "Business insights: what to act on, not just charts",
+      "1 GB of storage. Need more? 500 MB is GHS 5 a month",
+    ],
+  },
+  {
+    id: "STOREFRONT",
+    product: "storefront",
+    name: "Storefront",
+    blurb: "An online shop of your own, for anything you sell.",
+    monthly: 200,
+    yearly: 2000,
+    features: [
+      "Your own shop website and web address",
+      "A shop design made for what you sell",
+      "Cart, checkout and order tracking",
+      "Mobile Money & card payments, paid to your account",
+      "Customer accounts, loyalty points & referrals",
+      "Promotions and discount banners",
+      "Business insights: what to act on, not just charts",
     ],
   },
 ];
+
+export const STUDIO_PLANS = PLANS.filter((p) => p.product === "studio");
+export const STOREFRONT_PLANS = PLANS.filter((p) => p.product === "storefront");
+export const productOf = (id: PlanId): Product => (id === "STOREFRONT" ? "storefront" : "studio");
 
 export const planPrice = (plan: PlanDef, cadence: "MONTHLY" | "YEARLY") =>
   cadence === "YEARLY" ? plan.yearly : plan.monthly;
@@ -120,6 +152,8 @@ export interface PublicPlatformConfig {
     priceStandardYearly: number;
     pricePremiumMonthly: number;
     pricePremiumYearly: number;
+    priceStorefrontMonthly?: number;
+    priceStorefrontYearly?: number;
   };
 }
 
@@ -133,8 +167,13 @@ const applyPlatformConfig = (cfg: PublicPlatformConfig) => {
   PLATFORM.demoSlug = cfg.site.demoStudioSlug || SITE_DEFAULTS.demoSlug;
   for (const plan of PLANS) {
     const b = cfg.billing;
-    plan.monthly = plan.id === "PREMIUM" ? b.pricePremiumMonthly : b.priceStandardMonthly;
-    plan.yearly = plan.id === "PREMIUM" ? b.pricePremiumYearly : b.priceStandardYearly;
+    if (plan.id === "STOREFRONT") {
+      plan.monthly = b.priceStorefrontMonthly ?? plan.monthly;
+      plan.yearly = b.priceStorefrontYearly ?? plan.yearly;
+    } else {
+      plan.monthly = plan.id === "PREMIUM" ? b.pricePremiumMonthly : b.priceStandardMonthly;
+      plan.yearly = plan.id === "PREMIUM" ? b.pricePremiumYearly : b.priceStandardYearly;
+    }
   }
 };
 
@@ -169,3 +208,7 @@ export const loadPlatformConfig = async (
     // Offline or slow API: keep the cached or default values.
   }
 };
+
+/** "Standard", "Premium" or "Storefront". */
+export const planLabel = (id: string | null | undefined) =>
+  id === "PREMIUM" ? "Premium" : id === "STOREFRONT" ? "Storefront" : "Standard";

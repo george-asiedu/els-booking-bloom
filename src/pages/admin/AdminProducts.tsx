@@ -1,3 +1,4 @@
+import { type ProductAudience } from "@/lib/api/products";
 import { useState } from "react";
 import { ProductDetails } from "@/components/admin/RowDetails";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,6 +66,12 @@ interface ProductFormData {
   stock: string;
   trackStock: boolean;
   popular: boolean;
+  sizes: string;
+  colors: { name: string; hex: string }[];
+  images: string[];
+  audience: ProductAudience;
+  brand: string;
+  attributes: { label: string; value: string }[];
 }
 
 const emptyForm: ProductFormData = {
@@ -77,6 +84,12 @@ const emptyForm: ProductFormData = {
   stock: "0",
   trackStock: true,
   popular: false,
+  sizes: "",
+  colors: [],
+  images: [],
+  audience: "UNISEX",
+  brand: "",
+  attributes: [],
 };
 
 const AdminProducts = () => {
@@ -87,6 +100,7 @@ const AdminProducts = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
   const [image, setImage] = useState<File | null>(null);
+  const [newImages, setNewImages] = useState<File[]>([]);
   // Filters
   const [pSearch, setPSearch] = useState("");
   const [pCategory, setPCategory] = useState("all");
@@ -127,6 +141,15 @@ const AdminProducts = () => {
         trackStock: data.trackStock,
         popular: data.popular,
         image,
+        newImages,
+        images: data.images,
+        sizes: data.sizes.split(",").map((x) => x.trim()).filter(Boolean),
+        colors: data.colors.filter((c) => c.name.trim()).map((c) => `${c.name.trim()}|${c.hex}`),
+        audience: data.audience,
+        brand: data.brand.trim() || null,
+        attributes: data.attributes
+          .filter((a) => a.label.trim() && a.value.trim())
+          .map((a) => `${a.label.trim().replace(/\|/g, "/")}|${a.value.trim().replace(/\|/g, "/")}`),
       };
       if (data.id) await productsApi.update(data.id, payload);
       else await productsApi.create(payload);
@@ -137,6 +160,8 @@ const AdminProducts = () => {
       setEditing(null);
       setForm(emptyForm);
       setImage(null);
+    setNewImages([]);
+      setNewImages([]);
       toast({ title: editing ? "Product updated" : "Product created" });
     },
     onError: (error) =>
@@ -172,6 +197,7 @@ const AdminProducts = () => {
     setEditing(null);
     setForm({ ...emptyForm, category: categories[0]?.slug ?? "" });
     setImage(null);
+    setNewImages([]);
     setIsDialogOpen(true);
   };
 
@@ -187,8 +213,16 @@ const AdminProducts = () => {
       stock: p.stock.toString(),
       trackStock: p.track_stock,
       popular: p.popular,
+      sizes: p.sizes.join(", "),
+      colors: p.colors,
+      audience: p.audience,
+      brand: p.brand ?? "",
+      attributes: p.attributes,
+      // The first photo is the main image, edited by its own field.
+      images: p.images.slice(p.image_url ? 1 : 0),
     });
     setImage(null);
+    setNewImages([]);
     setIsDialogOpen(true);
   };
 
@@ -234,7 +268,7 @@ const AdminProducts = () => {
           </div>
           <Button onClick={openCreate} disabled={categories.length === 0}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Product
+            Add product
           </Button>
         </div>
 
@@ -510,6 +544,107 @@ const AdminProducts = () => {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="more-images">More photos (up to 8)</Label>
+              {form.images.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.images.map((src) => (
+                    <button
+                      key={src}
+                      type="button"
+                      aria-label="Remove this photo"
+                      title="Remove this photo"
+                      onClick={() => setForm({ ...form, images: form.images.filter((x) => x !== src) })}
+                      className="group relative h-16 w-16 overflow-hidden rounded border"
+                    >
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                      <span className="absolute inset-0 hidden items-center justify-center bg-black/50 text-white group-hover:flex"><Trash2 className="h-4 w-4" /></span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Input id="more-images" type="file" accept="image/*" multiple onChange={(e) => setNewImages([...(e.target.files ?? [])])} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="audience">Who it's for</Label>
+                <Select value={form.audience} onValueChange={(v) => setForm({ ...form, audience: v as ProductAudience })}>
+                  <SelectTrigger id="audience"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UNISEX">Everyone</SelectItem>
+                    <SelectItem value="WOMEN">Women</SelectItem>
+                    <SelectItem value="MEN">Men</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Puts it under Men or Women in your shop. Everyone shows in both.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand">Brand (optional)</Label>
+                <Input id="brand" value={form.brand} maxLength={60} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g. Levi's" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Product details (optional)</Label>
+              <p className="text-xs text-muted-foreground">Shown as a table on the product page, e.g. Fabric: Cotton, Fit: Regular.</p>
+              {form.attributes.map((a, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    aria-label="Detail"
+                    value={a.label}
+                    maxLength={30}
+                    placeholder="Fabric"
+                    className="w-36"
+                    onChange={(e) => setForm({ ...form, attributes: form.attributes.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
+                  />
+                  <Input
+                    aria-label="Value"
+                    value={a.value}
+                    maxLength={60}
+                    placeholder="Bio-washed cotton"
+                    onChange={(e) => setForm({ ...form, attributes: form.attributes.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)) })}
+                  />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove detail" onClick={() => setForm({ ...form, attributes: form.attributes.filter((_, j) => j !== i) })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {form.attributes.length < 12 && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, attributes: [...form.attributes, { label: "", value: "" }] })}>
+                  <Plus className="mr-2 h-4 w-4" /> Add detail
+                </Button>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sizes">Sizes (optional)</Label>
+              <Input id="sizes" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} placeholder="S, M, L, XL" />
+              <p className="text-xs text-muted-foreground">Separate with commas. Customers must pick one. All sizes share the stock above.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Colours (optional)</Label>
+              {form.colors.map((c, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Colour"
+                    value={c.hex}
+                    onChange={(e) => setForm({ ...form, colors: form.colors.map((x, j) => (j === i ? { ...x, hex: e.target.value } : x)) })}
+                    className="h-10 w-12 cursor-pointer rounded border"
+                  />
+                  <Input
+                    aria-label="Colour name"
+                    value={c.name}
+                    placeholder="Colour name, e.g. Sand"
+                    onChange={(e) => setForm({ ...form, colors: form.colors.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })}
+                  />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove colour" onClick={() => setForm({ ...form, colors: form.colors.filter((_, j) => j !== i) })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, colors: [...form.colors, { name: "", hex: "#000000" }] })}>
+                <Plus className="mr-2 h-4 w-4" /> Add colour
+              </Button>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="image">
                 Image {editing && "(leave empty to keep current)"}
               </Label>
@@ -551,7 +686,7 @@ const AdminProducts = () => {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogTitle>Delete product</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure? This action cannot be undone.
             </AlertDialogDescription>

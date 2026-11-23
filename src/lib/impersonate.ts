@@ -10,7 +10,6 @@ import { platformApi } from "./platformApi";
  */
 export async function enterStudioAsAdmin(studioId: string): Promise<void> {
   const res = await platformApi.impersonate(studioId);
-  tokenStore.setToken(res.token.accessToken);
   tokenStore.setUser({
     id: res.user.id,
     email: res.user.email,

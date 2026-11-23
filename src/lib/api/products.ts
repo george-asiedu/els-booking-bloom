@@ -14,13 +14,26 @@ export interface ProductDTO {
   on_promo: boolean;
   effective_price: number;
   image_url: string | null;
+  // Every photo, main one first.
+  images: string[];
+  sizes: string[];
+  colors: { name: string; hex: string }[];
+  rating_average: number | null;
+  rating_count: number;
   category: string;
   stock: number;
   track_stock: boolean;
   in_stock: boolean;
   active: boolean;
   popular: boolean;
+  audience: ProductAudience;
+  brand: string | null;
+  /** Facts for the product page table, e.g. { label: "Fabric", value: "Cotton" }. */
+  attributes: { label: string; value: string }[];
+  created_at: string | null;
 }
+
+export type ProductAudience = "MEN" | "WOMEN" | "UNISEX";
 
 interface RawProduct {
   id: string;
@@ -30,11 +43,20 @@ interface RawProduct {
   costPrice?: number;
   promoPrice: number | null;
   imageUrl: string | null;
+  images?: string[];
+  sizes?: string[];
+  colors?: string[];
+  ratingAverage?: number | null;
+  ratingCount?: number;
   category: string;
   stock: number;
   trackStock: boolean;
   active: boolean;
   popular: boolean;
+  audience?: string;
+  brand?: string | null;
+  attributes?: string[];
+  createdAt?: string;
 }
 
 const normalizeProduct = (p: RawProduct): ProductDTO => {
@@ -49,12 +71,27 @@ const normalizeProduct = (p: RawProduct): ProductDTO => {
     on_promo: onPromo,
     effective_price: onPromo ? (p.promoPrice as number) : p.price,
     image_url: p.imageUrl,
+    images: [...(p.imageUrl ? [p.imageUrl] : []), ...(p.images ?? [])],
+    sizes: p.sizes ?? [],
+    colors: (p.colors ?? []).map((c) => {
+      const [name, hex] = c.split("|");
+      return { name, hex };
+    }),
+    rating_average: p.ratingAverage ?? null,
+    rating_count: p.ratingCount ?? 0,
     category: p.category,
     stock: p.stock,
     track_stock: p.trackStock,
     in_stock: !p.trackStock || p.stock > 0,
     active: p.active,
     popular: p.popular,
+    audience: p.audience === "MEN" || p.audience === "WOMEN" ? p.audience : "UNISEX",
+    brand: p.brand ?? null,
+    attributes: (p.attributes ?? []).map((a) => {
+      const [label, value] = a.split("|");
+      return { label, value };
+    }),
+    created_at: p.createdAt ?? null,
   };
 };
 
@@ -71,6 +108,14 @@ export interface ProductInput {
   popular?: boolean;
   image?: File | null;
   imageUrl?: string | null;
+  // Extra photos: already-uploaded ones to keep, and new files to add.
+  images?: string[];
+  newImages?: File[];
+  sizes?: string[];
+  colors?: string[];
+  audience?: ProductAudience;
+  brand?: string | null;
+  attributes?: string[];
 }
 
 const productForm = (input: Partial<ProductInput>): FormData => {
@@ -90,6 +135,12 @@ const productForm = (input: Partial<ProductInput>): FormData => {
   if (input.popular !== undefined) form.append("popular", String(input.popular));
   if (input.image) form.append("image", input.image);
   return form;
+};
+
+const withExtraPhotos = async (input: Partial<ProductInput>) => {
+  if (input.images === undefined && !input.newImages?.length) return {};
+  const added = await Promise.all((input.newImages ?? []).map((f) => uploadStudioMedia(f, "products")));
+  return { images: [...(input.images ?? []), ...added] };
 };
 
 export const productsApi = {
@@ -120,7 +171,7 @@ export const productsApi = {
     const res = await apiRequest<Envelope<RawProduct>>("/products", {
       method: "POST",
       auth: true,
-      body: { ...input, image: undefined, imageUrl },
+      body: { ...input, image: undefined, newImages: undefined, imageUrl, ...(await withExtraPhotos(input)) },
     });
     return normalizeProduct(res.data);
   },
@@ -129,7 +180,7 @@ export const productsApi = {
     const res = await apiRequest<Envelope<RawProduct>>(`/products/${id}`, {
       method: "PUT",
       auth: true,
-      body: { ...input, image: undefined, imageUrl },
+      body: { ...input, image: undefined, newImages: undefined, imageUrl, ...(await withExtraPhotos(input)) },
     });
     return normalizeProduct(res.data);
   },

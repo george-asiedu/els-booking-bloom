@@ -11,6 +11,7 @@ import { formatGHS } from "@/lib/currency";
 import { useStudio } from "@/hooks/useStudio";
 
 const GHS = formatGHS;
+const PER_PAGE = 9;
 const titleize = (slug: string) =>
   slug
     .split("-")
@@ -27,6 +28,7 @@ interface DisplayService {
   on_promo?: boolean;
   popular?: boolean;
   category: string;
+  image_url?: string | null;
 }
 
 const price = (s: DisplayService) =>
@@ -35,6 +37,7 @@ const price = (s: DisplayService) =>
 const Services = () => {
   const { name: studioName } = useStudio();
   const [activeCat, setActiveCat] = useState<string>("all");
+  const [page, setPage] = useState(1);
 
   const { data: apiServices, isLoading } = useQuery({
     queryKey: ["public-services-catalog"],
@@ -64,6 +67,10 @@ const Services = () => {
   const filtered =
     activeCat === "all" ? source : source.filter((s) => s.category === activeCat);
 
+  const pages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const current = Math.min(page, pages);
+  const pageItems = filtered.slice((current - 1) * PER_PAGE, current * PER_PAGE);
+
   const galleryPhotos = gallery.filter((g) => g.media_type === "image");
   const heroImg = galleryPhotos[0]?.image_url ?? null;
   const ctaImg = galleryPhotos[2]?.image_url ?? galleryPhotos[0]?.image_url ?? null;
@@ -80,7 +87,7 @@ const Services = () => {
       />
 
       <section className="py-16 md:py-24">
-        <div className="container mx-auto max-w-4xl px-4">
+        <div className="container mx-auto px-4">
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -99,81 +106,94 @@ const Services = () => {
               </Button>
             </div>
           ) : (
-            <>
+            <div className="grid gap-10 lg:grid-cols-[220px_1fr]">
+              {/* Categories: a list on the left on large screens, pills above on phones */}
               {tabSlugs.length > 1 && (
-                <div
-                  className="mb-8 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  role="tablist"
-                  aria-label="Service categories"
-                >
-                  {["all", ...tabSlugs].map((slug) => (
-                    <button
-                      key={slug}
-                      role="tab"
-                      aria-selected={activeCat === slug}
-                      onClick={() => setActiveCat(slug)}
-                      className={cn(
-                        "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                        activeCat === slug
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {slug === "all" ? "Everything" : catName(slug)}
-                    </button>
-                  ))}
-                </div>
+                <nav aria-label="Service categories" className="lg:sticky lg:top-[calc(var(--site-header-h,5rem)+1.5rem)] lg:self-start">
+                  <p className="mb-3 hidden text-xs uppercase tracking-wider text-muted-foreground lg:block">Categories</p>
+                  <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
+                    {["all", ...tabSlugs].map((slug) => {
+                      const count = slug === "all" ? source.length : source.filter((x) => x.category === slug).length;
+                      return (
+                        <button
+                          key={slug}
+                          type="button"
+                          aria-pressed={activeCat === slug}
+                          onClick={() => { setActiveCat(slug); setPage(1); }}
+                          className={cn(
+                            "flex shrink-0 items-center justify-between gap-3 rounded-full border px-4 py-2 text-sm font-medium transition-colors lg:rounded-md lg:border-0 lg:px-3",
+                            activeCat === slug
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+                          )}
+                        >
+                          {slug === "all" ? "Everything" : catName(slug)}
+                          <span className="text-xs tabular-nums opacity-70">{count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
               )}
 
-              {/* The price list. Price and length stay visible at every width:
-                  on a phone they're what people came for. */}
-              <ul className="divide-y divide-border border-y border-border">
-                {filtered.map((s) => (
-                  <li
-                    key={s.id}
-                    className="grid grid-cols-[1fr,auto] items-baseline gap-x-6 gap-y-1 py-5"
-                  >
-                    <div className="min-w-0">
-                      <h3 className="font-serif text-lg font-semibold">
-                        {s.name}
-                        {s.popular && (
-                          <span className="ml-2 align-middle text-xs font-medium text-muted-foreground">
-                            Popular
+              <div className={tabSlugs.length > 1 ? "" : "lg:col-span-2"}>
+                <p className="mb-5 text-sm text-muted-foreground">
+                  Showing {(current - 1) * PER_PAGE + 1}–{Math.min(current * PER_PAGE, filtered.length)} of {filtered.length}
+                </p>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {pageItems.map((s) => (
+                    <article key={s.id} className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg">
+                      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                        {s.image_url ? (
+                          <img src={s.image_url} alt={s.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center font-serif text-3xl text-muted-foreground/50">{s.name.charAt(0)}</div>
+                        )}
+                        {(s.popular || (s.on_promo && s.promo_price != null)) && (
+                          <span className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-xs font-medium text-foreground">
+                            {s.on_promo && s.promo_price != null ? "On offer" : "Popular"}
                           </span>
                         )}
-                        {s.on_promo && s.promo_price != null && (
-                          <span className="ml-2 align-middle text-xs font-medium text-primary">
-                            On offer
-                          </span>
-                        )}
-                      </h3>
-                      {s.description && (
-                        <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-                          {s.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold tabular-nums">
-                        {s.on_promo && s.promo_price != null && (
-                          <span className="mr-2 font-normal text-muted-foreground line-through">
-                            {GHS(s.price)}
-                          </span>
-                        )}
-                        {GHS(price(s))}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{s.duration}</p>
-                    </div>
-                    <Link
-                      to="/book"
-                      className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    >
-                      Book {s.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </>
+                      </div>
+                      <div className="flex flex-1 flex-col p-5">
+                        <h3 className="font-serif text-lg font-semibold">{s.name}</h3>
+                        {s.description && <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{s.description}</p>}
+                        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+                          <div>
+                            <p className="font-semibold tabular-nums">
+                              {s.on_promo && s.promo_price != null && (
+                                <span className="mr-2 text-sm font-normal text-muted-foreground line-through">{GHS(s.price)}</span>
+                              )}
+                              {GHS(price(s))}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{s.duration}</p>
+                          </div>
+                          <Button size="sm" asChild>
+                            <Link to="/book" aria-label={`Book ${s.name}`}>Book</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                {pages > 1 && (
+                  <nav aria-label="Pages" className="mt-10 flex items-center justify-center gap-1 text-sm">
+                    {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        aria-current={n === current ? "page" : undefined}
+                        onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        className={cn("h-10 w-10 rounded-md", n === current ? "bg-primary text-primary-foreground" : "hover:bg-accent")}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </nav>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </section>

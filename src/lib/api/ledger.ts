@@ -109,6 +109,8 @@ export interface BusySlot {
   start: string;
   label: string;
   minutes: number;
+  /** Who it's with; null when nobody was assigned (holds the slot for all). */
+  staffId?: string | null;
 }
 
 export const transactionsApi = {

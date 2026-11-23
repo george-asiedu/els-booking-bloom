@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarCheck2, Check, Copy, ExternalLink, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PLATFORM } from "@/config/platform";
+import { PLATFORM, planLabel } from "@/config/platform";
 import { formatGHS } from "@/lib/currency";
 import type { SignupSummary } from "@/lib/onboardingApi";
 
@@ -46,7 +46,7 @@ export const SignupSuccess = ({
   onOpenDashboard: () => void;
   onOpenSite: () => void;
 }) => {
-  const planName = summary?.plan === "PREMIUM" ? "Premium" : "Standard";
+  const planName = planLabel(summary?.plan);
   const subscription = summary?.billingMode === "SUBSCRIPTION";
 
   return (
@@ -57,7 +57,7 @@ export const SignupSuccess = ({
           <PartyPopper className="h-7 w-7" aria-hidden />
         </div>
         <h1 className="mt-5 text-balance font-serif text-3xl font-bold">
-          {summary ? `${summary.studioName} is live!` : "Your studio is live!"}
+          {summary ? `${summary.studioName} is live` : "Your studio is live"}
         </h1>
         <p className="mx-auto mt-2 max-w-md text-pretty text-muted-foreground">
           Welcome to {PLATFORM.name}. Sign in with the email and password you just set to add

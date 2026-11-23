@@ -25,6 +25,7 @@ export type {
 } from "./models";
 export * from "./auth";
 export * from "./studio";
+export * from "./shopExtras";
 export * from "./platformReviews";
 export * from "./billing";
 export * from "./users";
@@ -36,6 +37,9 @@ export * from "./appointments";
 export * from "./profile";
 export * from "./account";
 export * from "./contact";
+export * from "./cancellations";
+export * from "./staff";
+export * from "./vouchers";
 export * from "./payments";
 export * from "./products";
 export * from "./cart";

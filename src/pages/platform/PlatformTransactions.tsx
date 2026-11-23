@@ -1,3 +1,4 @@
+import { SearchBox } from "@/components/ui/search-box";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -5,7 +6,6 @@ import { Loader2, Receipt } from "lucide-react";
 import { PlatformLayout } from "./PlatformLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -138,12 +138,7 @@ const PlatformTransactions = () => {
               </SelectContent>
             </Select>
 
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search reference, customer…"
-              className="w-[220px]"
-            />
+            <SearchBox value={search} onSearch={setSearch} placeholder="Search reference, customer…" className="w-[240px]" />
 
             <Select value={type} onValueChange={setType}>
               <SelectTrigger className="w-[160px]">

@@ -1,148 +1,60 @@
-import { useEffect, useState } from "react";
-import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { CouponBox } from "@/components/shop/CouponBox";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  ShoppingBag,
-  Trash2,
-  Minus,
-  Plus,
-  Loader2,
-  Store,
-  Truck,
-  ShieldCheck,
-  ArrowLeft,
-} from "lucide-react";
+import { ShoppingBag, Minus, Plus, Loader2, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Layout } from "@/components/layout/Layout";
-import { StudioPageHero } from "@/components/storefront/StudioPageHero";
+import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
+import { ProductRow, SHOP_CTA } from "@/components/shop/ProductCard";
 import { cn } from "@/lib/utils";
-import { cartApi, commerceApi, ordersApi, PaymentTarget } from "@/lib/api";
-import { PaymentDialog } from "@/components/payment/PaymentDialog";
+import { cartApi, contactInfoApi, productsApi, type CartItemDTO } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { formatGHS } from "@/lib/currency";
+import { formatGHS as GHS } from "@/lib/currency";
 
-const GHS = formatGHS;
-
+/** Your basket (cart_bag): a table of items, totals, and "you may also like". */
 const Cart = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const processing = useProcessing();
   const queryClient = useQueryClient();
-
-  const [fulfillment, setFulfillment] = useState<"PICKUP" | "DELIVERY">("PICKUP");
-  const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
-  const [redirecting, setRedirecting] = useState(false);
-  const navigate = useNavigate();
-  const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
-  const [paymentOpen, setPaymentOpen] = useState(false);
-
   const isCustomer = !!user && user.role !== "ADMIN";
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
 
-  const { data: commerce } = useQuery({
-    queryKey: ["commerce-settings"],
-    queryFn: () => commerceApi.getSettings(),
-  });
   const { data: cart, isLoading } = useQuery({
-    queryKey: ["cart"],
+    queryKey: ["cart", isCustomer ? "me" : "guest"],
     queryFn: () => cartApi.getMine(),
-    enabled: isCustomer,
+    enabled: user?.role !== "ADMIN",
+  });
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ["public-products"],
+    queryFn: () => productsApi.listActive(),
+  });
+  const { data: contact } = useQuery({
+    queryKey: ["contact-info"],
+    queryFn: () => contactInfoApi.get(),
   });
 
-  useEffect(() => {
-    if (commerce) setFulfillment(commerce.enable_pickup ? "PICKUP" : "DELIVERY");
-  }, [commerce]);
-
-  const invalidateCart = () =>
-    queryClient.invalidateQueries({ queryKey: ["cart"] });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      cartApi.updateItem(productId, quantity),
-    onSuccess: invalidateCart,
-  });
-  const removeMutation = useMutation({
-    mutationFn: (productId: string) => cartApi.removeItem(productId),
-    onSuccess: () => {
-      invalidateCart();
-      toast({ title: "Removed", description: "Item removed from your bag." });
-    },
-  });
-
+  const invalidateCart = () => queryClient.invalidateQueries({ queryKey: ["cart"] });
   const onError = (error: unknown) =>
     toast({
       variant: "destructive",
       title: "Something went wrong",
       description: error instanceof Error ? error.message : "Please try again.",
     });
-
-  const handleCheckout = async () => {
-    if (fulfillment === "DELIVERY" && (!address.trim() || !phone.trim())) {
-      toast({
-        variant: "destructive",
-        title: "Delivery details needed",
-        description: "Enter a delivery address and phone number.",
-      });
-      return;
-    }
-    try {
-      setRedirecting(true);
-      processing.show(PROCESSING.preparing);
-      const result = await ordersApi.checkout({
-        fulfillment,
-        deliveryAddress: fulfillment === "DELIVERY" ? address.trim() : undefined,
-        deliveryPhone: fulfillment === "DELIVERY" ? phone.trim() : undefined,
-      });
-      setRedirecting(false);
-      processing.hide();
-      setPaymentTarget({
-        reference: result.reference,
-        amount: result.total,
-        email: result.email,
-        access_code: result.access_code,
-        subaccount: result.subaccount,
-        public_key: result.public_key,
-      });
-      setPaymentOpen(true);
-    } catch (error) {
-      setRedirecting(false);
-      processing.hide();
-      onError(error);
-    }
-  };
+  const updateMutation = useMutation({
+    mutationFn: ({ item, quantity }: { item: CartItemDTO; quantity: number }) =>
+      cartApi.updateItem(item.product_id, quantity, item.size, item.color),
+    onSuccess: invalidateCart,
+    onError,
+  });
+  const removeMutation = useMutation({
+    mutationFn: (item: CartItemDTO) => cartApi.removeItem(item.product_id, item.size, item.color),
+    onSuccess: invalidateCart,
+    onError,
+  });
 
   // Gates.
-  if (!user) {
-    return (
-      <Layout>
-        <section className="py-20">
-          <div className="container mx-auto max-w-md px-4 text-center">
-            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-primary" />
-            <h1 className="mb-2 font-serif text-2xl font-bold text-foreground">
-              Log in to view your bag
-            </h1>
-            <p className="mb-6 text-muted-foreground">
-              Sign in to add products and check out.
-            </p>
-            <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild>
-                <Link to="/login?redirect=/cart">Log in</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/shop">Continue shopping</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </Layout>
-    );
-  }
-
-  if (user.role === "ADMIN") {
+  if (user?.role === "ADMIN") {
     return (
       <Layout>
         <section className="py-20 text-center">
@@ -164,265 +76,93 @@ const Cart = () => {
 
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
-  const deliveryFee = fulfillment === "DELIVERY" ? commerce?.delivery_fee ?? 0 : 0;
-  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
-  const hasBlockedItem = items.some((i) => !i.in_stock);
-  const empty = !isLoading && items.length === 0;
+  const count = items.reduce((n, i) => n + i.quantity, 0);
+  const blocked = items.some((i) => !i.in_stock);
+  const inBag = new Set(items.map((i) => i.product_id));
+  const suggestions = allProducts.filter((p) => !inBag.has(p.id) && p.in_stock);
+  const checkout = blocked ? (
+    <span className={cn(SHOP_CTA, "w-full cursor-not-allowed opacity-40")}>Secure checkout</span>
+  ) : (
+    <Link to="/checkout" className={cn(SHOP_CTA, "w-full")}>Secure checkout</Link>
+  );
 
   return (
     <Layout>
-      <StudioPageHero
-        eyebrow="Your bag"
-        title="Check your order"
-        description="Change quantities or remove items before you pay."
-        variant="compact"
-      />
-
-      <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <Link
-            to="/shop"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Continue shopping
-          </Link>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : empty ? (
-            <div className="mx-auto max-w-md py-12 text-center">
-              <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-primary/40" />
-              <h2 className="font-serif text-2xl font-bold">Your bag is empty</h2>
-              <p className="mt-2 text-muted-foreground">
-                Looks like you haven't found your next beauty essential yet.
-              </p>
-              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                <Button asChild>
-                  <Link to="/shop">Explore shop</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/services">Explore services</Link>
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-8 lg:grid-cols-3">
-              {/* Items */}
-              <div className="lg:col-span-2">
-                <h2 className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                  Your items
-                </h2>
-                <div className="divide-y divide-border border-y border-border">
-                  {items.map((item) => (
-                    <div
-                      key={item.product_id}
-                      className="flex items-center gap-4 py-5 animate-fade-in"
-                    >
-                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-                        {item.image_url && (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-foreground">
-                          {item.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {GHS(item.unit_price)}
-                          {!item.in_stock && (
-                            <span className="ml-2 text-destructive">Out of stock</span>
-                          )}
-                        </p>
-                        <div className="mt-2 inline-flex items-center rounded-full border border-border">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-full"
-                            aria-label="Decrease quantity"
-                            onClick={() =>
-                              updateMutation.mutate({
-                                productId: item.product_id,
-                                quantity: item.quantity - 1,
-                              })
-                            }
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{item.quantity}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-full"
-                            aria-label="Increase quantity"
-                            disabled={
-                              item.max_qty !== null && item.quantity >= item.max_qty
-                            }
-                            onClick={() =>
-                              updateMutation.mutate({
-                                productId: item.product_id,
-                                quantity: item.quantity + 1,
-                              })
-                            }
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">
-                          {GHS(item.line_total)}
-                        </p>
-                        <button
-                          className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-destructive"
-                          onClick={() => removeMutation.mutate(item.product_id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="lg:col-span-1">
-                <div className="rounded-2xl border border-border bg-card p-6 lg:sticky lg:top-24">
-                  <h2 className="font-serif text-lg font-semibold">Order summary</h2>
-
-                  {/* Fulfillment */}
-                  <div className="mt-5">
-                    <p className="mb-2 text-sm font-medium text-foreground">Fulfilment</p>
-                    <div className="grid gap-2">
-                      {commerce?.enable_pickup && (
-                        <button
-                          type="button"
-                          onClick={() => setFulfillment("PICKUP")}
-                          className={cn(
-                            "flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-colors",
-                            fulfillment === "PICKUP"
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50",
-                          )}
-                        >
-                          <Store className="h-4 w-4 text-primary" />
-                          Pickup at studio
-                          <span className="ml-auto text-muted-foreground">Free</span>
-                        </button>
-                      )}
-                      {commerce?.enable_delivery && (
-                        <button
-                          type="button"
-                          onClick={() => setFulfillment("DELIVERY")}
-                          className={cn(
-                            "flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-colors",
-                            fulfillment === "DELIVERY"
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50",
-                          )}
-                        >
-                          <Truck className="h-4 w-4 text-primary" />
-                          Delivery
-                          <span className="ml-auto text-muted-foreground">
-                            {commerce.delivery_fee > 0
-                              ? GHS(commerce.delivery_fee)
-                              : "Free"}
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {fulfillment === "DELIVERY" && (
-                    <div className="mt-3 space-y-2">
-                      <Textarea
-                        placeholder="Delivery address"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        className="min-h-[70px]"
-                      />
-                      <Input
-                        placeholder="Delivery phone number"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  <div className="mt-4 space-y-1.5 border-t border-border pt-4 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="text-foreground">{GHS(subtotal)}</span>
-                    </div>
-                    {deliveryFee > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Delivery</span>
-                        <span className="text-foreground">{GHS(deliveryFee)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between pt-2 text-base font-semibold">
-                      <span className="text-foreground">Total</span>
-                      <span className="text-primary">{GHS(total)}</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    className="mt-5 w-full"
-                    size="lg"
-                    disabled={redirecting || hasBlockedItem}
-                    onClick={handleCheckout}
-                  >
-                    {redirecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {redirecting ? "Redirecting…" : "Proceed to checkout"}
-                  </Button>
-                  {hasBlockedItem && (
-                    <p className="mt-2 text-center text-xs text-destructive">
-                      Remove out-of-stock items to continue.
-                    </p>
-                  )}
-                  <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Secure checkout via Paystack
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Sticky mobile checkout bar */}
-      {!empty && !isLoading && items.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-border bg-background/95 px-4 pt-3 backdrop-blur-md [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))] md:hidden">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="font-semibold text-primary">{GHS(total)}</p>
+      <section className="container mx-auto max-w-5xl px-4 py-10 md:py-14">
+        {isLoading ? (
+          <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        ) : items.length === 0 ? (
+          <div className="mx-auto max-w-md py-12 text-center">
+            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <h1 className="text-2xl font-semibold">Your basket is empty</h1>
+            <p className="mt-2 text-muted-foreground">Add something you love and it will wait for you here.</p>
+            <Link to="/shop/products" className={cn(SHOP_CTA, "mt-6")}>Browse products</Link>
           </div>
-          <Button
-            className="ml-auto flex-1"
-            size="lg"
-            disabled={redirecting || hasBlockedItem}
-            onClick={handleCheckout}
-          >
-            {redirecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Checkout
-          </Button>
-        </div>
-      )}
+        ) : (
+          <>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">Your basket</h1>
+                <p className="mt-1 text-sm">{count} {count === 1 ? "item" : "items"}</p>
+              </div>
+              <div className="hidden w-72 sm:block">{checkout}</div>
+            </div>
 
-      <PaymentDialog
-        open={paymentOpen}
-        onOpenChange={setPaymentOpen}
-        target={paymentTarget}
-        title="Pay for your order"
-        onSuccess={(reference) =>
-          navigate(`/order/callback?reference=${encodeURIComponent(reference)}`)
-        }
-      />
+            <div className="mt-6 hidden grid-cols-[1fr_7rem_8rem_7rem] border-y border-border py-3 text-xs uppercase tracking-wider md:grid">
+              <span>Item</span><span>Price</span><span>Qty</span><span className="text-right">Total</span>
+            </div>
+            <ul className="divide-y divide-border border-b border-border md:border-t-0 mt-6 md:mt-0">
+              {items.map((item) => (
+                <li key={`${item.product_id}:${item.size}:${item.color}`} className="grid grid-cols-[5rem_1fr] gap-4 py-5 md:grid-cols-[1fr_7rem_8rem_7rem] md:items-start md:gap-0">
+                  <div className="contents md:flex md:gap-4">
+                    <Link to={`/shop/${item.product_id}`} className="h-24 w-20 shrink-0 overflow-hidden bg-muted">
+                      {item.image_url && <img src={item.image_url} alt="" className="h-full w-full object-cover" />}
+                    </Link>
+                    <div className="min-w-0">
+                      <Link to={`/shop/${item.product_id}`} className="font-medium hover:underline">{item.name}</Link>
+                      {(item.size || item.color) && (
+                        <p className="mt-0.5 text-sm text-muted-foreground">{[item.color, item.size && `Size ${item.size}`].filter(Boolean).join(" · ")}</p>
+                      )}
+                      {!item.in_stock && <p className="mt-1 text-sm text-destructive">No longer in stock. Remove it to continue.</p>}
+                      <p className="mt-1 text-sm tabular-nums text-muted-foreground md:hidden">{GHS(item.unit_price)}</p>
+                      <button type="button" onClick={() => removeMutation.mutate(item)} className="mt-3 text-xs underline underline-offset-2 hover:text-destructive">
+                        Remove from basket
+                      </button>
+                    </div>
+                  </div>
+                  <p className="hidden text-sm tabular-nums md:block">{GHS(item.unit_price)}</p>
+                  <div className="col-start-2 flex h-9 w-fit items-center border border-input md:col-start-auto">
+                    <button type="button" aria-label="Less" className="h-full px-2.5 disabled:opacity-40" disabled={item.quantity <= 1 || updateMutation.isPending} onClick={() => updateMutation.mutate({ item, quantity: item.quantity - 1 })}><Minus className="h-3.5 w-3.5" /></button>
+                    <span className="w-7 text-center text-sm tabular-nums">{item.quantity}</span>
+                    <button type="button" aria-label="More" className="h-full px-2.5 disabled:opacity-40" disabled={(item.max_qty !== null && item.quantity >= item.max_qty) || updateMutation.isPending} onClick={() => updateMutation.mutate({ item, quantity: item.quantity + 1 })}><Plus className="h-3.5 w-3.5" /></button>
+                  </div>
+                  <p className="col-start-2 text-sm font-medium tabular-nums md:col-start-auto md:text-right">{GHS(item.line_total)}</p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8 grid gap-8 border border-border bg-secondary/40 p-6 md:grid-cols-2 md:p-8">
+              <div className="text-sm">
+                <p className="uppercase tracking-wider">Delivery</p>
+                <p className="mt-2 text-muted-foreground">You'll choose pickup or delivery at checkout, and see any delivery fee before you pay.</p>
+                <p className="mt-6 uppercase tracking-wider">Need help?</p>
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground">
+                  {contact?.showPhone && contact.phone && <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 hover:text-foreground"><Phone className="h-4 w-4" aria-hidden /> {contact.phone}</a>}
+                  {contact?.showEmail && contact.email && <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 hover:text-foreground"><Mail className="h-4 w-4" aria-hidden /> {contact.email}</a>}
+                </div>
+              </div>
+              <div>
+                <div className="mb-5"><CouponBox subtotal={subtotal} onChange={setCoupon} /></div>
+                <div className="flex items-baseline justify-between text-sm"><span>Subtotal</span><span className="tabular-nums">{GHS(subtotal)}</span></div>
+                {coupon && <div className="mt-1 flex items-baseline justify-between text-sm"><span>Discount</span><span className="tabular-nums">-{GHS(coupon.discount)}</span></div>}
+                <div className="mt-3 flex items-baseline justify-between text-2xl font-semibold"><span>Total</span><span className="tabular-nums">{GHS(subtotal - (coupon?.discount ?? 0))}</span></div>
+                <div className="mt-5">{checkout}</div>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+      <ProductRow title="You may also like" products={suggestions} />
     </Layout>
   );
 };

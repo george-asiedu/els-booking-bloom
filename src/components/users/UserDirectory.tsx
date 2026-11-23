@@ -1,7 +1,9 @@
+import { SearchBox } from "@/components/ui/search-box";
+import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useId, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { Crown, Loader2, Search, Trash2, UserRound } from "lucide-react";
+import { Crown, Loader2, Trash2, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -39,6 +41,8 @@ export interface DirectorySource {
   // Super admin only.
   update?: (id: string, input: { fullName?: string | null; phone?: string | null; location?: string | null; email?: string }) => Promise<DirectoryUserDetail>;
   remove?: (id: string) => Promise<void>;
+  // Studio admin only: the business's private notes about a customer.
+  saveNotes?: (id: string, notes: string) => Promise<unknown>;
 }
 
 const PAGE_SIZE = 20;
@@ -59,15 +63,6 @@ const RoleBadge = ({ role, isOwner }: { role: DirectoryRole; isOwner: boolean })
       Customer
     </Badge>
   );
-
-const useDebounced = <T,>(value: T, ms = 300) => {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return v;
-};
 
 /**
  * A searchable, paged table of studio users with a details drawer. With
@@ -98,7 +93,8 @@ export const UserDirectory = ({
   const role = fixedRole ?? pickedRole;
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
-  const q = useDebounced(search);
+  // SearchBox already waits for a pause and 3 characters.
+  const q = search;
 
   useEffect(() => setPage(1), [q, role]);
 
@@ -115,16 +111,14 @@ export const UserDirectory = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, email or phone"
-            className="pl-9"
-            aria-label={`Search ${noun}`}
-          />
-        </div>
+        <SearchBox
+          value={search}
+          onSearch={setSearch}
+          busy={isFetching && Boolean(search)}
+          placeholder="Search name, email or phone"
+          label={`Search ${noun}`}
+          className="w-full sm:max-w-sm"
+        />
         {!fixedRole && (
         <div role="tablist" aria-label="Filter by role" className="inline-flex rounded-lg border bg-muted/40 p-1">
           {ROLE_FILTERS.map((f) => (
@@ -489,6 +483,18 @@ const UserSheet = ({
                   )}
                 </dl>
 
+                {user.role === "CUSTOMER" && (user.favouriteService || user.lastVisit || user.noShows) ? (
+                  <dl className="divide-y">
+                    {user.favouriteService && <Field label="Favourite service">{user.favouriteService}</Field>}
+                    {user.lastVisit && <Field label="Last visit">{format(parseISO(user.lastVisit), "d MMM yyyy")}</Field>}
+                    {user.noShows ? <Field label="Missed bookings">{user.noShows}</Field> : null}
+                  </dl>
+                ) : null}
+
+                {source.saveNotes && user.role === "CUSTOMER" && (
+                  <CustomerNotes key={user.id} initial={user.notes ?? ""} save={(text) => source.saveNotes!(user.id, text)} />
+                )}
+
                 {user.recentAppointments.length > 0 && (
                   <section>
                     <h3 className="mb-2 text-sm font-semibold">Recent bookings</h3>
@@ -540,7 +546,7 @@ const UserSheet = ({
                 {!editable && user.role === "CUSTOMER" && (
                   <p className="rounded-md bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
                     Customers update their own name and phone number from their account on your
-                    site. To remove a customer's account, contact Zuri Studios support.
+                    site. To remove a customer's account, contact Zuri support.
                   </p>
                 )}
               </div>
@@ -590,5 +596,27 @@ const UserSheet = ({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+};
+
+/** Private notes about a customer, seen only by the business's team. */
+const CustomerNotes = ({ initial, save }: { initial: string; save: (text: string) => Promise<unknown> }) => {
+  const { toast } = useToast();
+  const [text, setText] = useState(initial);
+  const mutation = useMutation({
+    mutationFn: () => save(text),
+    onSuccess: () => toast({ title: "Notes saved" }),
+    onError: (e) => toast({ variant: "destructive", title: "Couldn't save the notes", description: (e as Error).message }),
+  });
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold">Notes</h3>
+      <p className="text-xs text-muted-foreground">Only your team sees these, for example allergies or how they like their hair done.</p>
+      <Textarea rows={4} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
+      <Button size="sm" variant="outline" disabled={mutation.isPending || text === initial} onClick={() => mutation.mutate()}>
+        {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save notes
+      </Button>
+    </section>
   );
 };

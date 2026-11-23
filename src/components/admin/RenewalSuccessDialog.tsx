@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { planLabel } from "@/config/platform";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { Check, Copy, PartyPopper, CalendarCheck2 } from "lucide-react";
@@ -42,7 +43,7 @@ export const RenewalSuccessDialog = ({
 
   if (!receipt) return null;
 
-  const planName = receipt.plan === "PREMIUM" ? "Premium" : "Standard";
+  const planName = planLabel(receipt.plan);
   const period = receipt.cadence === "YEARLY" ? "1 year" : "1 month";
   const copyRef = async () => {
     try {
@@ -70,12 +71,12 @@ export const RenewalSuccessDialog = ({
             {wasLapsed ? <PartyPopper className="h-7 w-7" aria-hidden /> : <Check className="h-7 w-7" aria-hidden />}
           </div>
           <DialogTitle className="mt-5 text-2xl font-bold">
-            {wasLapsed ? "Welcome back!" : "Your plan is renewed"}
+            {wasLapsed ? "Welcome back" : "Your plan is renewed"}
           </DialogTitle>
           <DialogDescription className="mx-auto mt-2 max-w-xs text-pretty">
             {wasLapsed
               ? "Your studio is live again. Customers can book and pay on your site right away."
-              : `Thanks! Your ${planName} plan now runs for another ${receipt.cadence === "YEARLY" ? "year" : "month"}.`}
+              : `Thank you. Your ${planName} plan now runs for another ${receipt.cadence === "YEARLY" ? "year" : "month"}.`}
           </DialogDescription>
         </div>
 

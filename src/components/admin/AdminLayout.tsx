@@ -1,84 +1,173 @@
 import { ReactNode } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { 
-  Calendar, 
-  Scissors, 
-  ImageIcon, 
-  Clock, 
-  LogOut, 
-  Menu,
-  X,
-  Star,
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import {
   BarChart3,
-  Phone,
-  User,
-  Tag,
+  Calendar,
+  Clock,
   CreditCard,
-  ShoppingBag,
-  Package,
-  Store,
-  Palette,
-  Lightbulb,
-  Rocket,
-  Megaphone,
-  Quote,
+  ExternalLink,
   Globe,
-  Receipt,
+  HardDrive,
+  ImageIcon,
   LayoutDashboard,
+  Lightbulb,
+  CalendarDays,
+  UserRound,
+  GraduationCap,
+  Gift,
+  Wallet,
+  ShieldCheck,
+  Megaphone,
+  Package,
+  Palette,
+  Phone,
+  Quote,
+  Receipt,
+  Rocket,
+  Scissors,
+  ShoppingBag,
+  Star,
+  Store,
+  Flame,
+  Sparkles,
+  Tag,
+  TicketPercent,
+  User,
   Users,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
 import { studioUrl } from "@/config/platform";
 import { profileApi } from "@/lib/api";
+import { TwoFactorGate } from "@/components/security/TwoFactorGate";
+import { NotificationBell } from "@/components/security/NotificationBell";
 import { ProfileEditDialog } from "@/components/account/ProfileEditDialog";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { StudioMark } from "@/components/StudioMark";
 import { BillingBadge, BillingMarquee } from "@/components/admin/BillingReminder";
-import { useState } from "react";
+import { DashboardShell, type NavGroup } from "@/components/dashboard/DashboardShell";
 
-interface AdminLayoutProps {
-  children: ReactNode;
-}
+type Features = ReturnType<typeof useStudio>["features"];
 
-const navItems = [
-  { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
-  { name: "Setup", path: "/admin/onboarding", icon: Rocket },
-  { name: "Appointments", path: "/admin/appointments", icon: Calendar },
-  { name: "Users", path: "/admin/users", icon: Users },
-  { name: "Services", path: "/admin/services", icon: Scissors },
-  { name: "Categories", path: "/admin/categories", icon: Tag },
-  { name: "Gallery", path: "/admin/gallery", icon: ImageIcon },
-  { name: "Hours", path: "/admin/hours", icon: Clock },
-  { name: "Reviews", path: "/admin/reviews", icon: Star },
-  { name: "Appearance", path: "/admin/appearance", icon: Palette },
-  { name: "Custom domain", path: "/admin/domain", icon: Globe },
-  { name: "Promotions", path: "/admin/promos", icon: Megaphone },
-  { name: "Feature Requests", path: "/admin/feature-requests", icon: Lightbulb },
-  { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
-  { name: "Products", path: "/admin/products", icon: ShoppingBag },
-  { name: "Product Categories", path: "/admin/product-categories", icon: Tag },
-  { name: "Orders", path: "/admin/orders", icon: Package },
-  { name: "Shop Settings", path: "/admin/commerce", icon: Store },
-  { name: "Transactions", path: "/admin/transactions", icon: Receipt },
-  { name: "Payments", path: "/admin/payments", icon: CreditCard },
-  { name: "Billing & plan", path: "/admin/billing", icon: CreditCard },
-  { name: "Share your story", path: "/admin/testimonial", icon: Quote },
-  { name: "Contact", path: "/admin/contact", icon: Phone },
+// A studio takes bookings (and may have a shop); a Zuri Stores is a shop
+// only, so it gets its own menu with no booking pages.
+const studioNav = (f: Features): NavGroup[] => [
+  {
+    label: "General",
+    items: [
+      { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
+      { name: "Setup", path: "/admin/onboarding", icon: Rocket },
+      { name: "Insights", path: "/admin/insights", icon: Sparkles },
+      { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Bookings",
+    items: [
+      { name: "Appointments", path: "/admin/appointments", icon: Calendar },
+      { name: "Calendar", path: "/admin/calendar", icon: CalendarDays },
+      { name: "Services", path: "/admin/services", icon: Scissors },
+      { name: "Staff", path: "/admin/staff", icon: UserRound },
+      { name: "Categories", path: "/admin/categories", icon: Tag },
+      { name: "Hours", path: "/admin/hours", icon: Clock },
+      { name: "Customers", path: "/admin/users", icon: Users },
+    ],
+  },
+  ...(f.commerce
+    ? [
+        {
+          label: "Shop",
+          items: [
+            { name: "Orders", path: "/admin/orders", icon: Package },
+            { name: "Products", path: "/admin/products", icon: ShoppingBag },
+            { name: "Product categories", path: "/admin/product-categories", icon: Tag },
+            { name: "Coupons", path: "/admin/coupons", icon: TicketPercent },
+            { name: "Sales", path: "/admin/sales", icon: Flame },
+            { name: "Shop settings", path: "/admin/commerce", icon: Store },
+          ],
+        },
+      ]
+    : []),
+  {
+    label: "Website",
+    items: [
+      { name: "Appearance", path: "/admin/appearance", icon: Palette },
+      ...(f.gallery ? [{ name: "Gallery", path: "/admin/gallery", icon: ImageIcon }] : []),
+      { name: "Storage", path: "/admin/storage", icon: HardDrive },
+      { name: "Reviews", path: "/admin/reviews", icon: Star },
+      { name: "Promotions", path: "/admin/promos", icon: Megaphone },
+      { name: "Custom domain", path: "/admin/domain", icon: Globe },
+      { name: "Contact", path: "/admin/contact", icon: Phone },
+    ],
+  },
+  ...moneyAndMore,
 ];
 
-export const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const location = useLocation();
+const storeNav: NavGroup[] = [
+  {
+    label: "General",
+    items: [
+      { name: "Overview", path: "/admin", icon: LayoutDashboard },
+      { name: "Setup", path: "/admin/onboarding", icon: Rocket },
+      { name: "Insights", path: "/admin/insights", icon: Sparkles },
+    ],
+  },
+  {
+    label: "Store",
+    items: [
+      { name: "Orders", path: "/admin/orders", icon: Package },
+      { name: "Products", path: "/admin/products", icon: ShoppingBag },
+      { name: "Categories", path: "/admin/product-categories", icon: Tag },
+      { name: "Coupons", path: "/admin/coupons", icon: TicketPercent },
+      { name: "Sales", path: "/admin/sales", icon: Flame },
+      { name: "Customers", path: "/admin/users", icon: Users },
+      { name: "Reviews", path: "/admin/reviews", icon: Star },
+      { name: "Store settings", path: "/admin/commerce", icon: Store },
+    ],
+  },
+  {
+    label: "Website",
+    items: [
+      { name: "Appearance", path: "/admin/appearance", icon: Palette },
+      { name: "Promotions", path: "/admin/promos", icon: Megaphone },
+      { name: "Custom domain", path: "/admin/domain", icon: Globe },
+      { name: "Contact", path: "/admin/contact", icon: Phone },
+    ],
+  },
+];
+
+const moneyAndMore: NavGroup[] = [
+  {
+    label: "Money",
+    items: [
+      { name: "Payments", path: "/admin/payments", icon: CreditCard },
+      { name: "Bills", path: "/admin/bills", icon: Receipt },
+      { name: "Transactions", path: "/admin/transactions", icon: Receipt },
+      { name: "Expenses", path: "/admin/expenses", icon: Wallet },
+      { name: "Gift cards", path: "/admin/gift-cards", icon: Gift },
+      { name: "Billing & plan", path: "/admin/billing", icon: CreditCard },
+    ],
+  },
+  {
+    label: "More",
+    items: [
+      { name: "Learn Zuri", path: "/admin/learn", icon: GraduationCap },
+      { name: "Share your story", path: "/admin/testimonial", icon: Quote },
+      { name: "Feature requests", path: "/admin/feature-requests", icon: Lightbulb },
+      { name: "Security & alerts", path: "/admin/security", icon: ShieldCheck },
+    ],
+  },
+];
+
+export const AdminLayout = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-  const { name: studioName, config } = useStudio();
-  // Link to THIS studio's own storefront (subdomain in prod, /s/<slug> in dev) —
-  // not "/", which shows the platform landing when no studio slug is active.
+  const { name: studioName, config, features } = useStudio();
+  const isStore = features.booking === false;
+  const groups = isStore ? [...storeNav, ...moneyAndMore] : studioNav(features);
+  // This studio's own site (subdomain in prod, /s/<slug> in dev), not "/".
   const publicSiteUrl = config?.slug ? studioUrl(config.slug) : "/";
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -92,138 +181,48 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
-      {/* Header */}
-      <header className="shrink-0 z-50 bg-background border-b border-border">
-        <div className="flex items-center justify-between gap-2 px-4 py-3">
-          <div className="flex min-w-0 flex-1 items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-            <Link to="/admin" className="flex min-w-0 items-center gap-2">
-              <StudioMark logoUrl={config?.branding.logoUrl} />
-              <span className="truncate text-lg font-serif font-semibold">
-                {studioName}
-              </span>
-              <span className="shrink-0 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
-                Admin
-              </span>
-            </Link>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <BillingBadge />
-            {user && (
-              <ProfileEditDialog
-                userId={user.id}
-                profile={profile}
-                trigger={
-                  <Button variant="ghost" size="sm">
-                    <User className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">My Profile</span>
-                  </Button>
-                }
-              />
-            )}
-            <ThemeToggle />
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Sign Out</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <BillingMarquee />
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - Desktop: fixed height, scrolls independently of content */}
-        <aside className="hidden md:flex w-64 flex-col border-r border-border overflow-y-auto">
-          <nav className="flex-1 p-4">
-            <ul className="space-y-1">
-              {navItems.map((item) => (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                      location.pathname === item.path
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="p-4 border-t border-border">
-            <a
-              href={publicSiteUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← View Public Site
-            </a>
-          </div>
-        </aside>
-
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 md:hidden">
-            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-            <aside className="fixed left-0 top-14 bottom-0 w-64 bg-background border-r border-border p-4">
-              <nav>
-                <ul className="space-y-1">
-                  {navItems.map((item) => (
-                    <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                          location.pathname === item.path
-                            ? "bg-accent text-accent-foreground"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        )}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-              <div className="mt-4 pt-4 border-t border-border">
-                <a
-                  href={publicSiteUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  ← View Public Site
-                </a>
-              </div>
-            </aside>
-          </div>
-        )}
-
-        {/* Main Content: the only vertical scroll area */}
-        {/* relative: absolutely positioned bits inside (screen-reader-only
-            text, chart tooltips) position against this scrolling area and are
-            clipped by it, instead of stretching the whole page past the end. */}
-        <main className="relative min-w-0 flex-1 p-4 md:p-6 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardShell
+      exact={["/admin"]}
+      groups={groups}
+      brand={
+        <span className="flex min-w-0 items-center gap-2.5">
+          <StudioMark name={studioName} logoUrl={config?.branding.logoUrl} />
+          <span className="min-w-0">
+            <span className="block truncate font-semibold">{studioName}</span>
+            <span className="block text-xs text-band-foreground/55">{isStore ? "Store admin" : "Studio admin"}</span>
+          </span>
+        </span>
+      }
+      user={{ name: profile?.full_name || user?.email || "Admin", email: user?.email }}
+      onSignOut={handleSignOut}
+      banner={<BillingMarquee />}
+      footerLink={
+        <a href={publicSiteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-band-foreground/70 hover:text-band-foreground">
+          <ExternalLink className="h-4 w-4" aria-hidden /> View your {isStore ? "store" : "website"}
+        </a>
+      }
+      topBar={
+        <>
+          <BillingBadge />
+          <NotificationBell client="studio" />
+          {user && (
+            <ProfileEditDialog
+              userId={user.id}
+              profile={profile}
+              trigger={
+                <Button variant="ghost" size="sm">
+                  <User className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">My profile</span>
+                </Button>
+              }
+            />
+          )}
+        </>
+      }
+    >
+      <TwoFactorGate client="studio" label={studioName}>
+        {children}
+      </TwoFactorGate>
+    </DashboardShell>
   );
 };

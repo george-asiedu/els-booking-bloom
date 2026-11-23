@@ -63,7 +63,7 @@ const ForgotPassword = () => {
                 </div>
               </div>
               <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
-                Forgot Password
+                Forgot password
               </h1>
               <p className="text-muted-foreground">
                 Enter your email and we'll send you a reset link
@@ -84,7 +84,7 @@ const ForgotPassword = () => {
                     reset your password. The link is valid for 1 hour.
                   </p>
                   <Button asChild className="w-full">
-                    <Link to="/login">Back to Sign In</Link>
+                    <Link to="/login">Back to sign in</Link>
                   </Button>
                 </div>
               ) : (

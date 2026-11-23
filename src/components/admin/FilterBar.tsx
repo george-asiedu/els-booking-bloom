@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { X } from "lucide-react";
+import { SearchBox } from "@/components/ui/search-box";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -27,16 +27,8 @@ export const FilterBar = ({
   count?: number;
 }) => (
   <Card>
-    <CardContent className="flex flex-col gap-3 py-4 lg:flex-row lg:items-center">
-      <div className="relative flex-1 min-w-[180px]">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          placeholder={searchPlaceholder}
-          className="pl-9"
-        />
-      </div>
+    <CardContent className="flex flex-col gap-3 pb-6 pt-4 lg:flex-row lg:items-center">
+      <SearchBox value={search} onSearch={onSearch} placeholder={searchPlaceholder} className="flex-1 min-w-[180px] lg:mb-0" />
       <div className="flex flex-wrap items-center gap-2">
         {children}
         {active && (

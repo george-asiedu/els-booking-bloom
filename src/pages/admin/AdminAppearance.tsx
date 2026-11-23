@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { WebsiteDesignPicker } from "@/components/admin/WebsiteDesignPicker";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Loader2, Upload, Trash2, Palette } from "lucide-react";
@@ -79,7 +80,7 @@ const ColorField = ({
 const AdminAppearance = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { name: studioName } = useStudio();
+  const { name: studioName, features } = useStudio();
   // ?tab=content opens straight onto the landing-page editor.
   const [searchParams] = useSearchParams();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -106,7 +107,8 @@ const AdminAppearance = () => {
     mutationFn: () =>
       studioAdminApi.updateBranding({
         primaryColor: brandForm?.primaryColor ?? null,
-        accentColor: brandForm?.accentColor ?? null,
+        // Only one brand colour now; clear any old accent.
+        accentColor: null,
         fontFamily: brandForm?.fontFamily ?? null,
         logo: logoFile,
         removeLogo: !logoFile && brandForm?.logoUrl === null,
@@ -254,20 +256,19 @@ const AdminAppearance = () => {
                     </p>
                   </div>
 
-                  <ColorField
-                    label="Primary color"
-                    value={brandForm.primaryColor}
-                    onChange={(v) =>
-                      setBrandForm((p) => (p ? { ...p, primaryColor: v } : p))
-                    }
-                  />
-                  <ColorField
-                    label="Accent color"
-                    value={brandForm.accentColor}
-                    onChange={(v) =>
-                      setBrandForm((p) => (p ? { ...p, accentColor: v } : p))
-                    }
-                  />
+                  <div className="space-y-1.5">
+                    <ColorField
+                      label="Brand colour"
+                      value={brandForm.primaryColor}
+                      onChange={(v) =>
+                        setBrandForm((p) => (p ? { ...p, primaryColor: v } : p))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      One colour for your buttons, links and highlights, on light and dark
+                      backgrounds. Leave it empty to use Zuri yellow.
+                    </p>
+                  </div>
 
                   <div className="space-y-2">
                     <Label>Font</Label>
@@ -320,6 +321,8 @@ const AdminAppearance = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
+              <div className="space-y-6">
+              <WebsiteDesignPicker value={contentForm} onChange={setContentForm} shop={features.booking === false} />
               <LandingContentEditor
                 value={contentForm}
                 onChange={setContentForm}
@@ -327,6 +330,7 @@ const AdminAppearance = () => {
                 onSave={() => contentMutation.mutate()}
                 saving={contentMutation.isPending}
               />
+              </div>
             )}
           </TabsContent>
         </Tabs>

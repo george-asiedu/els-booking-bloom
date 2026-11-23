@@ -1,10 +1,10 @@
 // API layer for the super-admin platform surface (/api/platform/*).
 //
 // The platform session is kept separate from the storefront/admin session
-// (its own token + user keys) so that impersonating a studio — which writes the
-// normal els_token/els_user — doesn't sign the super admin out of /platform.
+// (its own cookie + user key) so that impersonating a studio — which writes the
+// normal session and els_user — doesn't sign the super admin out of /platform.
 
-import { ApiError } from "./apiClient";
+import { ApiError, errorCode } from "./apiClient";
 import {
   directoryQuery,
   toDirectoryPage,
@@ -36,12 +36,6 @@ export interface PlatformUser {
 }
 
 export const platformStore = {
-  getToken(): string | null {
-    return localStorage.getItem(PLATFORM_TOKEN_KEY);
-  },
-  setToken(token: string) {
-    localStorage.setItem(PLATFORM_TOKEN_KEY, token);
-  },
   getUser(): PlatformUser | null {
     const raw = localStorage.getItem(PLATFORM_USER_KEY);
     if (!raw) return null;
@@ -66,7 +60,7 @@ interface PlatformRequestOptions {
   auth?: boolean;
 }
 
-async function platformRequest<T>(
+export async function platformRequest<T>(
   path: string,
   options: PlatformRequestOptions = {},
 ): Promise<T> {
@@ -76,10 +70,8 @@ async function platformRequest<T>(
   if (path === "/auth/login") {
     headers["X-Device-Id"] = getDeviceId();
   }
-  const token = platformStore.getToken();
-  if (auth && token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  headers["X-Zuri-Client"] = "web";
+  const signedIn = Boolean(platformStore.getUser());
 
   let payload: BodyInit | undefined;
   if (body !== undefined) {
@@ -91,6 +83,7 @@ async function platformRequest<T>(
     method,
     headers,
     body: payload,
+    credentials: "include",
   });
 
   let json: unknown = null;
@@ -105,13 +98,13 @@ async function platformRequest<T>(
 
   if (!res.ok) {
     // Dead platform session — clear it so the guard bounces to /platform/login.
-    if (res.status === 401 && auth && token) {
+    if (res.status === 401 && auth && signedIn) {
       platformStore.clear();
     }
     const message =
       (json as { message?: string } | null)?.message ||
       `Request failed with status ${res.status}`;
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, errorCode(json));
   }
 
   return json as T;
@@ -122,6 +115,7 @@ async function platformRequest<T>(
 export type StudioStatus = "ACTIVE" | "SUSPENDED" | "TRIAL";
 
 export interface StudioFeatureSettings {
+  booking?: boolean;
   commerce: boolean;
   loyalty: boolean;
   referrals: boolean;
@@ -192,6 +186,11 @@ export interface PlatformAnalytics {
 }
 
 export interface PlatformBillingConfig {
+  priceStorefrontMonthly: number;
+  priceStorefrontYearly: number;
+  subscriptionSetupFeeStorefront: number;
+  commissionStorefrontPercent: number;
+  setupFeeStorefront: number;
   revenueShareEnabled: boolean;
   commissionStandardPercent: number;
   commissionPremiumPercent: number;
@@ -280,7 +279,7 @@ export interface EarningsPage {
 
 export interface StudioBillingSummary {
   mode: "SUBSCRIPTION" | "REVENUE_SHARE";
-  plan: "STANDARD" | "PREMIUM";
+  plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
   cadence: "MONTHLY" | "YEARLY";
   status: "active" | "lapsed" | "revenue_share";
   commissionPercent: number | null;
@@ -289,8 +288,44 @@ export interface StudioBillingSummary {
   daysLeft: number | null;
   signup: { reference: string; amount: number; coverageMonths: number | null; date: string } | null;
   lastPayment: EarningEntry | null;
+  // What this customer pays per period now, after its own terms.
+  yourPrice?: { list: number; amount: number; percent: number; custom: boolean };
+  terms?: {
+    customPriceMonthly: number | null;
+    discountPercent: number | null;
+    discountEndsAt: string | null;
+    note: string | null;
+  };
   totalPaid: number;
   payments: EarningEntry[];
+}
+
+export interface StudioBillingInput {
+  customPriceMonthly?: number | null;
+  discountPercent?: number | null;
+  discountEndsAt?: string | null;
+  note?: string | null;
+  plan?: "STANDARD" | "PREMIUM" | "STOREFRONT";
+  cadence?: "MONTHLY" | "YEARLY";
+  currentPeriodEnd?: string | null;
+}
+
+export interface BillingPromo {
+  id: string;
+  code: string;
+  percentOff: number;
+  plans: string[];
+  expiresAt: string | null;
+  maxUses: number | null;
+  usedCount: number;
+  active: boolean;
+}
+export interface BillingPromoInput {
+  code: string;
+  percentOff: number;
+  plans: string[];
+  expiresAt?: string | null;
+  maxUses?: number | null;
 }
 
 export interface ProvisionStudioInput {
@@ -352,7 +387,6 @@ export interface PlatformActivityLogPage {
 }
 
 export interface ImpersonateResult {
-  token: { accessToken: string; refreshToken: string };
   studio: { id: string; slug: string; name: string };
   user: { id: string; email: string; role: string };
 }
@@ -417,11 +451,10 @@ interface Envelope<T> {
 // ---------------- API ----------------
 
 export const platformApi = {
-  async login(email: string, password: string): Promise<PlatformUser> {
+  async login(email: string, password: string, totp?: string): Promise<PlatformUser> {
     const res = await platformRequest<
-      Envelope<{ user: PlatformUser; token: { accessToken: string } }>
-    >("/auth/login", { method: "POST", auth: false, body: { email, password } });
-    platformStore.setToken(res.data.token.accessToken);
+      Envelope<{ user: PlatformUser }>
+    >("/auth/login", { method: "POST", auth: false, body: { email, password, ...(totp ? { totp } : {}) } });
     platformStore.setUser(res.data.user);
     return res.data.user;
   },
@@ -539,6 +572,24 @@ export const platformApi = {
     return res.data;
   },
 
+  // One customer's billing terms; anything left out is unchanged.
+  async updateStudioBilling(id: string, input: StudioBillingInput): Promise<void> {
+    await platformRequest(`/studios/${id}/billing`, { method: "PATCH", body: input });
+  },
+
+  async listBillingPromos(): Promise<BillingPromo[]> {
+    return (await platformRequest<Envelope<BillingPromo[]>>("/billing-promos")).data;
+  },
+  async createBillingPromo(input: BillingPromoInput): Promise<void> {
+    await platformRequest("/billing-promos", { method: "POST", body: input });
+  },
+  async setBillingPromoActive(id: string, active: boolean): Promise<void> {
+    await platformRequest(`/billing-promos/${id}`, { method: "PATCH", body: { active } });
+  },
+  async deleteBillingPromo(id: string): Promise<void> {
+    await platformRequest(`/billing-promos/${id}`, { method: "DELETE" });
+  },
+
   async getStudio(id: string): Promise<StudioDetail> {
     return platformRequest<StudioDetail>(`/studios/${id}`);
   },
@@ -612,6 +663,14 @@ export const platformApi = {
     const res = await platformRequest<Envelope<PlatformFeatureRequest>>(
       `/feature-requests/${id}`,
       { method: "PATCH", body: { status } },
+    );
+    return res.data;
+  },
+
+  async setFeatureRequestFee(id: string, fee: number): Promise<PlatformFeatureRequest> {
+    const res = await platformRequest<Envelope<PlatformFeatureRequest>>(
+      `/feature-requests/${id}/fee`,
+      { method: "PATCH", body: { fee } },
     );
     return res.data;
   },

@@ -1,13 +1,10 @@
 import { cn } from "@/lib/utils";
-import { PLATFORM } from "@/config/platform";
+import { ZuriMark } from "@/components/ZuriMark";
 
 /**
- * Zuri brand marks, from the logo files in /public.
- * - Default: the mark (/zuri-mark.png, cut from the logo) with the platform
- *   name ("Zuri Studios") beside it, for headers where the stacked logo would
- *   be too small to read.
- * - `stacked`: the full logo as designed (/zuri-lockup.png), for footers and
- *   other places with room for it.
+ * Zuri brand lockups, built from the vector mark so they stay sharp.
+ * - Default: mark with "Zuri" beside it, for headers.
+ * - `stacked`: the mark with a larger "Zuri", for footers and splash.
  */
 export const BrandLogo = ({
   stacked = false,
@@ -19,24 +16,13 @@ export const BrandLogo = ({
   iconClassName?: string;
 }) =>
   stacked ? (
-    <img
-      src="/zuri-lockup.png"
-      alt="Zuri Studios"
-      className={cn("h-20 w-auto", className)}
-      width={85}
-      height={80}
-    />
+    <span className={cn("flex items-center gap-3", className)} aria-label="Zuri" role="img">
+      <ZuriMark className={cn("h-14 w-14", iconClassName)} />
+      <span className="text-[2.2rem] font-extrabold leading-none tracking-[-0.03em] text-foreground" aria-hidden>Zuri</span>
+    </span>
   ) : (
     <span className={cn("flex items-center gap-2", className)}>
-      <img
-        src="/zuri-mark.png"
-        alt=""
-        className={cn("h-6 w-auto", iconClassName)}
-        width={65}
-        height={24}
-      />
-      <span className="font-serif text-xl font-semibold tracking-tight text-foreground">
-        {PLATFORM.name}
-      </span>
+      <ZuriMark className={cn("h-7 w-7", iconClassName)} />
+      <span className="text-lg font-bold tracking-[-0.02em] text-foreground">Zuri</span>
     </span>
   );

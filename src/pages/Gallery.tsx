@@ -148,7 +148,7 @@ const Gallery = () => {
                       aria-label={`View ${item.alt}`}
                     >
                       {item.type === "video" && item.external ? (
-                        <span className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-foreground/5 text-primary">
+                        <span className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-band/5 text-primary">
                           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/85 text-foreground"><Play className="h-5 w-5 translate-x-0.5" /></span>
                           <span className="text-xs font-medium">Watch video</span>
                         </span>
@@ -177,7 +177,7 @@ const Gallery = () => {
                         />
                       )}
                       <span className="absolute inset-0 flex items-end bg-gradient-to-t from-foreground/70 via-transparent to-transparent p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <span className="text-sm font-medium text-background">
+                        <span className="text-sm font-medium text-band-foreground">
                           View →
                         </span>
                       </span>

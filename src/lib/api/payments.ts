@@ -37,6 +37,8 @@ export interface InitializePaymentResult {
   subaccount: string | null;
   public_key: string;
   type: "FULL" | "PARTIAL";
+  /** Included in `amount`: the Paystack fee the customer pays on top. */
+  processing_fee: number;
 }
 
 interface RawInitialize {
@@ -48,6 +50,7 @@ interface RawInitialize {
   subaccount: string | null;
   publicKey: string;
   type: "FULL" | "PARTIAL";
+  processingFee?: number;
 }
 
 // Shared payment-target shape the in-app PaymentDialog consumes.
@@ -58,6 +61,8 @@ export interface PaymentTarget {
   access_code?: string;
   subaccount: string | null;
   public_key: string;
+  /** Included in `amount`: the Paystack fee the customer pays on top. */
+  processing_fee?: number;
 }
 
 export type ChargeStatus = "success" | "pending" | "failed";
@@ -120,10 +125,11 @@ export const paymentsApi = {
   async initialize(
     appointmentId: string,
     type: "FULL" | "PARTIAL",
+    guestToken?: string,
   ): Promise<InitializePaymentResult> {
     const res = await apiRequest<Envelope<RawInitialize>>(
-      "/payments/initialize",
-      { method: "POST", auth: true, body: { appointmentId, type } },
+      guestToken ? "/payments/guest/initialize" : "/payments/initialize",
+      { method: "POST", auth: !guestToken, body: guestToken ? { appointmentId, type, guestToken } : { appointmentId, type } },
     );
     return {
       authorization_url: res.data.authorizationUrl,
@@ -134,6 +140,7 @@ export const paymentsApi = {
       subaccount: res.data.subaccount,
       public_key: res.data.publicKey,
       type: res.data.type,
+      processing_fee: res.data.processingFee ?? 0,
     };
   },
 
@@ -143,12 +150,13 @@ export const paymentsApi = {
     type: "FULL" | "PARTIAL";
     phone: string;
     provider: string;
+    guestToken?: string;
   }): Promise<{ reference: string; status: string; displayText: string | null; amount: number }> {
     // status is Paystack's raw charge lifecycle: send_otp | pay_offline |
     // pending | success | failed — the dialog branches on it.
     const res = await apiRequest<
       Envelope<{ reference: string; status: string; displayText: string | null; amount: number }>
-    >("/payments/charge/momo", { method: "POST", auth: true, body: input });
+    >(input.guestToken ? "/payments/guest/charge/momo" : "/payments/charge/momo", { method: "POST", auth: !input.guestToken, body: input });
     return res.data;
   },
 

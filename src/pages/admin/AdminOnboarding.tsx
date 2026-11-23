@@ -4,10 +4,12 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useStudio } from "@/hooks/useStudio";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 const AdminOnboarding = () => {
   const { steps, doneCount, total, allDone } = useOnboardingStatus();
+  const store = useStudio().features.booking === false;
   const pct = total ? Math.round((doneCount / total) * 100) : 0;
 
   return (
@@ -19,7 +21,7 @@ const AdminOnboarding = () => {
             Get your studio ready
           </h1>
           <p className="text-muted-foreground">
-            A few quick steps to launch your studio and start taking bookings.
+            A few quick steps to launch {store ? "your store and start selling" : "your studio and start taking bookings"}.
           </p>
         </div>
 
@@ -40,7 +42,7 @@ const AdminOnboarding = () => {
             <CardContent className="flex items-center gap-3 py-5">
               <PartyPopper className="h-6 w-6 text-green-600" />
               <div>
-                <p className="font-semibold text-foreground">You're all set!</p>
+                <p className="font-semibold text-foreground">You're all set</p>
                 <p className="text-sm text-muted-foreground">
                   Your studio is ready. Share your booking page with customers.
                 </p>

@@ -1,3 +1,4 @@
+import { InviteBusinessCard } from "@/components/admin/InviteBusinessCard";
 import { useState } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,17 +6,19 @@ import PaystackPop from "@paystack/inline-js";
 import { Loader2, CreditCard, Check, Crown } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { studioBillingApi, type RenewalReceiptDTO } from "@/lib/api";
 import { RenewalSuccessDialog } from "@/components/admin/RenewalSuccessDialog";
-import { PLANS, planPrice } from "@/config/platform";
+import { PLANS, planPrice, productOf, planLabel } from "@/config/platform";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
 
 const GHS = formatGHS;
 
 const AdminBilling = () => {
+  const [promoCode, setPromoCode] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const processing = useProcessing();
@@ -30,7 +33,7 @@ const AdminBilling = () => {
 
   const revShare = billing?.billingMode === "REVENUE_SHARE";
 
-  const changeTo = async (plan: "STANDARD" | "PREMIUM") => {
+  const changeTo = async (plan: "STANDARD" | "PREMIUM" | "STOREFRONT") => {
     if (billing && !revShare && billing.plan === plan && billing.cadence === cadence) {
       toast({ title: "You're already on this plan." });
       return;
@@ -41,6 +44,7 @@ const AdminBilling = () => {
       const { reference, accessCode } = await studioBillingApi.startChange({
         plan,
         cadence,
+        promoCode: promoCode.trim() || undefined,
       });
       processing.hide();
       const popup = new PaystackPop();
@@ -56,7 +60,7 @@ const AdminBilling = () => {
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
             toast({
               title: "Plan updated",
-              description: `You're now on ${plan === "PREMIUM" ? "Premium" : "Standard"}.`,
+              description: `You're now on ${planLabel(plan)}.`,
             });
           } catch (err) {
             toast({
@@ -86,11 +90,46 @@ const AdminBilling = () => {
     }
   };
 
+  // Settle the extras now (feature fees, storage, training) without renewing.
+  const payExtras = async () => {
+    setBusy(true);
+    processing.show(PROCESSING.preparing);
+    try {
+      const { reference, accessCode } = await studioBillingApi.startExtrasPayment();
+      processing.hide();
+      const popup = new PaystackPop();
+      popup.resumeTransaction(accessCode, {
+        onSuccess: async () => {
+          try {
+            processing.show({ title: "Recording your payment", message: "Your payment went through. We're applying it now." });
+            await studioBillingApi.applyExtrasPayment({ reference });
+            queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
+            toast({ title: "Paid", description: "Your extra charges are settled." });
+          } catch (err) {
+            toast({ variant: "destructive", title: "Payment received, but it didn't apply", description: err instanceof Error ? err.message : "Please contact support." });
+          } finally {
+            processing.hide();
+            setBusy(false);
+          }
+        },
+        onCancel: () => setBusy(false),
+        onError: (e: { message?: string }) => {
+          setBusy(false);
+          toast({ variant: "destructive", title: "Payment failed", description: e?.message });
+        },
+      });
+    } catch (error) {
+      processing.hide();
+      setBusy(false);
+      toast({ variant: "destructive", title: "Couldn't start the payment", description: error instanceof Error ? error.message : "Please try again." });
+    }
+  };
+
   const renew = async () => {
     setBusy(true);
     processing.show(PROCESSING.preparing);
     try {
-      const { reference, accessCode } = await studioBillingApi.startRenewal();
+      const { reference, accessCode } = await studioBillingApi.startRenewal(promoCode.trim() || undefined);
       processing.hide();
       const popup = new PaystackPop();
       popup.resumeTransaction(accessCode, {
@@ -165,13 +204,35 @@ const AdminBilling = () => {
           </div>
         ) : (
           <>
+            {!!billing.extras?.items.length && (
+              <Card>
+                <CardContent className="py-4 text-sm">
+                  <p className="font-medium">{revShare ? "Extra charges" : "Added to your next renewal"}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {billing.extras.items.map((x) => (
+                      <li key={x.id} className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">{x.description}</span>
+                        <span className="tabular-nums">{GHS(x.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 flex justify-between gap-4 border-t border-border pt-1 font-medium">
+                    <span>Extras total</span>
+                    <span className="tabular-nums">{GHS(billing.extras.total)}</span>
+                  </p>
+                  <Button size="sm" variant={revShare ? "default" : "outline"} className="mt-2" disabled={busy} onClick={payExtras}>
+                    Pay {GHS(billing.extras.total)} now
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             {revShare ? (
           <Card>
             <CardContent className="space-y-3 py-6">
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Current plan</span>
                 <Badge variant={billing.plan === "PREMIUM" ? "default" : "secondary"}>
-                  {billing.plan === "PREMIUM" ? "Premium" : "Standard"}
+                  {planLabel(billing.plan)}
                 </Badge>
                 <Badge variant="outline">Pay as you earn</Badge>
               </div>
@@ -193,7 +254,7 @@ const AdminBilling = () => {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">Current plan</span>
                     <Badge variant={billing.plan === "PREMIUM" ? "default" : "secondary"}>
-                      {billing.plan === "PREMIUM" ? "Premium" : "Standard"}
+                      {planLabel(billing.plan)}
                     </Badge>
                     <Badge variant="outline">
                       {billing.cadence === "YEARLY" ? "Yearly" : "Monthly"}
@@ -238,8 +299,28 @@ const AdminBilling = () => {
               </div>
             </div>
 
+            {(billing.discountPercent ?? 0) > 0 && (
+              <p className="rounded-lg bg-primary/10 p-3 text-center text-sm">
+                Your account has {billing.discountPercent}% off
+                {billing.discountEndsAt ? ` until ${new Date(billing.discountEndsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}` : ""}. Prices below include it.
+              </p>
+            )}
+            <div className="mx-auto flex max-w-sm items-center gap-2">
+              <Input
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                placeholder="Promo code (optional)"
+                aria-label="Promo code"
+                className="uppercase placeholder:normal-case"
+              />
+            </div>
+            <p className="-mt-2 text-center text-xs text-muted-foreground">
+              A promo code applies to your next payment, a renewal or a plan change. It doesn't add to your own discount; the bigger one is used.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              {PLANS.map((p) => {
+              {/* Only plans from this account's product: a storefront sees
+                  Storefront, a studio sees Standard and Premium. */}
+              {PLANS.filter((p) => p.product === productOf(billing.plan)).map((p) => {
                 const current = !revShare && billing.plan === p.id && billing.cadence === cadence;
                 return (
                   <Card key={p.id} className={p.featured ? "border-primary" : ""}>
@@ -251,7 +332,7 @@ const AdminBilling = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="font-serif text-3xl font-bold">
-                        {GHS(planPrice(p, cadence))}
+                        {GHS(billing.yourPrices?.[p.id]?.[cadence] ?? planPrice(p, cadence))}
                         <span className="text-sm font-normal text-muted-foreground">
                           /{cadence === "MONTHLY" ? "mo" : "yr"}
                         </span>
@@ -293,6 +374,7 @@ const AdminBilling = () => {
             </p>
           </>
         )}
+        <InviteBusinessCard />
       </div>
       <RenewalSuccessDialog
         receipt={renewed?.receipt ?? null}
