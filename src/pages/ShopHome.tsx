@@ -11,7 +11,7 @@ import { productCategoriesApi, productsApi, promoApi } from "@/lib/api";
 import { shopTemplateFor } from "@/lib/shopTemplates";
 import { useHideSplashWhen } from "@/lib/splash";
 import { cn } from "@/lib/utils";
-import heroFallback from "@/assets/hero-beauty.jpg";
+import { useHeroFallback } from "@/lib/heroArt";
 
 /**
  * The shop's home page (shop-website-design): full-width photo hero, category
@@ -19,6 +19,7 @@ import heroFallback from "@/assets/hero-beauty.jpg";
  * sellers and a join invitation. Wording follows what's sold (lib/shopTemplates).
  */
 const ShopHome = () => {
+  const heroFallback = useHeroFallback();
   const { name, config, features, isLoading } = useStudio();
   const t = shopTemplateFor(config?.shopCategory);
   const content = config?.content;

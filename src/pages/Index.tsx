@@ -50,7 +50,7 @@ import { STUDIO_TYPES, studioTypeOf, templateOf, type ReasonItem } from "@/lib/s
 import { cn } from "@/lib/utils";
 import { socialHref } from "@/lib/social";
 import { useStudio } from "@/hooks/useStudio";
-import heroFallback from "@/assets/hero-beauty.jpg";
+import { useHeroFallback } from "@/lib/heroArt";
 import { formatGHS } from "@/lib/currency";
 import { landingDefaults } from "@/lib/landingDefaults";
 import { useHideSplashWhen } from "@/lib/splash";
@@ -112,6 +112,7 @@ const SectionHeading = ({
 );
 
 const Index = () => {
+  const heroFallback = useHeroFallback();
   const { name: studioName, config, features, isLoading: configLoading } = useStudio();
   const content = config?.content;
   // The kind of studio sets the default wording; the template sets the layout.

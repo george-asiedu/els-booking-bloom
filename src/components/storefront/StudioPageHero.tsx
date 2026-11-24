@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import heroFallback from "@/assets/hero-beauty.jpg";
+import { useHeroFallback } from "@/lib/heroArt";
 
 type Variant = "editorial" | "split" | "minimal" | "commerce" | "compact";
 
@@ -93,6 +93,7 @@ export const StudioPageHero = ({
   secondaryCta,
   className,
 }: StudioPageHeroProps) => {
+  const heroFallback = useHeroFallback();
   // Text over a full-bleed image (with a left-weighted scrim for legibility).
   if (variant === "editorial" || variant === "commerce" || variant === "compact") {
     const bg = image ?? heroFallback;
