@@ -17,3 +17,8 @@
   Cache-Control: public, max-age=0, must-revalidate
 /manifest.webmanifest
   Cache-Control: public, max-age=0, must-revalidate
+
+# Default hero photos for new shops and studios. Rarely change, so cache them
+# for a week (rename a file to publish a new one).
+/hero/*
+  Cache-Control: public, max-age=604800
