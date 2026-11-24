@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { studioBillingApi, type RenewalReceiptDTO } from "@/lib/api";
 import { RenewalSuccessDialog } from "@/components/admin/RenewalSuccessDialog";
+import { celebrate } from "@/lib/confetti";
 import { PLANS, planPrice, productOf, planLabel } from "@/config/platform";
 import { useToast } from "@/hooks/use-toast";
 import { formatGHS } from "@/lib/currency";
@@ -58,6 +59,7 @@ const AdminBilling = () => {
             await studioBillingApi.applyChange({ reference, plan, cadence });
             queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
             queryClient.invalidateQueries({ queryKey: ["studio-config"] });
+            celebrate();
             toast({
               title: "Plan updated",
               description: `You're now on ${planLabel(plan)}.`,

@@ -28,7 +28,6 @@ import {
 } from "@/lib/onboardingApi";
 import { useToast } from "@/hooks/use-toast";
 import { studioStore } from "@/lib/apiClient";
-import { celebrate } from "@/lib/confetti";
 import { formatGHS } from "@/lib/currency";
 
 const slugify = (s: string) =>
@@ -163,11 +162,6 @@ const Onboarding = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Confetti once the studio is provisioned (paid, free rev-share, or resumed).
-  useEffect(() => {
-    if (done) celebrate();
-  }, [done]);
 
   const startPolling = (ref: string) => {
     if (pollRef.current) clearInterval(pollRef.current);

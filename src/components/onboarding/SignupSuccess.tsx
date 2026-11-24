@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarCheck2, Check, Copy, ExternalLink, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PLATFORM, planLabel } from "@/config/platform";
 import { formatGHS } from "@/lib/currency";
 import type { SignupSummary } from "@/lib/onboardingApi";
+import { celebrate } from "@/lib/confetti";
 
 const day = (iso: string | null) => (iso ? format(parseISO(iso), "d MMM yyyy") : "—");
 const weekday = (iso: string | null) => (iso ? format(parseISO(iso), "EEEE") : "");
@@ -48,6 +49,15 @@ export const SignupSuccess = ({
 }) => {
   const planName = planLabel(summary?.plan);
   const subscription = summary?.billingMode === "SUBSCRIPTION";
+  // A Storefront plan is a shop; every other plan is a booking studio.
+  const isStore = summary?.plan === "STOREFRONT";
+
+  // Fired here (not by the page) so it always plays on the screen the owner
+  // actually sees, after the payment popup has finished closing.
+  useEffect(() => {
+    const t = setTimeout(celebrate, 400);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -57,11 +67,17 @@ export const SignupSuccess = ({
           <PartyPopper className="h-7 w-7" aria-hidden />
         </div>
         <h1 className="mt-5 text-balance font-serif text-3xl font-bold">
-          {summary ? `${summary.studioName} is live` : "Your studio is live"}
+          {summary
+            ? `${summary.studioName} is live`
+            : isStore
+              ? "Your shop is live"
+              : "Your studio is live"}
         </h1>
         <p className="mx-auto mt-2 max-w-md text-pretty text-muted-foreground">
-          Welcome to {PLATFORM.name}. Sign in with the email and password you just set to add
-          your services and opening hours, then start taking bookings.
+          Welcome to {PLATFORM.name}.{" "}
+          {isStore
+            ? "Sign in with the email and password you just set to add your products and prices, then start taking orders."
+            : "Sign in with the email and password you just set to add your services and opening hours, then start taking bookings."}
         </p>
       </div>
 
@@ -70,7 +86,7 @@ export const SignupSuccess = ({
           <>
             {/* Address */}
             <div className="rounded-xl border bg-muted/30 p-4">
-              <p className="text-xs font-medium text-muted-foreground">Your booking site</p>
+              <p className="text-xs font-medium text-muted-foreground">{isStore ? "Your shop" : "Your booking site"}</p>
               <div className="mt-1 flex items-center gap-2">
                 <a
                   href={summary.websiteUrl}
@@ -83,7 +99,9 @@ export const SignupSuccess = ({
                 <CopyButton value={summary.websiteUrl} label="web address" />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Share it on Instagram, WhatsApp and TikTok so clients can book you.
+                {isStore
+                  ? "Share it on Instagram, WhatsApp and TikTok so customers can shop with you."
+                  : "Share it on Instagram, WhatsApp and TikTok so clients can book you."}
               </p>
             </div>
 
@@ -159,11 +177,18 @@ export const SignupSuccess = ({
         <div>
           <p className="mb-3 text-sm font-medium">Next steps</p>
           <ol className="space-y-2.5 text-sm">
-            {[
-              "Sign in to your dashboard",
-              "Add your services, prices and opening hours",
-              "Share your booking link with your clients",
-            ].map((step, i) => (
+            {(isStore
+              ? [
+                  "Sign in to your dashboard",
+                  "Add your products, prices and photos",
+                  "Share your shop link with your customers",
+                ]
+              : [
+                  "Sign in to your dashboard",
+                  "Add your services, prices and opening hours",
+                  "Share your booking link with your clients",
+                ]
+            ).map((step, i) => (
               <li key={step} className="flex items-center gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                   {i + 1}
