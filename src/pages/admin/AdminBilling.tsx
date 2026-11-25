@@ -1,8 +1,8 @@
 import { InviteBusinessCard } from "@/components/admin/InviteBusinessCard";
 import { useState } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import PaystackPop from "@paystack/inline-js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { openPaystackCheckout, type CheckoutResult } from "@/lib/paystackCheckout";
 import { Loader2, CreditCard, Check, Crown } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -34,156 +34,115 @@ const AdminBilling = () => {
 
   const revShare = billing?.billingMode === "REVENUE_SHARE";
 
+  const errorText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
+
+  /**
+   * Every studio-to-platform payment on this page has the same shape: start a
+   * charge on the server, pay it in Paystack's popup, then apply it. This runs
+   * that sequence with the busy state, the overlay and the error messages.
+   */
+  const runCharge = async (opts: {
+    start: () => Promise<{ reference: string; accessCode: string }>;
+    startError: string;
+    applying: { title: string; message: string };
+    apply: (reference: string) => Promise<void>;
+    applyError: string;
+  }) => {
+    setBusy(true);
+    processing.show(PROCESSING.preparing);
+    let charge: { reference: string; accessCode: string };
+    try {
+      charge = await opts.start();
+    } catch (error) {
+      processing.hide();
+      setBusy(false);
+      toast({ variant: "destructive", title: opts.startError, description: errorText(error, "Please try again.") });
+      return;
+    }
+    processing.hide();
+
+    let result: CheckoutResult;
+    try {
+      result = await openPaystackCheckout(charge.accessCode);
+    } catch (error) {
+      setBusy(false);
+      toast({ variant: "destructive", title: "Payment failed", description: errorText(error, "Please try again.") });
+      return;
+    }
+    if (result === "cancelled") {
+      setBusy(false);
+      return;
+    }
+
+    try {
+      processing.show(opts.applying);
+      await opts.apply(charge.reference);
+    } catch (error) {
+      toast({ variant: "destructive", title: opts.applyError, description: errorText(error, "Please contact support.") });
+    } finally {
+      processing.hide();
+      setBusy(false);
+    }
+  };
+
+  const applyingPlan = {
+    title: "Updating your plan",
+    message: "Your payment went through. We're applying it to your plan now.",
+  };
+
   const changeTo = async (plan: "STANDARD" | "PREMIUM" | "STOREFRONT") => {
     if (billing && !revShare && billing.plan === plan && billing.cadence === cadence) {
       toast({ title: "You're already on this plan." });
       return;
     }
-    setBusy(true);
-    processing.show(PROCESSING.preparing);
-    try {
-      const { reference, accessCode } = await studioBillingApi.startChange({
-        plan,
-        cadence,
-        promoCode: promoCode.trim() || undefined,
-      });
-      processing.hide();
-      const popup = new PaystackPop();
-      popup.resumeTransaction(accessCode, {
-        onSuccess: async () => {
-          try {
-            processing.show({
-              title: "Updating your plan",
-              message: "Your payment went through. We're applying it to your plan now.",
-            });
-            await studioBillingApi.applyChange({ reference, plan, cadence });
-            queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
-            queryClient.invalidateQueries({ queryKey: ["studio-config"] });
-            celebrate();
-            toast({
-              title: "Plan updated",
-              description: `You're now on ${planLabel(plan)}.`,
-            });
-          } catch (err) {
-            toast({
-              variant: "destructive",
-              title: "Payment received, but the switch didn't apply",
-              description: err instanceof Error ? err.message : "Please contact support.",
-            });
-          } finally {
-            processing.hide();
-            setBusy(false);
-          }
-        },
-        onCancel: () => setBusy(false),
-        onError: (e: { message?: string }) => {
-          setBusy(false);
-          toast({ variant: "destructive", title: "Payment failed", description: e?.message });
-        },
-      });
-    } catch (error) {
-      processing.hide();
-      setBusy(false);
-      toast({
-        variant: "destructive",
-        title: "Couldn't start the change",
-        description: error instanceof Error ? error.message : "Please try again.",
-      });
-    }
+    await runCharge({
+      start: () => studioBillingApi.startChange({ plan, cadence, promoCode: promoCode.trim() || undefined }),
+      startError: "Couldn't start the change",
+      applying: applyingPlan,
+      applyError: "Payment received, but the switch didn't apply",
+      apply: async (reference) => {
+        await studioBillingApi.applyChange({ reference, plan, cadence });
+        queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
+        queryClient.invalidateQueries({ queryKey: ["studio-config"] });
+        celebrate();
+        toast({ title: "Plan updated", description: `You're now on ${planLabel(plan)}.` });
+      },
+    });
   };
 
   // Settle the extras now (feature fees, storage, training) without renewing.
-  const payExtras = async () => {
-    setBusy(true);
-    processing.show(PROCESSING.preparing);
-    try {
-      const { reference, accessCode } = await studioBillingApi.startExtrasPayment();
-      processing.hide();
-      const popup = new PaystackPop();
-      popup.resumeTransaction(accessCode, {
-        onSuccess: async () => {
-          try {
-            processing.show({ title: "Recording your payment", message: "Your payment went through. We're applying it now." });
-            await studioBillingApi.applyExtrasPayment({ reference });
-            queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
-            toast({ title: "Paid", description: "Your extra charges are settled." });
-          } catch (err) {
-            toast({ variant: "destructive", title: "Payment received, but it didn't apply", description: err instanceof Error ? err.message : "Please contact support." });
-          } finally {
-            processing.hide();
-            setBusy(false);
-          }
-        },
-        onCancel: () => setBusy(false),
-        onError: (e: { message?: string }) => {
-          setBusy(false);
-          toast({ variant: "destructive", title: "Payment failed", description: e?.message });
-        },
-      });
-    } catch (error) {
-      processing.hide();
-      setBusy(false);
-      toast({ variant: "destructive", title: "Couldn't start the payment", description: error instanceof Error ? error.message : "Please try again." });
-    }
-  };
+  const payExtras = () =>
+    runCharge({
+      start: () => studioBillingApi.startExtrasPayment(),
+      startError: "Couldn't start the payment",
+      applying: { title: "Recording your payment", message: "Your payment went through. We're applying it now." },
+      applyError: "Payment received, but it didn't apply",
+      apply: async (reference) => {
+        await studioBillingApi.applyExtrasPayment({ reference });
+        queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
+        toast({ title: "Paid", description: "Your extra charges are settled." });
+      },
+    });
 
-  const renew = async () => {
-    setBusy(true);
-    processing.show(PROCESSING.preparing);
-    try {
-      const { reference, accessCode } = await studioBillingApi.startRenewal(promoCode.trim() || undefined);
-      processing.hide();
-      const popup = new PaystackPop();
-      popup.resumeTransaction(accessCode, {
-        onSuccess: async () => {
-          try {
-            processing.show({
-              title: "Updating your plan",
-              message: "Your payment went through. We're applying it to your plan now.",
-            });
-            const wasLapsed = Boolean(billing?.lapsed);
-            const updated = await studioBillingApi.applyRenewal({ reference });
-            queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
-            queryClient.invalidateQueries({ queryKey: ["studio-config"] });
-            if (updated.renewal) {
-              setRenewed({
-                receipt: updated.renewal,
-                // The server knows when it applied the payment itself; if the
-                // webhook got there first, go by what this page showed.
-                wasLapsed: updated.renewal.wasLapsed ?? wasLapsed,
-              });
-            } else {
-              toast({
-                title: "Renewed",
-                description: "Your plan has been extended for another period.",
-              });
-            }
-          } catch (err) {
-            toast({
-              variant: "destructive",
-              title: "Payment received, but the renewal didn't apply",
-              description: err instanceof Error ? err.message : "Please contact support.",
-            });
-          } finally {
-            processing.hide();
-            setBusy(false);
-          }
-        },
-        onCancel: () => setBusy(false),
-        onError: (e: { message?: string }) => {
-          setBusy(false);
-          toast({ variant: "destructive", title: "Payment failed", description: e?.message });
-        },
-      });
-    } catch (error) {
-      processing.hide();
-      setBusy(false);
-      toast({
-        variant: "destructive",
-        title: "Couldn't start the renewal",
-        description: error instanceof Error ? error.message : "Please try again.",
-      });
-    }
+  const renew = () => {
+    // What this page showed before paying, in case the webhook applies it first.
+    const wasLapsed = Boolean(billing?.lapsed);
+    return runCharge({
+      start: () => studioBillingApi.startRenewal(promoCode.trim() || undefined),
+      startError: "Couldn't start the renewal",
+      applying: applyingPlan,
+      applyError: "Payment received, but the renewal didn't apply",
+      apply: async (reference) => {
+        const updated = await studioBillingApi.applyRenewal({ reference });
+        queryClient.invalidateQueries({ queryKey: ["studio-billing"] });
+        queryClient.invalidateQueries({ queryKey: ["studio-config"] });
+        if (updated.renewal) {
+          setRenewed({ receipt: updated.renewal, wasLapsed: updated.renewal.wasLapsed ?? wasLapsed });
+        } else {
+          toast({ title: "Renewed", description: "Your plan has been extended for another period." });
+        }
+      },
+    });
   };
 
   return (

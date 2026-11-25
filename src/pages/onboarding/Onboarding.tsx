@@ -4,7 +4,7 @@ import { SHOP_CATEGORIES, type ShopCategoryId } from "@/lib/shopCategories";
 import { SignupSuccess } from "@/components/onboarding/SignupSuccess";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useSearchParams } from "react-router-dom";
-import PaystackPop from "@paystack/inline-js";
+import { openPaystackCheckout } from "@/lib/paystackCheckout";
 import {
   Check,
   Loader2,
@@ -279,25 +279,25 @@ const Onboarding = () => {
       }
 
       processing.hide();
-      const popup = new PaystackPop();
-      popup.resumeTransaction(res.accessCode, {
-        onSuccess: () => {
-          setStep(4);
-          startPolling(res.reference);
-        },
-        onCancel: () =>
-          toast({
-            variant: "destructive",
-            title: "Payment cancelled",
-            description: "You can try again when you're ready.",
-          }),
-        onError: (err: { message?: string }) =>
-          toast({
-            variant: "destructive",
-            title: "Payment failed",
-            description: err?.message || "Please try again.",
-          }),
+      // A popup error is a failed payment, not a failure to start checkout.
+      const result = await openPaystackCheckout(res.accessCode).catch((err: unknown) => {
+        toast({
+          variant: "destructive",
+          title: "Payment failed",
+          description: err instanceof Error && err.message ? err.message : "Please try again.",
+        });
+        return null;
       });
+      if (result === "paid") {
+        setStep(4);
+        startPolling(res.reference);
+      } else if (result === "cancelled") {
+        toast({
+          variant: "destructive",
+          title: "Payment cancelled",
+          description: "You can try again when you're ready.",
+        });
+      }
     } catch (error) {
       toast({
         variant: "destructive",
