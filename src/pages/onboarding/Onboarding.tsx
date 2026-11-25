@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { passwordChecks } from "@/lib/passwordPolicy";
 import { SHOP_CATEGORIES, type ShopCategoryId } from "@/lib/shopCategories";
 import { SignupSuccess } from "@/components/onboarding/SignupSuccess";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
@@ -195,13 +196,7 @@ const Onboarding = () => {
 
   // Password rules — kept in step with the backend so an owner can sign in
   // right after onboarding.
-  const pwChecks = {
-    length: password.length >= 8,
-    lower: /[a-z]/.test(password),
-    upper: /[A-Z]/.test(password),
-    number: /\d/.test(password),
-    special: /[!@#$%^&*()_+\-=[\]{};'"\\|,.<>/?]/.test(password),
-  };
+  const pwChecks = passwordChecks(password);
   const passwordValid = Object.values(pwChecks).every(Boolean);
   const detailsValid =
     name.trim().length >= 2 &&

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isStrongPassword } from "@/lib/passwordPolicy";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Upload, User, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -112,9 +113,7 @@ export const ProfileEditDialog = ({
       toast({ variant: "destructive", title: "Enter your current password" });
       return;
     }
-    const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(
-      newPassword,
-    );
+    const strong = isStrongPassword(newPassword);
     if (!strong) {
       toast({
         variant: "destructive",

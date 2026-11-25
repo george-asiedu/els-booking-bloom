@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_RE, PASSWORD_RULE_MESSAGE } from "@/lib/passwordPolicy";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,11 +29,9 @@ const schema = z
   .object({
     password: z
       .string()
-      .min(8, "At least 8 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
-        "Include an uppercase letter, a lowercase letter, a number, and a special character",
-      ),
+      .min(PASSWORD_MIN_LENGTH, "At least 8 characters")
+      .max(PASSWORD_MAX_LENGTH, `At most ${PASSWORD_MAX_LENGTH} characters`)
+      .regex(PASSWORD_RE, PASSWORD_RULE_MESSAGE),
     confirm: z.string(),
   })
   .refine((d) => d.password === d.confirm, {
