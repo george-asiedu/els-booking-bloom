@@ -273,6 +273,13 @@ const AdminBilling = () => {
                       : "No active period — renew to activate."}
                   </p>
                 </div>
+                {billing.suspended && (billing.reactivationFee ?? 0) > 0 && (
+                  <p className="basis-full rounded-lg bg-destructive/10 p-3 text-sm">
+                    Your account is suspended. Bringing it back costs your plan price plus a{" "}
+                    <span className="font-semibold">{formatGHS(billing.reactivationFee ?? 0)} reactivation fee</span>,
+                    paid together in one renewal.
+                  </p>
+                )}
                 <Button
                   variant={billing.lapsed ? "default" : "outline"}
                   disabled={busy}
@@ -303,7 +310,7 @@ const AdminBilling = () => {
 
             {(billing.discountPercent ?? 0) > 0 && (
               <p className="rounded-lg bg-primary/10 p-3 text-center text-sm">
-                Your account has {billing.discountPercent}% off
+                Your welcome discount: {billing.discountPercent}% off your plan
                 {billing.discountEndsAt ? ` until ${new Date(billing.discountEndsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}` : ""}. Prices below include it.
               </p>
             )}

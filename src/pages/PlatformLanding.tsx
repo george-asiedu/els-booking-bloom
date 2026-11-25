@@ -7,6 +7,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { StorefrontsSection } from "./landing/ShowcaseSections";
 import { LoyaltyReviewsSection } from "./landing/ProductSections";
 import { PlatformMetricsSection } from "./landing/TrustSections";
+import { StickySetupCta } from "./landing/StickySetupCta";
 import { PricingSection, TrainingSection, FaqSection, FooterSection } from "./landing/ClosingSections";
 import {
   PhotoHero,
@@ -42,7 +43,10 @@ const PlatformLanding = () => {
       <FaqSection />
       <PhotoCta />
       <FooterSection />
-      <BackToTop className="bottom-6" />
+      {/* Room so the pinned button never covers the footer on phones. */}
+      <div className="h-20 lg:hidden" aria-hidden />
+      <BackToTop className="bottom-24 lg:bottom-6" />
+      <StickySetupCta />
     </div>
   );
 };

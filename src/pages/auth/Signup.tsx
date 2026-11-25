@@ -161,7 +161,7 @@ const Signup = () => {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <PasswordInput placeholder="••••••••" {...field} />
+                          <PasswordInput placeholder="••••••••" {...field} generate onGenerate={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

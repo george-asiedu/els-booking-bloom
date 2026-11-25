@@ -17,7 +17,7 @@ export const SITE_DEFAULTS = {
   heroBadge: "Made for beauty businesses across Ghana",
   // Digits with country code: what a wa.me link needs.
   whatsapp: "233203631199",
-  email: "customersupport@zuristudios.com",
+  email: "zuristudios53@gmail.com",
   // A live studio to showcase from the landing page.
   demoSlug: "els",
 };

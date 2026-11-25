@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { GetStartedBox } from "@/components/admin/GetStartedBox";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -223,6 +224,7 @@ export const AdminLayout = ({ children }: { children: ReactNode }) => {
       <TwoFactorGate client="studio" label={studioName}>
         {children}
       </TwoFactorGate>
+      <GetStartedBox />
     </DashboardShell>
   );
 };

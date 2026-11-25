@@ -202,6 +202,11 @@ export interface PlatformBillingConfig {
   subscriptionSetupFeePremium: number;
   setupFeeMonthsMonthly: number;
   setupFeeMonthsYearly: number;
+  // Welcome discount for new subscription signups (0% = off).
+  newStudioDiscountPercent: number;
+  newStudioDiscountMonths: number;
+  // Extra on top of the plan to bring a suspended account back (GHS, 0 = none).
+  reactivationFee: number;
   // Plan prices (GHS) charged at signup and renewal.
   priceStandardMonthly: number;
   priceStandardYearly: number;
@@ -667,10 +672,10 @@ export const platformApi = {
     return res.data;
   },
 
-  async setFeatureRequestFee(id: string, fee: number): Promise<PlatformFeatureRequest> {
+  async setFeatureRequestFee(id: string, fee: number, monthly?: number): Promise<PlatformFeatureRequest> {
     const res = await platformRequest<Envelope<PlatformFeatureRequest>>(
       `/feature-requests/${id}/fee`,
-      { method: "PATCH", body: { fee } },
+      { method: "PATCH", body: { fee, ...(monthly ? { monthly } : {}) } },
     );
     return res.data;
   },

@@ -110,7 +110,7 @@ const ResetPassword = () => {
                       <FormItem>
                         <FormLabel>New password</FormLabel>
                         <FormControl>
-                          <PasswordInput placeholder="••••••••" {...field} />
+                          <PasswordInput placeholder="••••••••" {...field} generate onGenerate={(pw) => { field.onChange(pw); form.setValue("confirmPassword", pw); }} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -17,6 +17,8 @@ export interface FeatureRequestDTO {
   status: FeatureRequestStatus;
   /** A one-off fee set by Zuri (GHS). Null until decided; 0 is free. */
   feeAmount?: number | null;
+  // Added to the plan price every month after the first billing.
+  monthlyFee?: number | null;
   /** Pictures attached to the request (up to 5). */
   images?: string[];
   createdAt: string;

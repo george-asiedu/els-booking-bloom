@@ -90,7 +90,7 @@ const PlatformResetPassword = () => {
                   <FormItem>
                     <FormLabel>New password</FormLabel>
                     <FormControl>
-                      <PasswordInput placeholder="••••••••" {...field} />
+                      <PasswordInput placeholder="••••••••" {...field} generate onGenerate={(pw) => { field.onChange(pw); form.setValue("confirm", pw); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

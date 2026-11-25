@@ -58,6 +58,9 @@ const ProductDetail = () => {
   const [photo, setPhoto] = useState(0);
   const [size, setSize] = useState("");
   const [color, setColor] = useState("");
+  // When buying more than one, each extra item can have its own size and colour.
+  // The main pickers below are item 1; these are items 2 and up.
+  const [extras, setExtras] = useState<{ size: string; color: string }[]>([]);
   const [tab, setTab] = useState<"description" | "comments">("description");
   const [myRating, setMyRating] = useState(0);
   const [myReview, setMyReview] = useState("");
@@ -99,6 +102,7 @@ const ProductDetail = () => {
     setPhoto(0);
     setSize("");
     setColor("");
+    setExtras([]);
     try {
       const seen = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as string[];
       setRecentIds(seen);
@@ -125,6 +129,27 @@ const ProductDetail = () => {
   });
 
   const maxQty = product?.track_stock ? product.stock : 99;
+  useEffect(() => {
+    setExtras((rows) => {
+      const want = Math.max(0, qty - 1);
+      if (rows.length === want) return rows;
+      if (rows.length > want) return rows.slice(0, want);
+      return [...rows, ...Array.from({ length: want - rows.length }, () => ({ size, color }))];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qty]);
+  // The basket lines this adds up to: identical size+colour items are one line.
+  const variantLines = () => {
+    const all = [{ size, color }, ...extras.slice(0, Math.max(0, qty - 1))];
+    const byKey = new Map<string, { size: string; color: string; quantity: number }>();
+    for (const v of all) {
+      const key = v.size + "|" + v.color;
+      const line = byKey.get(key);
+      if (line) line.quantity += 1;
+      else byKey.set(key, { ...v, quantity: 1 });
+    }
+    return [...byKey.values()];
+  };
 
   // Search and share details: the product's name, price, stock and rating.
   useSeo({
@@ -154,7 +179,9 @@ const ProductDetail = () => {
   });
 
   const addMutation = useMutation({
-    mutationFn: () => cartApi.addItem(id, qty, size, color),
+    mutationFn: async () => {
+      for (const line of variantLines()) await cartApi.addItem(id, line.quantity, line.size, line.color);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast({ title: "Added to cart", description: `${product?.name} × ${qty}` });
@@ -195,8 +222,13 @@ const ProductDetail = () => {
 
   // Each option the product offers has to be chosen before it can be bought.
   const optionsChosen = () => {
-    const missing = product?.sizes.length && !size ? "size" : product?.colors.length && !color ? "colour" : null;
-    if (missing) toast({ variant: "destructive", title: `Choose a ${missing}` });
+    const rows = [{ size, color }, ...extras.slice(0, Math.max(0, qty - 1))];
+    const missing = rows.some((r) => product?.sizes.length && !r.size)
+      ? "size"
+      : rows.some((r) => product?.colors.length && !r.color)
+        ? "colour"
+        : null;
+    if (missing) toast({ variant: "destructive", title: qty > 1 ? `Choose a ${missing} for every item` : `Choose a ${missing}` });
     return !missing;
   };
 
@@ -242,7 +274,7 @@ const ProductDetail = () => {
       // Stays up until the browser leaves for Paystack's checkout page.
       processing.show(PROCESSING.preparing);
       const res = await ordersApi.guestCheckout({
-        items: [{ productId: id, quantity: qty, size, color }],
+        items: variantLines().map((l) => ({ productId: id, quantity: l.quantity, size: l.size, color: l.color })),
         name: guest.name.trim(),
         email: guest.email.trim(),
         phone: guest.phone.trim(),
@@ -428,6 +460,42 @@ const ProductDetail = () => {
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {qty > 1 && (product.sizes.length > 0 || product.colors.length > 0) && (
+              <div className="mt-6 rounded-xl border border-border p-4">
+                <p className="text-sm font-semibold">Choose for each item</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Item 1 uses the choices above. Pick a different size or colour for the others if you like.</p>
+                <ul className="mt-3 space-y-2">
+                  {extras.slice(0, qty - 1).map((row, i) => (
+                    <li key={i} className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="w-14 text-muted-foreground">Item {i + 2}</span>
+                      {product.sizes.length > 0 && (
+                        <select
+                          aria-label={`Size for item ${i + 2}`}
+                          className="h-9 rounded-lg border border-input bg-background px-2"
+                          value={row.size}
+                          onChange={(e) => setExtras((rs) => rs.map((r, j) => (j === i ? { ...r, size: e.target.value } : r)))}
+                        >
+                          <option value="">Size</option>
+                          {product.sizes.map((sz) => <option key={sz} value={sz}>{sz}</option>)}
+                        </select>
+                      )}
+                      {product.colors.length > 0 && (
+                        <select
+                          aria-label={`Colour for item ${i + 2}`}
+                          className="h-9 rounded-lg border border-input bg-background px-2"
+                          value={row.color}
+                          onChange={(e) => setExtras((rs) => rs.map((r, j) => (j === i ? { ...r, color: e.target.value } : r)))}
+                        >
+                          <option value="">Colour</option>
+                          {product.colors.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                        </select>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 

@@ -269,6 +269,11 @@ export const ProfileEditDialog = ({
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
+                generate
+                onGenerate={(pw) => {
+                  setNewPassword(pw);
+                  setConfirmPassword(pw);
+                }}
               />
             </div>
             <div className="space-y-2">

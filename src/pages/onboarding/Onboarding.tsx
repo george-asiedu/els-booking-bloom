@@ -10,9 +10,12 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
+  AlertCircle,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PLATFORM, PLANS, planPrice, productOf } from "@/config/platform";
@@ -58,12 +61,15 @@ const Onboarding = () => {
 
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<{ code: string; percent: number } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const checkPromo = async () => {
+    setPromoError(null);
     try {
       setPromo(await onboardingApi.checkPromo(promoInput.trim(), plan));
     } catch (err) {
       setPromo(null);
-      toast({ variant: "destructive", title: "Promo not applied", description: err instanceof Error ? err.message : "Please check the code." });
+      setPromoError(err instanceof Error && err.message ? err.message : "We couldn't check that code. Please try again.");
     }
   };
   const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
@@ -113,6 +119,13 @@ const Onboarding = () => {
   // Amount charged now: the activation fee (revenue-share), the setup fee
   // (subscription with one), or the first period's price.
   const dueToday = revShare ? setupFee : subSetup ? subSetup.fee : price;
+  // Welcome discount (set by the super admin): off the plan price for the first
+  // months, subscription plans only. It does not apply to a setup fee. A promo
+  // code and the welcome discount don't stack: the bigger one is used.
+  const welcomePct = !revShare ? cfg?.newStudioDiscountPercent ?? 0 : 0;
+  const welcomeMonths = cfg?.newStudioDiscountMonths ?? 0;
+  const dueTodayPct = Math.max(promo?.percent ?? 0, subSetup ? 0 : welcomePct);
+  const dueTodayAfter = Math.round(dueToday * (1 - dueTodayPct / 100) * 100) / 100;
 
   // Load the platform billing config so we know whether to offer revenue-share.
   useEffect(() => {
@@ -581,7 +594,7 @@ const Onboarding = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ob-password">Create a password</Label>
-                <PasswordInput id="ob-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a strong password" />
+                <PasswordInput id="ob-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a strong password" generate onGenerate={setPassword} />
                 <p className="text-xs text-muted-foreground">You'll use this to sign in to your dashboard.</p>
                 <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   {[
@@ -661,7 +674,10 @@ const Onboarding = () => {
               <div className="flex gap-2 border-t border-border pt-3">
                 <Input
                   value={promoInput}
-                  onChange={(e) => setPromoInput(e.target.value)}
+                  onChange={(e) => {
+                    setPromoInput(e.target.value);
+                    setPromoError(null);
+                  }}
                   placeholder="Promo code (optional)"
                   aria-label="Promo code"
                   className="uppercase placeholder:normal-case"
@@ -675,13 +691,19 @@ const Onboarding = () => {
                   {promo.code}: {promo.percent}% off today's payment.
                 </p>
               )}
+              {promoError && (
+                <p role="alert" className="flex items-start gap-1.5 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  {promoError}
+                </p>
+              )}
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-semibold">Due today</span>
                 <span className="font-serif text-xl font-bold text-primary">
-                  {promo && dueToday > 0 && (
+                  {dueTodayPct > 0 && dueToday > 0 && (
                     <span className="mr-2 text-sm font-normal text-muted-foreground line-through">{GHS(dueToday)}</span>
                   )}
-                  {GHS(Math.round(dueToday * (1 - (promo?.percent ?? 0) / 100) * 100) / 100)}
+                  {GHS(dueTodayAfter)}
                   {!revShare && !subSetup && (
                     <span className="text-sm font-normal text-muted-foreground">
                       /{cadence === "MONTHLY" ? "mo" : "yr"}
@@ -690,6 +712,17 @@ const Onboarding = () => {
                 </span>
               </div>
             </div>
+            {welcomePct > 0 && (
+              <div className="mt-4 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4 text-sm">
+                <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                <p>
+                  <span className="font-semibold">Welcome offer: {welcomePct}% off your plan for your first {welcomeMonths} {welcomeMonths === 1 ? "month" : "months"}.</span>{" "}
+                  {subSetup
+                    ? `It applies to your renewals after the setup fee period, until ${welcomeMonths} ${welcomeMonths === 1 ? "month" : "months"} from today. Then the normal price applies.`
+                    : `It's applied automatically, including to your renewals within ${welcomeMonths} ${welcomeMonths === 1 ? "month" : "months"} of signing up. After that the normal price applies.`}
+                </p>
+              </div>
+            )}
             <p className="mt-3 text-xs text-muted-foreground">
               {revShare
                 ? setupFee > 0
@@ -697,16 +730,26 @@ const Onboarding = () => {
                   : `No upfront fee. The platform takes ${commissionPct}% of each customer payment.`
                 : subSetup
                   ? `The setup fee covers your first ${subSetup.months} months. After that your plan is ${GHS(price)}/${per}, which you renew from your dashboard. There are no automatic charges.`
-                  : `Covers one ${per}. You'll renew from your dashboard before it ends. There are no automatic charges.`}{" "}
-              By continuing you agree to our{" "}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms</a> and{" "}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.
+                  : `Covers one ${per}. You'll renew from your dashboard before it ends. There are no automatic charges.`}
             </p>
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 text-sm">
+              <Checkbox
+                checked={agreed}
+                onCheckedChange={(v) => setAgreed(v === true)}
+                className="mt-0.5"
+                aria-required
+              />
+              <span>
+                I have read and agree to the{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a> and{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.
+              </span>
+            </label>
             <div className="mt-8 flex gap-3">
               <Button variant="outline" onClick={() => setStep(2)} disabled={submitting}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button className="flex-1" onClick={pay} disabled={submitting}>
+              <Button className="flex-1" onClick={pay} disabled={submitting || !agreed}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {dueToday > 0
                   ? `Pay ${GHS(dueToday)} & create my studio`

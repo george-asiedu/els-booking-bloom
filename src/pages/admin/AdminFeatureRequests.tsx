@@ -211,7 +211,11 @@ const AdminFeatureRequests = () => {
                         </p>
                         {r.feeAmount != null && r.status !== "DECLINED" && (
                           <p className="mt-2 text-sm font-medium text-foreground">
-                            {r.feeAmount > 0 ? `Fee: GHS ${r.feeAmount.toFixed(2)}, added to your next renewal` : "No fee for this one"}
+                            {r.feeAmount > 0
+                              ? `Fee: GHS ${r.feeAmount.toFixed(2)}, added to your next renewal${r.monthlyFee ? `, then GHS ${r.monthlyFee.toFixed(2)} a month added to your plan price` : ""}`
+                              : r.monthlyFee
+                                ? `GHS ${r.monthlyFee.toFixed(2)} a month, added to your plan price`
+                                : "No fee for this one"}
                           </p>
                         )}
                         {(r.status === "NEW" || r.status === "PLANNED") && (

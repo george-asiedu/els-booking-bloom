@@ -17,6 +17,9 @@ export interface StudioBillingDTO {
   extras?: { items: { id: string; kind: string; description: string; amount: number }[]; total: number };
   discountPercent?: number;
   discountEndsAt?: string | null;
+  // A suspended account pays this on top of its plan to come back.
+  suspended?: boolean;
+  reactivationFee?: number;
   // Only on the reply to a renewal: what was just paid for.
   renewal?: RenewalReceiptDTO | null;
 }

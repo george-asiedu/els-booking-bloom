@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useStudio } from "@/hooks/useStudio";
 import { apiRequest } from "@/lib/apiClient";
 import { formatGHS } from "@/lib/currency";
+import { learnModules as modules, type Step } from "@/lib/learnSteps";
 
 interface TrainingRequest {
   id: string;
@@ -28,76 +29,6 @@ interface Info {
   requests: TrainingRequest[];
 }
 
-interface Module {
-  title: string;
-  minutes: number;
-  why: string;
-  steps: { text: string; to?: string }[];
-}
-
-// The free online course: short, in the order a new business needs it.
-const modules = (shop: boolean, bookings: boolean): Module[] => [
-  {
-    title: "Make it yours",
-    minutes: 10,
-    why: "Customers should see your name, colours and photos from the first visit.",
-    steps: [
-      { text: "Add your logo and pick your colours", to: "/admin/appearance" },
-      { text: "Fill in your contact details and opening hours", to: "/admin/contact" },
-      ...(bookings ? [{ text: "Set the days and hours you take bookings", to: "/admin/hours" }] : []),
-    ],
-  },
-  ...(bookings
-    ? [
-        {
-          title: "Add what you offer",
-          minutes: 15,
-          why: "Customers can only book what's listed, with a price and how long it takes.",
-          steps: [
-            { text: "Add your services with price and duration", to: "/admin/services" },
-            { text: "Add your team if you have more than one person", to: "/admin/staff" },
-            { text: "Upload photos of your work to the gallery", to: "/admin/gallery" },
-          ],
-        },
-      ]
-    : []),
-  ...(shop
-    ? [
-        {
-          title: "Set up your shop",
-          minutes: 15,
-          why: "Products need photos, prices and stock so customers can order with confidence.",
-          steps: [
-            { text: "Add your products with photos, sizes and colours", to: "/admin/products" },
-            { text: "Choose pickup or delivery, and set delivery areas and times", to: "/admin/commerce" },
-            { text: "Try a coupon or schedule a sale", to: "/admin/sales" },
-          ],
-        },
-      ]
-    : []),
-  {
-    title: "Get paid",
-    minutes: 10,
-    why: "Money goes straight to your own account. Set it up once and it just works.",
-    steps: [
-      { text: "Connect your payout account", to: "/admin/payments" },
-      { text: "Decide whether customers or you cover the card and Mobile Money fee", to: "/admin/payments" },
-      { text: "Bill a walk-in with a payment link and QR code", to: "/admin/bills" },
-    ],
-  },
-  {
-    title: "Run your day",
-    minutes: 10,
-    why: "Know what's coming, move orders along and tell customers without typing messages.",
-    steps: [
-      ...(bookings ? [{ text: "Confirm bookings and use the calendar", to: "/admin/appointments" }] : []),
-      ...(shop ? [{ text: "Move an order from paid to delivered", to: "/admin/orders" }] : []),
-      { text: "Turn on notifications on your phone and install the app", to: "/admin/security" },
-      { text: "Check what's selling in Analytics", to: "/admin/analytics" },
-    ],
-  },
-];
-
 /** Free online training for every business, and a way to ask for in-person training. */
 const AdminLearn = () => {
   const qc = useQueryClient();
@@ -105,22 +36,26 @@ const AdminLearn = () => {
   const { features } = useStudio();
   const [form, setForm] = useState({ preferredDate: "", location: "", notes: "" });
   const [asking, setAsking] = useState(false);
-  const [done, setDone] = useState<Record<string, boolean>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("zuri-learn") ?? "{}");
-    } catch {
-      return {};
-    }
+  // A step is only crossed out when the API finds the work on this account.
+  const steps = useQuery({
+    queryKey: ["training-steps"],
+    queryFn: async () =>
+      (await apiRequest<{ data: Record<string, { done: boolean; missing: string }> }>("/training/steps", { auth: true })).data,
   });
-  const mark = (key: string) => {
-    const next = { ...done, [key]: !done[key] };
-    setDone(next);
+  const [checking, setChecking] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const verify = async (step: Step) => {
+    setChecking(step.id);
     try {
-      localStorage.setItem("zuri-learn", JSON.stringify(next));
-    } catch {
-      /* private mode: progress just isn't remembered */
+      const fresh = (await steps.refetch()).data;
+      const r = fresh?.[step.id];
+      if (r?.done) toast({ title: "Well done", description: step.text });
+      else toast({ variant: "destructive", title: "Not finished yet", description: r?.missing ?? "We could not find this on your account yet." });
+    } finally {
+      setChecking(null);
     }
   };
+  const isDone = (id: string) => Boolean(steps.data?.[id]?.done);
 
   const info = useQuery({ queryKey: ["training"], queryFn: async () => (await apiRequest<{ data: Info }>("/training", { auth: true })).data });
   const request = useMutation({
@@ -136,7 +71,7 @@ const AdminLearn = () => {
 
   const list = modules(Boolean(features?.commerce), features?.booking !== false);
   const total = list.reduce((s, m) => s + m.steps.length, 0);
-  const finished = list.reduce((s, m, i) => s + m.steps.filter((_, j) => done[`${i}-${j}`]).length, 0);
+  const finished = list.reduce((s, m) => s + m.steps.filter((st) => isDone(st.id)).length, 0);
   const data = info.data;
 
   return (
@@ -157,31 +92,42 @@ const AdminLearn = () => {
             </div>
           </Panel>
 
-          {list.map((m, i) => (
+          {list.map((m) => (
             <Panel key={m.title}>
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-semibold">{m.title}</h2>
                 <span className="text-xs text-muted-foreground">about {m.minutes} min</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{m.why}</p>
-              <ul className="mt-3 space-y-2">
-                {m.steps.map((s, j) => {
-                  const key = `${i}-${j}`;
+              <ul className="mt-3 space-y-3">
+                {m.steps.map((s) => {
+                  const done = isDone(s.id);
                   return (
-                    <li key={key} className="flex items-start gap-3 text-sm">
+                    <li key={s.id} className="flex items-start gap-3 text-sm">
                       <button
                         type="button"
                         role="checkbox"
-                        aria-checked={Boolean(done[key])}
-                        aria-label={`Mark done: ${s.text}`}
-                        onClick={() => mark(key)}
-                        className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border ${done[key] ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}
+                        aria-checked={done}
+                        aria-label={`Check this step: ${s.text}`}
+                        disabled={checking === s.id}
+                        onClick={() => (done ? undefined : verify(s))}
+                        className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border ${done ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
                       >
-                        {done[key] && <Check className="h-3.5 w-3.5" />}
+                        {checking === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : done ? <Check className="h-3.5 w-3.5" /> : null}
                       </button>
-                      <span className={done[key] ? "text-muted-foreground line-through" : ""}>
-                        {s.to ? <Link to={s.to} className="underline-offset-4 hover:underline">{s.text}</Link> : s.text}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <button type="button" className={`text-left font-medium ${done ? "text-muted-foreground line-through" : ""}`} onClick={() => setOpen(open === s.id ? null : s.id)} aria-expanded={open === s.id}>
+                          {s.text}
+                        </button>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{s.what}</p>
+                        {open === s.id && !done && (
+                          <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs">
+                            <p><span className="font-medium">What to do:</span> {s.doThis}</p>
+                            {s.to && <Link to={s.to} className="mt-1.5 inline-block font-medium text-primary underline-offset-4 hover:underline">Take me there</Link>}
+                            <p className="mt-1.5 text-muted-foreground">Then tick the box. We check your account, and it is only crossed out when the work is really there.</p>
+                          </div>
+                        )}
+                      </div>
                     </li>
                   );
                 })}

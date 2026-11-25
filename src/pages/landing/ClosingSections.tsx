@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Mail } from "lucide-react";
+import { Check, Gift, GraduationCap, Mail, Users, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
@@ -13,30 +13,60 @@ import { FooterCol } from "./Visuals";
 import { hasNoSetupFee, subscriptionSetup, useOnboardingConfig } from "@/lib/setupFee";
 
 /** Free online training for every new business; in-person for a fee. */
+const TEACH = [
+  {
+    icon: GraduationCap,
+    title: "Learn at your own pace",
+    text: "Short guides inside your dashboard, in the order you need them. Each step is checked against your account, so you know it is really done.",
+    tag: "Free",
+  },
+  {
+    icon: Video,
+    title: "Join a live session",
+    text: "Bring your questions to a live online session and follow along with other business owners.",
+    tag: "Free",
+  },
+  {
+    icon: Users,
+    title: "Have us beside you",
+    text: "Prefer a person? We come to your business and set it up with you. We confirm the fee before anything is booked.",
+    tag: "Fee on request",
+  },
+];
+
 export const TrainingSection = () => (
-  <section id="training" className="py-16 md:py-20">
-    <div className="container mx-auto grid items-center gap-8 px-4 md:grid-cols-[1.2fr_1fr]">
-      <div>
-        <h2 className="font-serif text-3xl font-semibold md:text-4xl">We'll teach you. It's free.</h2>
-        <p className="mt-4 max-w-xl text-muted-foreground">
-          Every new business gets free online training: short guides inside your dashboard, in the order you'll need them, and a live session you can join with your questions. You'll be running it yourself in a day.
-        </p>
-        <p className="mt-3 max-w-xl text-muted-foreground">
-          Rather have someone beside you? In-person training is available for a fee, which we confirm before anything is booked.
+  <section id="training" className="relative overflow-hidden bg-band py-16 text-band-foreground md:py-24">
+    <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/15 blur-3xl" aria-hidden />
+    <div className="container relative mx-auto px-4">
+      <div className="mx-auto max-w-2xl text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Free training</p>
+        <h2 className="mt-3 text-balance font-serif text-3xl font-semibold md:text-5xl">We&apos;ll teach you. It&apos;s free.</h2>
+        <p className="mt-4 text-band-foreground/70">
+          You do not need to be good with technology. Every new business gets training that gets you running it yourself, usually within a day.
         </p>
       </div>
-      <ul className="space-y-3 rounded-2xl border border-border bg-card p-6 text-sm">
-        {[
-          ["Online guides and live sessions", "Free"],
-          ["Step-by-step set-up checklist", "Free"],
-          ["In-person training at your business", "Fee on request"],
-        ].map(([what, cost]) => (
-          <li key={what} className="flex items-start justify-between gap-4">
-            <span className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {what}</span>
-            <span className="shrink-0 font-medium">{cost}</span>
+      <ol className="relative mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
+        {TEACH.map((t, i) => (
+          <li key={t.title} className="relative rounded-2xl border border-band-foreground/15 bg-band-foreground/5 p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <t.icon className="h-5 w-5" aria-hidden />
+              </span>
+              <span className="text-xs font-semibold tabular-nums text-band-foreground/40">0{i + 1}</span>
+            </div>
+            <h3 className="mt-5 font-serif text-xl font-semibold">{t.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-band-foreground/70">{t.text}</p>
+            <span className={cn("mt-4 inline-block rounded-full px-3 py-1 text-xs font-semibold", t.tag === "Free" ? "bg-primary/20 text-primary" : "bg-band-foreground/10 text-band-foreground/80")}>
+              {t.tag}
+            </span>
           </li>
         ))}
-      </ul>
+      </ol>
+      <div className="mt-9 text-center">
+        <Button size="lg" className="rounded-full px-8" asChild>
+          <Link to="/onboarding">Set up your studio</Link>
+        </Button>
+      </div>
     </div>
   </section>
 );
@@ -67,6 +97,12 @@ export const PricingSection = () => {
                     ? "There's no setup fee and you can cancel at any time."
                     : "You can cancel at any time."}
               </p>
+              {(billing?.newStudioDiscountPercent ?? 0) > 0 && (
+                <p className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-primary/15 px-4 py-2 text-sm font-semibold">
+                  <Gift className="h-4 w-4 text-primary" aria-hidden />
+                  Welcome offer: {billing?.newStudioDiscountPercent}% off your plan for your first {billing?.newStudioDiscountMonths} months
+                </p>
+              )}
             </div>
             <div className="mt-6 inline-flex rounded-full border border-border bg-card p-1">
               {(["MONTHLY", "YEARLY"] as const).map((c) => (

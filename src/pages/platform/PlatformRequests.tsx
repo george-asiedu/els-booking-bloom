@@ -60,11 +60,13 @@ const PlatformRequests = () => {
   });
 
   const [fees, setFees] = useState<Record<string, string>>({});
+  const [monthlyFees, setMonthlyFees] = useState<Record<string, string>>({});
   const feeMutation = useMutation({
-    mutationFn: ({ id, fee }: { id: string; fee: number }) => platformApi.setFeatureRequestFee(id, fee),
+    mutationFn: ({ id, fee, monthly }: { id: string; fee: number; monthly?: number }) =>
+      platformApi.setFeatureRequestFee(id, fee, monthly),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["platform", "feature-requests"] });
-      toast({ title: "Fee set", description: "The studio has been told, and it's added to their next renewal." });
+      toast({ title: "Fee set", description: "The studio has been told. The first amount is added to their next renewal; any monthly amount is added to every renewal after that." });
     },
     onError: (err) =>
       toast({ variant: "destructive", title: "Couldn't set the fee", description: err instanceof Error ? err.message : "Please try again." }),
@@ -148,10 +150,12 @@ const PlatformRequests = () => {
                         onSubmit={(e) => {
                           e.preventDefault();
                           const fee = Number(fees[r.id] ?? r.feeAmount ?? "");
-                          if (Number.isFinite(fee) && fees[r.id] !== "") feeMutation.mutate({ id: r.id, fee });
+                          const monthly = Number(monthlyFees[r.id] ?? r.monthlyFee ?? 0);
+                          if (Number.isFinite(fee) && fees[r.id] !== "")
+                            feeMutation.mutate({ id: r.id, fee, monthly: Number.isFinite(monthly) ? monthly : 0 });
                         }}
                       >
-                        <label htmlFor={`fee-${r.id}`} className="text-xs text-muted-foreground">Fee (GHS)</label>
+                        <label htmlFor={`fee-${r.id}`} className="text-xs text-muted-foreground">First renewal (GHS)</label>
                         <Input
                           id={`fee-${r.id}`}
                           type="number"
@@ -162,12 +166,24 @@ const PlatformRequests = () => {
                           value={fees[r.id] ?? ""}
                           onChange={(e) => setFees({ ...fees, [r.id]: e.target.value })}
                         />
+                        <label htmlFor={`monthly-${r.id}`} className="text-xs text-muted-foreground">then every month (GHS)</label>
+                        <Input
+                          id={`monthly-${r.id}`}
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="h-8 w-28"
+                          placeholder={r.monthlyFee != null ? String(r.monthlyFee) : "e.g. 20"}
+                          value={monthlyFees[r.id] ?? ""}
+                          onChange={(e) => setMonthlyFees({ ...monthlyFees, [r.id]: e.target.value })}
+                        />
                         <Button type="submit" size="sm" variant="outline" disabled={feeMutation.isPending || (fees[r.id] ?? "") === ""}>
                           {r.feeAmount != null ? "Update fee" : "Set fee"}
                         </Button>
                         {r.feeAmount != null && (
                           <span className="text-xs text-muted-foreground">
                             {r.feeAmount > 0 ? `Currently GHS ${r.feeAmount.toFixed(2)}` : "Currently free"}
+                            {r.monthlyFee ? `, then GHS ${r.monthlyFee.toFixed(2)} a month` : ""}
                           </span>
                         )}
                       </form>

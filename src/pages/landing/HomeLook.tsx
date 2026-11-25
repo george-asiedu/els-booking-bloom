@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
+import { SwipeRow } from "@/components/SwipeRow";
 import { PLATFORM, studioUrl } from "@/config/platform";
 import { cn } from "@/lib/utils";
 import { HeroSlides } from "@/components/HeroSlides";
@@ -168,9 +169,9 @@ export const FeaturedCards = () => (
         <Eyebrow>WHAT YOU GET</Eyebrow>
         <h2 className="mt-3 font-serif text-3xl font-semibold md:text-4xl">Everything in one place</h2>
       </Reveal>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <SwipeRow gridClass="md:grid-cols-2 lg:grid-cols-4">
         {FEATURED.map((f, i) => (
-          <Reveal key={f.title} delay={i * 90}>
+          <Reveal key={f.title} delay={i * 90} className="h-full">
             <article className="group h-full overflow-hidden rounded-2xl border border-border bg-card transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-xl">
               <div className="overflow-hidden">
                 <img src={f.img} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]" />
@@ -183,7 +184,7 @@ export const FeaturedCards = () => (
             </article>
           </Reveal>
         ))}
-      </div>
+      </SwipeRow>
     </div>
   </section>
 );
@@ -348,9 +349,9 @@ export const TestimonialsSection = () => {
             Loved by the people running the business
           </h2>
         </Reveal>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <SwipeRow gridClass="md:grid-cols-3">
           {shown.map((t, i) => (
-            <Reveal key={t.id} delay={i * 90}>
+            <Reveal key={t.id} delay={i * 90} className="h-full">
               <figure className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <div className="flex gap-0.5 text-primary" aria-label={`${t.rating} out of 5`}>
                   {Array.from({ length: 5 }, (_, j) => (
@@ -362,7 +363,7 @@ export const TestimonialsSection = () => {
               </figure>
             </Reveal>
           ))}
-        </div>
+        </SwipeRow>
         {examples && (
           <p className="mt-6 text-center text-xs text-muted-foreground">Examples of how studios use Zuri.</p>
         )}

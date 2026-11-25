@@ -21,6 +21,10 @@ export interface OnboardingConfig {
   subscriptionSetupFeePremium: number;
   setupFeeMonthsMonthly: number;
   setupFeeMonthsYearly: number;
+  // Welcome discount for new subscription signups: % off the plan price for
+  // the first N months (0 = none). Set by the super admin.
+  newStudioDiscountPercent: number;
+  newStudioDiscountMonths: number;
   priceStandardMonthly: number;
   priceStandardYearly: number;
   pricePremiumMonthly: number;

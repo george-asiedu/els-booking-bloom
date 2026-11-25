@@ -183,6 +183,55 @@ const PlatformBilling = () => {
               </div>
             </div>
 
+            <div className="space-y-3 border-t pt-5">
+              <div>
+                <p className="font-medium">Welcome discount</p>
+                <p className="text-sm text-muted-foreground">
+                  Every new studio or store on a subscription gets this much off its plan price for
+                  its first months. It ends by itself, so you control your margin. Set 0% to switch
+                  it off. Studios see it on the signup page and in their billing.
+                </p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Field
+                  label="Discount"
+                  value={form.newStudioDiscountPercent}
+                  onChange={(v) => set({ newStudioDiscountPercent: num(v) })}
+                  suffix="%"
+                  min={0}
+                  max={100}
+                />
+                <Field
+                  label="Lasts for"
+                  value={form.newStudioDiscountMonths}
+                  onChange={(v) => set({ newStudioDiscountMonths: num(v) })}
+                  suffix="months"
+                  min={1}
+                  max={24}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t pt-5">
+              <div>
+                <p className="font-medium">Reactivation fee</p>
+                <p className="text-sm text-muted-foreground">
+                  A suspended account pays its plan price plus this fee to come back, so the total
+                  already includes the subscription. Expiry and suspension emails tell the studio
+                  about it. Set 0 for no fee.
+                </p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Field
+                  label="Reactivation fee"
+                  value={form.reactivationFee}
+                  onChange={(v) => set({ reactivationFee: num(v) })}
+                  suffix="GHS"
+                  min={0}
+                />
+              </div>
+            </div>
+
             {/* What a new studio will be asked to pay, so a typo is obvious
                 before it's saved. */}
             <div className="rounded-md border bg-muted/40 p-4 text-sm">
