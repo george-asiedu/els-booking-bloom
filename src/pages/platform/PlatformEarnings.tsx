@@ -35,8 +35,8 @@ const PlatformEarnings = () => {
   useEffect(() => setPage(1), [studioId, purpose, from, to]);
 
   const { data: studios = [] } = useQuery({
-    queryKey: ["platform", "studios"],
-    queryFn: () => platformApi.listStudios(),
+    queryKey: ["platform", "studio-options"],
+    queryFn: () => platformApi.listStudioOptions(),
   });
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["platform", "earnings", studioId, purpose, from, to, page],

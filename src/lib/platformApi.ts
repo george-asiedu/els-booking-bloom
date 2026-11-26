@@ -125,6 +125,12 @@ export interface StudioFeatureSettings {
   productsInBooking: boolean;
 }
 
+export interface StudioOption {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface StudioSummary {
   id: string;
   name: string;
@@ -494,6 +500,11 @@ export const platformApi = {
 
   async me(): Promise<PlatformUser> {
     return platformRequest<PlatformUser>("/me");
+  },
+
+  /** Ids and names only, for filter menus (much cheaper than listStudios). */
+  async listStudioOptions(): Promise<StudioOption[]> {
+    return platformRequest<StudioOption[]>("/studios/options");
   },
 
   async listStudios(): Promise<StudioSummary[]> {

@@ -53,8 +53,8 @@ const PlatformTransactions = () => {
   const [to, setTo] = useState("");
 
   const studiosQuery = useQuery({
-    queryKey: ["platform-studios-forledger"],
-    queryFn: () => platformApi.listStudios(),
+    queryKey: ["platform", "studio-options"],
+    queryFn: () => platformApi.listStudioOptions(),
   });
 
   const filters = {

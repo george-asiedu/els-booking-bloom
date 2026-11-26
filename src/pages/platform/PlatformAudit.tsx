@@ -38,8 +38,8 @@ const PlatformAudit = () => {
   const studioFilter = searchParams.get("studio") ?? "ALL";
 
   const { data: studios = [] } = useQuery({
-    queryKey: ["platform", "studios"],
-    queryFn: () => platformApi.listStudios(),
+    queryKey: ["platform", "studio-options"],
+    queryFn: () => platformApi.listStudioOptions(),
   });
   const studioName = (id: string | null) =>
     id ? studios.find((s) => s.id === id)?.name ?? null : null;

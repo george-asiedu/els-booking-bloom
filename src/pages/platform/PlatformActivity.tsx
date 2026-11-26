@@ -26,8 +26,8 @@ const PlatformActivity = () => {
   const [previousCursors, setPreviousCursors] = useState<string[]>([]);
   const statusCode = status === "ALL" ? undefined : Number(`${status[0]}00`);
   const studiosQuery = useQuery({
-    queryKey: ["platform", "studios"],
-    queryFn: () => platformApi.listStudios(),
+    queryKey: ["platform", "studio-options"],
+    queryFn: () => platformApi.listStudioOptions(),
   });
   const activityQuery = useQuery({
     queryKey: ["platform", "activity", studioId, method, status, cursor],
