@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useSeo } from "@/lib/seo";
 import { useStudio } from "@/hooks/useStudio";
 import { Link } from "react-router-dom";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Play, ImageIcon, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,7 @@ const Gallery = () => {
   const [activeCat, setActiveCat] = useState("all");
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  const galleryQuery = useInfiniteQuery({
+  const galleryQuery = useCursorPages({
     queryKey: ["public-gallery", "cursor-pages"],
     queryFn: ({ pageParam }) => galleryApi.listActivePage(pageParam),
     initialPageParam: undefined as string | undefined,
@@ -193,13 +195,7 @@ const Gallery = () => {
                   </Reveal>
                 ))}
               </div>
-              {galleryQuery.hasNextPage && (
-                <div className="mt-10 text-center">
-                  <Button variant="outline" onClick={() => galleryQuery.fetchNextPage()} disabled={galleryQuery.isFetchingNextPage}>
-                    {galleryQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading…</> : "Load more work"}
-                  </Button>
-                </div>
-              )}
+              <LoadMore query={galleryQuery} />
             </>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router-dom";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useCursorPages } from "@/hooks/useCursorPages";
+import { useQuery } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
 import { Loader2, ScrollText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -45,7 +46,7 @@ const PlatformAudit = () => {
   const studioName = (id: string | null) =>
     id ? studios.find((s) => s.id === id)?.name ?? null : null;
 
-  const logsQuery = useInfiniteQuery({
+  const logsQuery = useCursorPages({
     queryKey: ["platform", "audit", studioFilter],
     queryFn: ({ pageParam }) =>
       platformApi.listAuditLogsPage(studioFilter === "ALL" ? undefined : studioFilter, pageParam),

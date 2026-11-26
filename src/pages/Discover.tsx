@@ -1,8 +1,8 @@
 import { SearchBox } from "@/components/ui/search-box";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useSeo } from "@/lib/seo";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
 import { MapPin, Star, Store } from "lucide-react";
 import { NavSection } from "./landing/LandingNav";
@@ -50,7 +50,7 @@ const Discover = () => {
     if (kind) next.set("kind", kind);
     setParams(next, { replace: true });
   }, [term, kind, setParams]);
-  const directory = useInfiniteQuery({
+  const directory = useCursorPages({
     queryKey: ["directory", term, kind],
     queryFn: ({ pageParam }) =>
       apiRequest<{ data: Listing[]; pagination?: { nextCursor: string | null; hasMore: boolean } }>(

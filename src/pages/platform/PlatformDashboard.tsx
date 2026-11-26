@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { planLabel } from "@/config/platform";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Link, useNavigate } from "react-router-dom";
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
 import {
   Loader2,
@@ -105,7 +106,7 @@ const PlatformDashboard = () => {
   const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED">("ALL");
 
   // A page of studios at a time, filtered on the server.
-  const studiosQuery = useInfiniteQuery({
+  const studiosQuery = useCursorPages({
     queryKey: ["platform", "studios", filter],
     queryFn: ({ pageParam }) => platformApi.listStudiosPage(filter === "ALL" ? undefined : filter, pageParam),
     initialPageParam: undefined as string | undefined,

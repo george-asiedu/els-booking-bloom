@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { LoadMore } from "@/components/LoadMore";
 import { format } from "date-fns";
 import { Copy, Gift, Package } from "lucide-react";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 /** The customer's gift cards and packages, with codes to copy and what's left. */
 export const GiftCardsTab = ({ booking }: { booking: boolean }) => {
   const { toast } = useToast();
-  const vouchersQuery = useInfiniteQuery({
+  const vouchersQuery = useCursorPages({
     queryKey: ["my-vouchers"],
     queryFn: ({ pageParam }) => vouchersApi.minePage(pageParam),
     initialPageParam: undefined as string | undefined,

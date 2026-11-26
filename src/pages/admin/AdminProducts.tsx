@@ -1,7 +1,9 @@
 import { type ProductAudience } from "@/lib/api/products";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useState } from "react";
 import { ProductDetails } from "@/components/admin/RowDetails";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, ShoppingBag, ImageOff } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -109,7 +111,7 @@ const AdminProducts = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const productsQuery = useInfiniteQuery({
+  const productsQuery = useCursorPages({
     queryKey: ["admin-products", "cursor-pages"],
     queryFn: ({ pageParam }) => productsApi.listAllPage(pageParam),
     initialPageParam: undefined as string | undefined,
@@ -428,14 +430,7 @@ const AdminProducts = () => {
             </Table>
           </Card>
         )}
-        {productsQuery.hasNextPage && (
-          <div className="text-center">
-            <Button variant="outline" onClick={() => productsQuery.fetchNextPage()} disabled={productsQuery.isFetchingNextPage}>
-              {productsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Load more products
-            </Button>
-          </div>
-        )}
+        <LoadMore query={productsQuery} />
       </div>
 
       {/* Create/Edit Dialog */}

@@ -1,7 +1,9 @@
 import { SearchBox } from "@/components/ui/search-box";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, Receipt } from "lucide-react";
 import { PlatformLayout } from "./PlatformLayout";
 import { Button } from "@/components/ui/button";
@@ -77,7 +79,7 @@ const PlatformTransactions = () => {
       }),
   });
 
-  const listQuery = useInfiniteQuery({
+  const listQuery = useCursorPages({
     queryKey: ["platform-ledger", filterKey],
     queryFn: ({ pageParam }) =>
       platformApi.listTransactions({
@@ -265,24 +267,7 @@ const PlatformTransactions = () => {
           </CardContent>
         </Card>
 
-        {listQuery.hasNextPage ? (
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              onClick={() => listQuery.fetchNextPage()}
-              disabled={listQuery.isFetchingNextPage}
-            >
-              {listQuery.isFetchingNextPage ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading…
-                </>
-              ) : (
-                "Load more"
-              )}
-            </Button>
-          </div>
-        ) : null}
+        <LoadMore query={listQuery} />
 
         <p className="text-xs text-muted-foreground">
           A payment stuck on pending is normally settled by the reconciliation job.

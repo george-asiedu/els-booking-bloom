@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCursorPages } from "@/hooks/useCursorPages";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
 import { format } from "date-fns";
 import QRCode from "qrcode";
@@ -226,7 +227,7 @@ const AdminBills = () => {
     counts: Record<BillTab, number>;
     pagination?: { nextCursor: string | null; hasMore: boolean };
   };
-  const billsQuery = useInfiniteQuery({
+  const billsQuery = useCursorPages({
     queryKey: ["bills", tab],
     queryFn: ({ pageParam }) =>
       apiRequest<BillsPage>(

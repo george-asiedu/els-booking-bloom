@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReviewDetails } from "@/components/admin/RowDetails";
 import { format } from "date-fns";
 import { Check, X, Star, Trash2, Loader2 } from "lucide-react";
@@ -37,7 +39,7 @@ const AdminReviews = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const reviewsQuery = useInfiniteQuery({
+  const reviewsQuery = useCursorPages({
     queryKey: ["admin-reviews", "cursor-pages"],
     queryFn: ({ pageParam }) => reviewsApi.listAllPage(pageParam),
     initialPageParam: undefined as string | undefined,
@@ -209,13 +211,7 @@ const AdminReviews = () => {
             </Table>
           </div>
         )}
-        {reviewsQuery.hasNextPage && (
-          <div className="py-4 text-center">
-            <Button variant="outline" onClick={() => reviewsQuery.fetchNextPage()} disabled={reviewsQuery.isFetchingNextPage}>
-              {reviewsQuery.isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading…</> : "Load more reviews"}
-            </Button>
-          </div>
-        )}
+        <LoadMore query={reviewsQuery} />
       </div>
       <ReviewDetails item={details} onClose={() => setDetails(null)} />
     </AdminLayout>

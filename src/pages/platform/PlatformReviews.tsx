@@ -1,4 +1,5 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { LoadMore } from "@/components/LoadMore";
 import { Loader2, Quote, Star, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -14,7 +15,7 @@ const PlatformReviews = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const reviewsQuery = useInfiniteQuery({
+  const reviewsQuery = useCursorPages({
     queryKey: ["platform", "reviews"],
     queryFn: ({ pageParam }) => platformApi.listReviewsPage(pageParam),
     initialPageParam: undefined as string | undefined,

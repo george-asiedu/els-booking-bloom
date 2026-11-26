@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useNoIndex } from "@/lib/seo";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { RescheduleDialog } from "@/components/admin/RescheduleDialog";
 import { Calendar, CalendarPlus, Gift, Heart, Home, Package, Receipt, Share2, ShieldCheck, ShoppingBag, User } from "lucide-react";
 import { SecurityPanel } from "@/components/security/SecurityPanel";
@@ -101,7 +102,7 @@ const Account = () => {
     enabled: !!user,
   });
 
-  const appointmentsQuery = useInfiniteQuery({
+  const appointmentsQuery = useCursorPages({
     queryKey: ["my-appointments", user?.id, "cursor-pages"],
     queryFn: ({ pageParam }) => appointmentsApi.listMinePage(pageParam),
     initialPageParam: undefined as string | undefined,
@@ -135,7 +136,7 @@ const Account = () => {
   });
   const shopEnabled = features.commerce && (commerce?.enabled ?? false);
 
-  const ordersQuery = useInfiniteQuery({
+  const ordersQuery = useCursorPages({
     queryKey: ["my-orders", user?.id, "cursor-pages"],
     queryFn: ({ pageParam }) => ordersApi.listMinePage(pageParam),
     initialPageParam: undefined as string | undefined,

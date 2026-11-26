@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCursorPages } from "@/hooks/useCursorPages";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
 import { Loader2, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
@@ -32,7 +33,7 @@ const PlatformRequests = () => {
   const { toast } = useToast();
   const [filter, setFilter] = useState<FeatureRequestStatus | "ALL">("ALL");
 
-  const requestsQuery = useInfiniteQuery({
+  const requestsQuery = useCursorPages({
     queryKey: ["platform", "feature-requests", filter],
     queryFn: ({ pageParam }) =>
       platformApi.listFeatureRequestsPage(filter === "ALL" ? undefined : filter, pageParam),

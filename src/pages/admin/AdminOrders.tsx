@@ -1,10 +1,12 @@
 import { ExportButton } from "@/components/admin/ExportButton";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useState } from "react";
 import { OrderStageControl, PickupHandover, RiderLinkDialog } from "@/components/admin/OrderStageControl";
 import { isOpenOrder, isPaidOrder } from "@/lib/api/orders";
 import { CancellationActions } from "@/components/admin/CancellationActions";
 import { OrderDetails } from "@/components/admin/RowDetails";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Package, Loader2, Truck, Store } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -56,7 +58,7 @@ const AdminOrders = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const ordersQuery = useInfiniteQuery({
+  const ordersQuery = useCursorPages({
     queryKey: ["admin-orders", "cursor-pages"],
     queryFn: ({ pageParam }) => ordersApi.listAllPage(pageParam),
     initialPageParam: undefined as string | undefined,
@@ -283,14 +285,7 @@ const AdminOrders = () => {
             </Table>
           </Card>
         )}
-        {ordersQuery.hasNextPage && (
-          <div className="text-center">
-            <Button variant="outline" onClick={() => ordersQuery.fetchNextPage()} disabled={ordersQuery.isFetchingNextPage}>
-              {ordersQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Load more orders
-            </Button>
-          </div>
-        )}
+        <LoadMore query={ordersQuery} />
       </div>
 
       <OrderDetails

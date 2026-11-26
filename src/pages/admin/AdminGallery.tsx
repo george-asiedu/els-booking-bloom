@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Loader2, ImageIcon, Upload, EyeOff } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -54,7 +56,7 @@ const AdminGallery = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const imagesQuery = useInfiniteQuery({
+  const imagesQuery = useCursorPages({
     queryKey: ["admin-gallery", "cursor-pages"],
     queryFn: ({ pageParam }) => galleryApi.listAllPage(pageParam),
     initialPageParam: undefined as string | undefined,
@@ -108,20 +110,16 @@ const AdminGallery = () => {
       galleryApi.update(id, patch),
     onMutate: async ({ id, patch }) => {
       await queryClient.cancelQueries({ queryKey: ["admin-gallery"] });
-      const previous = queryClient.getQueryData(["admin-gallery", "cursor-pages"]);
-      queryClient.setQueryData<typeof imagesQuery.data>(["admin-gallery", "cursor-pages"], (data) =>
-        data && {
-          ...data,
-          pages: data.pages.map((pg) => ({
-            ...pg,
-            items: pg.items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
-          })),
-        },
+      // Each page is cached on its own (hooks/useCursorPages): update them all.
+      type GalleryPage = NonNullable<typeof imagesQuery.data>["pages"][number];
+      const previous = queryClient.getQueriesData<GalleryPage>({ queryKey: ["admin-gallery", "cursor-pages"] });
+      queryClient.setQueriesData<GalleryPage>({ queryKey: ["admin-gallery", "cursor-pages"] }, (pg) =>
+        pg && { ...pg, items: pg.items.map((it) => (it.id === id ? { ...it, ...patch } : it)) },
       );
       return { previous };
     },
     onError: (error, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(["admin-gallery", "cursor-pages"], ctx.previous);
+      for (const [key, data] of ctx?.previous ?? []) queryClient.setQueryData(key, data);
       toast({ variant: "destructive", title: "Couldn't save", description: error.message });
     },
     onSuccess: (_saved, { patch }) => {
@@ -325,14 +323,7 @@ const AdminGallery = () => {
             )}
           </>
         )}
-        {imagesQuery.hasNextPage && (
-          <div className="mt-6 text-center">
-            <Button variant="outline" onClick={() => imagesQuery.fetchNextPage()} disabled={imagesQuery.isFetchingNextPage}>
-              {imagesQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Load more media
-            </Button>
-          </div>
-        )}
+        <LoadMore query={imagesQuery} />
       </div>
 
       {/* Upload Dialog */}

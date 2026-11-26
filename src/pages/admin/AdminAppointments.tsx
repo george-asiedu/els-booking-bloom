@@ -1,9 +1,11 @@
 import { ExportButton } from "@/components/admin/ExportButton";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useState } from "react";
 import { CancellationActions } from "@/components/admin/CancellationActions";
 import { AppointmentDetails } from "@/components/admin/RowDetails";
 import { useSearchParams } from "react-router-dom";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
   Calendar,
@@ -171,7 +173,7 @@ const AdminAppointments = () => {
   const { toast } = useToast();
   const { name: studioName } = useStudio();
 
-  const appointmentsQuery = useInfiniteQuery({
+  const appointmentsQuery = useCursorPages({
     queryKey: ["admin-appointments", "cursor-pages"],
     queryFn: ({ pageParam }) => appointmentsApi.listAllPage(pageParam),
     initialPageParam: undefined as string | undefined,
@@ -590,14 +592,7 @@ const AdminAppointments = () => {
             </Table>
           </Card>
         )}
-        {appointmentsQuery.hasNextPage && (
-          <div className="text-center">
-            <Button variant="outline" onClick={() => appointmentsQuery.fetchNextPage()} disabled={appointmentsQuery.isFetchingNextPage}>
-              {appointmentsQuery.isFetchingNextPage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Load more appointments
-            </Button>
-          </div>
-        )}
+        <LoadMore query={appointmentsQuery} />
       </div>
 
       <RescheduleDialog

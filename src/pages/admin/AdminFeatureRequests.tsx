@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCursorPages } from "@/hooks/useCursorPages";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
 import { ImagePlus, Loader2, Lightbulb, Send, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -42,7 +43,7 @@ const AdminFeatureRequests = () => {
     if (fileInput.current) fileInput.current.value = "";
   };
 
-  const requestsQuery = useInfiniteQuery({
+  const requestsQuery = useCursorPages({
     queryKey: ["feature-requests"],
     queryFn: ({ pageParam }) => featureRequestsApi.listPage(pageParam),
     initialPageParam: undefined as string | undefined,

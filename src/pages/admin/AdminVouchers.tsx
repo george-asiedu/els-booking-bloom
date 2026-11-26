@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCursorPages } from "@/hooks/useCursorPages";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
 import { format } from "date-fns";
 import { ExternalLink, Gift, Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
@@ -25,7 +26,7 @@ const AdminVouchers = () => {
   const { toast } = useToast();
   const { features } = useStudio();
   const booking = features.booking !== false;
-  const soldQuery = useInfiniteQuery({
+  const soldQuery = useCursorPages({
     queryKey: ["admin-vouchers"],
     queryFn: ({ pageParam }) => vouchersApi.listPage(pageParam),
     initialPageParam: undefined as string | undefined,

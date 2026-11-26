@@ -1,8 +1,10 @@
 import { ExportButton } from "@/components/admin/ExportButton";
+import { LoadMore } from "@/components/LoadMore";
+import { useCursorPages } from "@/hooks/useCursorPages";
 import { useState } from "react";
 import { RefundDetails } from "@/components/admin/RowDetails";
 import type { RefundDTO } from "@/lib/api";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, Receipt, ExternalLink } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -82,7 +84,7 @@ const AdminTransactions = () => {
       }),
   });
 
-  const listQuery = useInfiniteQuery({
+  const listQuery = useCursorPages({
     queryKey: ["admin-ledger", filterKey],
     queryFn: ({ pageParam }) =>
       transactionsApi.list({
@@ -362,24 +364,7 @@ const AdminTransactions = () => {
           </Card>
         ) : null}
 
-        {listQuery.hasNextPage ? (
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              onClick={() => listQuery.fetchNextPage()}
-              disabled={listQuery.isFetchingNextPage}
-            >
-              {listQuery.isFetchingNextPage ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading…
-                </>
-              ) : (
-                "Load more"
-              )}
-            </Button>
-          </div>
-        ) : null}
+        <LoadMore query={listQuery} />
       </div>
 
       <Dialog open={!!openId} onOpenChange={(o) => !o && setOpenId(null)}>
