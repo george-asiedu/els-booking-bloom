@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { ShopCategoryPicker, StudioTypePicker } from "@/components/ShopCategoryPicker";
+import type { StudioType } from "@/lib/studioTemplates";
 import { passwordChecks } from "@/lib/passwordPolicy";
-import { SHOP_CATEGORIES, type ShopCategoryId } from "@/lib/shopCategories";
+import { type ShopCategoryId } from "@/lib/shopCategories";
 import { SignupSuccess } from "@/components/onboarding/SignupSuccess";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { Link, useSearchParams } from "react-router-dom";
@@ -51,7 +53,10 @@ const Onboarding = () => {
   });
   // What the shop will sell: picks the shop website's design (Premium's shop
   // and Storefront; required for Storefront).
-  const [shopCategory, setShopCategory] = useState<ShopCategoryId | null>(null);
+  // Everything the shop sells; the first is the main one (sets the design).
+  const [shopCategories, setShopCategories] = useState<ShopCategoryId[]>([]);
+  // Kinds of studio (booking plans); the first sets the website's wording.
+  const [studioTypes, setStudioTypes] = useState<StudioType[]>([]);
   const product = productOf(plan);
   const sellsProducts = plan !== "STANDARD";
   const [cadence, setCadence] = useState<Cadence>(
@@ -261,7 +266,10 @@ const Onboarding = () => {
         plan,
         cadence,
         billingMode,
-        ...(sellsProducts && shopCategory ? { shopCategory } : {}),
+        ...(sellsProducts && shopCategories.length
+          ? { shopCategory: shopCategories[0], shopCategories }
+          : {}),
+        ...(plan !== "STOREFRONT" && studioTypes.length ? { studioTypes } : {}),
       });
       setReference(res.reference);
 
@@ -443,34 +451,29 @@ const Onboarding = () => {
                 </button>
               ))}
             </div>
+            {/* What the studio does: sets the website's wording and look. */}
+            {plan !== "STOREFRONT" && (
+              <div className="mt-8">
+                <h2 className="mb-1 font-semibold">
+                  What does your studio do? <span className="font-normal text-muted-foreground">Pick all that apply</span>
+                </h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  We'll write your website for it. You can change this later.
+                </p>
+                <StudioTypePicker value={studioTypes} onChange={setStudioTypes} />
+              </div>
+            )}
             {/* What they'll sell: sets up the shop's design. */}
             {sellsProducts && (
               <div className="mt-8">
                 <h2 className="mb-1 font-semibold">
-                  What will you sell?
+                  What will you sell? <span className="font-normal text-muted-foreground">Pick all that apply</span>
                   {plan === "PREMIUM" && <span className="font-normal text-muted-foreground"> (optional)</span>}
                 </h2>
                 <p className="mb-4 text-sm text-muted-foreground">
                   We'll set up your shop with a design made for it. You just add your products.
                 </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="What you'll sell">
-                  {SHOP_CATEGORIES.map((c) => (
-                    <button
-                      key={c.id}
-                      role="radio"
-                      aria-checked={shopCategory === c.id}
-                      onClick={() => setShopCategory(c.id)}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                        shopCategory === c.id
-                          ? "border-primary bg-accent font-medium"
-                          : "border-border hover:border-primary/40"
-                      }`}
-                    >
-                      <c.icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
+                <ShopCategoryPicker value={shopCategories} onChange={setShopCategories} />
               </div>
             )}
             {/* Billing mode — only when the platform offers revenue-share. */}
@@ -528,7 +531,7 @@ const Onboarding = () => {
               </Button>
               <Button
                 className="flex-1"
-                disabled={plan === "STOREFRONT" && !shopCategory}
+                disabled={plan === "STOREFRONT" && shopCategories.length === 0}
                 onClick={() => setStep(2)}
               >
                 Continue <ArrowRight className="ml-2 h-4 w-4" />

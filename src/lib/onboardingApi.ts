@@ -52,6 +52,10 @@ export interface OnboardingStartInput {
   billingMode: BillingMode;
   // What the shop sells (lib/shopCategories). Required for Storefront.
   shopCategory?: string;
+  // Everything the shop sells; the first is shopCategory.
+  shopCategories?: string[];
+  // Kinds of studio; the first sets the website's wording.
+  studioTypes?: string[];
 }
 
 export interface OnboardingStartResult {

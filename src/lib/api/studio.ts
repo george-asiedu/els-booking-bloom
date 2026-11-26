@@ -30,6 +30,8 @@ export interface StudioConfigDTO {
   slug: string;
   // What the shop sells (lib/shopCategories): picks the shop design.
   shopCategory?: string | null;
+  // Every kind it sells; the first is shopCategory.
+  shopCategories?: string[];
   plan?: string;
   branding: {
     logoUrl: string | null;
@@ -80,9 +82,13 @@ export interface StudioContentDTO {
   showTestimonials: boolean;
   // lib/studioTemplates: the kind of studio (default wording) and the layout.
   studioType?: string | null;
+  // Every kind the studio offers; the first is studioType.
+  studioTypes?: string[];
   siteTemplate?: string | null;
   // Saved on the studio; sent with content updates.
   shopCategory?: string | null;
+  // Every kind the shop sells (the first is the main one, shopCategory).
+  shopCategories?: string[];
 }
 
 export interface BrandingUpdateInput {

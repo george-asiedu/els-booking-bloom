@@ -1,22 +1,15 @@
 import { Label } from "@/components/ui/label";
+import { ShopCategoryPicker, StudioTypePicker } from "@/components/ShopCategoryPicker";
+import type { ShopCategoryId } from "@/lib/shopCategories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { StudioContentDTO } from "@/lib/api";
 import {
   SITE_TEMPLATES,
-  STUDIO_TYPES,
   studioTypeOf,
   templateOf,
   type SiteTemplate,
   type StudioType,
 } from "@/lib/studioTemplates";
-import { SHOP_CATEGORIES } from "@/lib/shopCategories";
 import { cn } from "@/lib/utils";
 
 // A tiny drawing of each layout, so owners can tell them apart at a glance.
@@ -64,28 +57,14 @@ export const WebsiteDesignPicker = ({
         <CardHeader>
           <CardTitle className="text-base">Your shop</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Tell us what you sell and we'll fill in wording that fits. Anything you write below replaces it.
+            Tell us everything you sell. Your main kind sets the wording and design; anything you write below replaces it.
           </p>
         </CardHeader>
         <CardContent>
-          <div className="max-w-sm space-y-2">
-            <Label htmlFor="shop-category">What do you sell?</Label>
-            <Select value={value.shopCategory ?? "other"} onValueChange={(v) => onChange({ ...value, shopCategory: v })}>
-              <SelectTrigger id="shop-category">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SHOP_CATEGORIES.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <span className="flex items-center gap-2">
-                      <c.icon className="h-4 w-4 text-muted-foreground" aria-hidden />
-                      {c.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ShopCategoryPicker
+            value={(value.shopCategories?.length ? value.shopCategories : value.shopCategory ? [value.shopCategory] : []) as ShopCategoryId[]}
+            onChange={(next) => onChange({ ...value, shopCategories: next, shopCategory: next[0] ?? null })}
+          />
         </CardContent>
       </Card>
     );
@@ -101,20 +80,12 @@ export const WebsiteDesignPicker = ({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="max-w-sm space-y-2">
-          <Label htmlFor="studio-type">What kind of studio are you?</Label>
-          <Select value={type} onValueChange={(v) => onChange({ ...value, studioType: v as StudioType })}>
-            <SelectTrigger id="studio-type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(STUDIO_TYPES) as StudioType[]).map((t) => (
-                <SelectItem key={t} value={t}>
-                  {STUDIO_TYPES[t].label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-2">
+          <Label>What does your studio do?</Label>
+          <StudioTypePicker
+            value={(value.studioTypes?.length ? value.studioTypes : value.studioType ? [type] : []) as StudioType[]}
+            onChange={(next) => onChange({ ...value, studioTypes: next, studioType: next[0] ?? null })}
+          />
         </div>
         <div className="space-y-2">
           <Label>Design</Label>
