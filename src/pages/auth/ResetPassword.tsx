@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_RE, PASSWORD_RULE_MESSAGE } from "@/lib/passwordPolicy";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -36,6 +37,8 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 const ResetPassword = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();

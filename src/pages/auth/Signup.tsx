@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_RE, PASSWORD_RULE_MESSAGE } from "@/lib/passwordPolicy";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -36,6 +37,8 @@ const signupSchema = z.object({
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Signup = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

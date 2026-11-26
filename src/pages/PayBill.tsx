@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
@@ -26,6 +27,8 @@ interface PublicBill {
 
 /** Where a walk-in lands from the link or QR code on their bill. */
 const PayBill = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const { token = "" } = useParams();
   const [params] = useSearchParams();
   const reference = params.get("reference") ?? params.get("trxref") ?? "";

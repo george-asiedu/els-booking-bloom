@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Loader2, MapPin, Phone } from "lucide-react";
@@ -27,6 +28,8 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : "Something wen
 
 /** The rider's page, opened from the link the shop sends. No account needed. */
 const RiderDelivery = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const { token = "" } = useParams();
   const [code, setCode] = useState("");
   const [reason, setReason] = useState("");

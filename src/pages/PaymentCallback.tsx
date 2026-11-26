@@ -1,4 +1,5 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNoIndex } from "@/lib/seo";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery } from "@tanstack/react-query";
 import { openPaystackCheckout } from "@/lib/paystackCheckout";
@@ -14,6 +15,8 @@ import {
 import { formatGHS } from "@/lib/currency";
 
 const PaymentCallback = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const [params] = useSearchParams();
   // Paystack appends ?reference= (and ?trxref=) to the callback URL.
   const reference = params.get("reference") || params.get("trxref") || "";

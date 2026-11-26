@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useSeo } from "@/lib/seo";
+import { useStudio } from "@/hooks/useStudio";
 import { Link } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { Play, ImageIcon, Loader2 } from "lucide-react";
@@ -81,6 +83,12 @@ const Gallery = () => {
   }));
 
   const heroImg = items[0]?.src ?? null;
+  const { name: studioName } = useStudio();
+  useSeo({
+    title: `Gallery · ${studioName}`,
+    description: `Photos and videos of work by ${studioName}. See the styles and results, then book online.`,
+    image: heroImg?.startsWith("http") ? heroImg : null,
+  });
   const noContent = !isLoading && pages !== undefined && items.length === 0;
 
   return (

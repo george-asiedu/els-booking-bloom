@@ -1,4 +1,5 @@
 import { businessHoursApi } from "@/lib/api";
+import { useSeo } from "@/lib/seo";
 import { apiRequest } from "@/lib/apiClient";
 import { doesService, staffApi } from "@/lib/api/staff";
 import { vouchersApi, type VoucherCheck } from "@/lib/api/vouchers";
@@ -114,6 +115,10 @@ const Book = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { features, config, name: studioName } = useStudio();
+  useSeo({
+    title: `Book an appointment · ${studioName}`,
+    description: `Book with ${studioName} online: choose a service and a free time, and pay by Mobile Money or card.`,
+  });
   const loyaltyCap = config?.settings.loyaltyCapPercent ?? 30;
   const queryClient = useQueryClient();
 

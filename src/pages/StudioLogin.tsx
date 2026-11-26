@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -49,6 +50,8 @@ const VALID_SLUG = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
  * that studio's own sign-in page.
  */
 const StudioLogin = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const [address, setAddress] = useState(readLast);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);

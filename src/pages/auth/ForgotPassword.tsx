@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +26,8 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const ForgotPassword = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const { toast } = useToast();

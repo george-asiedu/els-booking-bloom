@@ -1,4 +1,6 @@
 import { Phone, Mail, Instagram, MapPin, Clock, Music2, Facebook } from "lucide-react";
+import { businessSchema, useSeo } from "@/lib/seo";
+import { useStudio } from "@/hooks/useStudio";
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
@@ -82,6 +84,27 @@ const Contact = () => {
   });
 
   const whatsapp = useStudioWhatsapp();
+  const { name: studioName, config, features } = useStudio();
+  useSeo({
+    title: `Contact and opening hours · ${studioName}`,
+    description: [
+      `How to reach ${studioName}`,
+      info?.address ? `at ${info.address}` : null,
+      info?.phone ? `Call ${info.phone}` : null,
+      "See opening hours and directions.",
+    ]
+      .filter(Boolean)
+      .join(". "),
+    structuredData: businessSchema({
+      kind: features.booking === false ? "store" : "studio",
+      name: studioName,
+      logo: config?.branding.logoUrl ?? null,
+      phone: info?.phone,
+      email: info?.email,
+      address: info?.address,
+      hours,
+    }),
+  });
   const cards = info ? buildCards(info, whatsapp?.href ?? null) : [];
 
   return (

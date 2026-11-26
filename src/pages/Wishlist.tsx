@@ -1,4 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
+import { useNoIndex } from "@/lib/seo";
 import { useQuery } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
 import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
@@ -9,6 +10,8 @@ import { productsApi } from "@/lib/api";
 
 /** Products the customer saved with the heart. */
 const Wishlist = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const { user } = useAuth();
   const { ids } = useWishlist();
   const { data: products = [] } = useQuery({

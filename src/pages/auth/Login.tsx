@@ -1,4 +1,5 @@
 import { SignInCodeStep } from "@/components/auth/SignInCodeStep";
+import { useNoIndex } from "@/lib/seo";
 import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -28,6 +29,8 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const [isLoading, setIsLoading] = useState(false);
   // Set once the password checked out and the account asks for a code.
   const [codeFor, setCodeFor] = useState<LoginFormValues | null>(null);

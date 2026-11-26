@@ -1,4 +1,5 @@
 import { ZuriMark } from "@/components/ZuriMark";
+import { useNoIndex } from "@/lib/seo";
 import { TwoFactorGate } from "@/components/security/TwoFactorGate";
 import { NotificationBell } from "@/components/security/NotificationBell";
 import { ReactNode } from "react";
@@ -56,6 +57,8 @@ const groups: NavGroup[] = [
 ];
 
 export const PlatformLayout = ({ children }: { children: ReactNode }) => {
+  // Private dashboard: keep it out of search results.
+  useNoIndex();
   const { user, signOut } = usePlatformAuth();
   const navigate = useNavigate();
   const handleSignOut = () => {

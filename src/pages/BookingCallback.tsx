@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { paymentsApi } from "@/lib/api";
@@ -16,6 +17,8 @@ import {
 import { formatGHS } from "@/lib/currency";
 
 const BookingCallback = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const [params] = useSearchParams();
   const reference = params.get("reference") || params.get("trxref") || "";
   const queryClient = useQueryClient();

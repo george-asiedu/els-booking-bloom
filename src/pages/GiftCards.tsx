@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useSeo } from "@/lib/seo";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Gift, Loader2, Package } from "lucide-react";
@@ -32,6 +33,10 @@ const GiftCards = () => {
   const { toast } = useToast();
   useHideSplashWhen(!isLoading);
   const booking = features.booking !== false;
+  useSeo({
+    title: `Gift cards${booking ? " and packages" : ""} · ${name}`,
+    description: `Give a ${name} gift card${booking ? ", or buy a package of sessions" : ""}. Pay by Mobile Money or card and send it straight to them.`,
+  });
   const { data: offers = [] } = useQuery({ queryKey: ["package-offers"], queryFn: () => vouchersApi.packages(), enabled: booking });
   const { data: services = [] } = useQuery({ queryKey: ["services"], queryFn: () => servicesApi.listActive(), enabled: booking });
   const [tab, setTab] = useState<"gift" | "package">("gift");

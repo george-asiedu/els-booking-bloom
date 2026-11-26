@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { GetStartedBox } from "@/components/admin/GetStartedBox";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -162,6 +163,8 @@ const moneyAndMore: NavGroup[] = [
 ];
 
 export const AdminLayout = ({ children }: { children: ReactNode }) => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { name: studioName, config, features } = useStudio();

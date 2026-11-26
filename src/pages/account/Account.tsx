@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
@@ -39,6 +40,8 @@ import { TransactionsTab } from "./TransactionsTab";
 import { RewardsTab } from "./RewardsTab";
 
 const Account = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const { user, signOut } = useAuth();
   const { features, config, name: studioName } = useStudio();
   const loyaltyCap = config?.settings.loyaltyCapPercent ?? 30;

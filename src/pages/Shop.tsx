@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { productListSchema, useSeo } from "@/lib/seo";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, ShoppingBag, SlidersHorizontal } from "lucide-react";
@@ -29,7 +30,7 @@ const recommended = (a: ProductDTO, b: ProductDTO) =>
 
 /** All products (categories-design): filters beside a paged grid. */
 const Shop = () => {
-  const { isLoading: studioLoading } = useStudio();
+  const { isLoading: studioLoading, name: shopName } = useStudio();
   const [params] = useSearchParams();
   const query = (params.get("q") ?? "").trim().toLowerCase();
   const brand = params.get("brand");
@@ -63,6 +64,13 @@ const Shop = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ["public-product-categories"],
     queryFn: () => productCategoriesApi.listActive(),
+  });
+  useSeo({
+    title: `Shop all products · ${shopName}`,
+    description: products.length
+      ? `Shop ${products.length} products from ${shopName}, including ${products.slice(0, 4).map((p) => p.name).join(", ")}. Pay by Mobile Money or card, with delivery or pickup.`
+      : `Shop online with ${shopName}. Pay by Mobile Money or card, with delivery or pickup.`,
+    structuredData: products.length ? productListSchema(shopName, products) : null,
   });
   useHideSplashWhen(!studioLoading && !isLoading);
 

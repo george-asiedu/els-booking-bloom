@@ -1,4 +1,5 @@
 import { vouchersApi, type VoucherCheck } from "@/lib/api/vouchers";
+import { useNoIndex } from "@/lib/seo";
 import { useStudio } from "@/hooks/useStudio";
 import { processingFeeFor } from "@/lib/fees";
 import { useEffect, useState } from "react";
@@ -26,6 +27,8 @@ import { cn } from "@/lib/utils";
 
 /** "You're almost there" (checkout): delivery details beside the order summary. */
 const Checkout = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();

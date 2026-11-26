@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNoIndex } from "@/lib/seo";
 import { Link } from "react-router-dom";
 import { CouponBox } from "@/components/shop/CouponBox";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +15,8 @@ import { formatGHS as GHS } from "@/lib/currency";
 
 /** Your basket (cart_bag): a table of items, totals, and "you may also like". */
 const Cart = () => {
+  // Private page: keep it out of search results.
+  useNoIndex();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

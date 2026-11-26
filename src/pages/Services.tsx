@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { servicesSchema, useSeo } from "@/lib/seo";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,14 @@ const Services = () => {
   const pages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const current = Math.min(page, pages);
   const pageItems = filtered.slice((current - 1) * PER_PAGE, current * PER_PAGE);
+
+  useSeo({
+    title: `Services and prices · ${studioName}`,
+    description: source.length
+      ? `${studioName}: ${source.slice(0, 6).map((s) => s.name).join(", ")}. See prices and how long each takes, then book online.`
+      : `See ${studioName}'s services and prices, and book online.`,
+    structuredData: source.length ? servicesSchema(studioName, source) : null,
+  });
 
   const galleryPhotos = gallery.filter((g) => g.media_type === "image");
   const heroImg = galleryPhotos[0]?.image_url ?? null;

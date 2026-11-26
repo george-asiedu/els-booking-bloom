@@ -11,6 +11,8 @@ interface Seo {
   image?: string | null;
   /** schema.org objects, rendered as one JSON-LD script. */
   structuredData?: Record<string, unknown> | Record<string, unknown>[] | null;
+  /** Keep this page out of search results (carts, accounts, callbacks). */
+  noIndex?: boolean;
 }
 
 const setMeta = (attr: "name" | "property", key: string, content: string | null | undefined) => {
@@ -27,7 +29,7 @@ const setMeta = (attr: "name" | "property", key: string, content: string | null 
   el.content = content;
 };
 
-export const useSeo = ({ title, description, image, structuredData }: Seo) => {
+export const useSeo = ({ title, description, image, structuredData, noIndex }: Seo) => {
   const data = structuredData ? JSON.stringify(structuredData) : null;
   useEffect(() => {
     document.title = title;
@@ -39,6 +41,7 @@ export const useSeo = ({ title, description, image, structuredData }: Seo) => {
     setMeta("property", "og:url", url);
     if (image) setMeta("property", "og:image", image);
     setMeta("name", "twitter:card", image ? "summary_large_image" : "summary");
+    setMeta("name", "robots", noIndex ? "noindex, nofollow" : null);
 
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) {
@@ -60,7 +63,7 @@ export const useSeo = ({ title, description, image, structuredData }: Seo) => {
     return () => {
       document.getElementById(id)?.remove();
     };
-  }, [title, description, image, data]);
+  }, [title, description, image, data, noIndex]);
 };
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -109,4 +112,64 @@ export const businessSchema = (b: {
           .map((h) => ({ "@type": "OpeningHoursSpecification", dayOfWeek: DAYS[h.day_of_week], opens: hhmm(h.open_time), closes: hhmm(h.close_time) })),
       }
     : {}),
+});
+
+/**
+ * Keep a private page (cart, checkout, account, sign-in, payment callbacks,
+ * dashboards) out of search results. Removed again when the page closes.
+ */
+export const useNoIndex = () => {
+  useEffect(() => {
+    let el = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    const created = !el;
+    if (!el) {
+      el = document.createElement("meta");
+      el.name = "robots";
+      document.head.appendChild(el);
+    }
+    const before = el.content;
+    el.content = "noindex, nofollow";
+    return () => {
+      if (created) el?.remove();
+      else if (el) el.content = before;
+    };
+  }, []);
+};
+
+/** schema.org list of a business's services with their prices (Ghana cedis). */
+export const servicesSchema = (
+  business: string,
+  services: { name: string; description?: string | null; price: number; image_url?: string | null }[],
+) => ({
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: `${business} services and prices`,
+  itemListElement: services.slice(0, 50).map((s, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    item: {
+      "@type": "Service",
+      name: s.name,
+      ...(s.description ? { description: s.description.slice(0, 300) } : {}),
+      ...(s.image_url?.startsWith("http") ? { image: s.image_url } : {}),
+      provider: { "@type": "LocalBusiness", name: business, url: window.location.origin },
+      offers: { "@type": "Offer", price: s.price, priceCurrency: "GHS" },
+    },
+  })),
+});
+
+/** schema.org list of products, for a shop's product listing. */
+export const productListSchema = (
+  shop: string,
+  products: { id: string; name: string; image_url?: string | null; effective_price: number; in_stock?: boolean }[],
+) => ({
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: `${shop} products`,
+  itemListElement: products.slice(0, 50).map((p, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    url: `${window.location.origin}/shop/${p.id}`,
+    name: p.name,
+  })),
 });
