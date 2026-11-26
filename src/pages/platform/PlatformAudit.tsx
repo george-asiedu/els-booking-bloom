@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { Loader2, ScrollText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,13 +45,15 @@ const PlatformAudit = () => {
   const studioName = (id: string | null) =>
     id ? studios.find((s) => s.id === id)?.name ?? null : null;
 
-  const { data: logs = [], isLoading } = useQuery({
+  const logsQuery = useInfiniteQuery({
     queryKey: ["platform", "audit", studioFilter],
-    queryFn: () =>
-      platformApi.listAuditLogs(
-        studioFilter === "ALL" ? undefined : { studioId: studioFilter },
-      ),
+    queryFn: ({ pageParam }) =>
+      platformApi.listAuditLogsPage(studioFilter === "ALL" ? undefined : studioFilter, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor ?? undefined : undefined),
   });
+  const logs = logsQuery.data?.pages.flatMap((pg) => pg.items) ?? [];
+  const isLoading = logsQuery.isLoading;
 
   const setStudio = (value: string) => {
     setSearchParams(value === "ALL" ? {} : { studio: value });
@@ -125,6 +128,7 @@ const PlatformAudit = () => {
           </CardContent>
         </Card>
       )}
+      <LoadMore query={logsQuery} label="Load older entries" />
     </PlatformLayout>
   );
 };

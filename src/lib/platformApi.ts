@@ -750,6 +750,13 @@ export const platformApi = {
     );
     return res.data;
   },
+  async listAuditLogsPage(
+    studioId?: string,
+    cursor?: string | null,
+    limit = 50,
+  ): Promise<PlatformPage<AuditLogEntry>> {
+    return platformPage<AuditLogEntry>("/audit-logs", { studioId, cursor, limit });
+  },
   async listActivityLogs(params: {
     cursor?: string;
     limit?: number;
