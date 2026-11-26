@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { format } from "date-fns";
 import { Copy, Gift, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,14 @@ import { cn } from "@/lib/utils";
 /** The customer's gift cards and packages, with codes to copy and what's left. */
 export const GiftCardsTab = ({ booking }: { booking: boolean }) => {
   const { toast } = useToast();
-  const { data = [], isLoading } = useQuery({ queryKey: ["my-vouchers"], queryFn: () => vouchersApi.mine() });
+  const vouchersQuery = useInfiniteQuery({
+    queryKey: ["my-vouchers"],
+    queryFn: ({ pageParam }) => vouchersApi.minePage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor ?? undefined : undefined),
+  });
+  const data = vouchersQuery.data?.pages.flatMap((pg) => pg.items) ?? [];
+  const isLoading = vouchersQuery.isLoading;
   const copy = (code: string) =>
     navigator.clipboard.writeText(code).then(
       () => toast({ title: "Code copied", description: booking ? "Paste it when you book or check out." : "Paste it at checkout." }),
@@ -97,6 +105,7 @@ export const GiftCardsTab = ({ booking }: { booking: boolean }) => {
           })}
         </div>
       )}
+      <LoadMore query={vouchersQuery} />
     </div>
   );
 };

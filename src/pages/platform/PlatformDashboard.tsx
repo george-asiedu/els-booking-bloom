@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { planLabel } from "@/config/platform";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { usePagedList } from "@/hooks/usePagedList";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import {
   Loader2,
   Plus,
@@ -104,19 +104,20 @@ const PlatformDashboard = () => {
 
   const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED">("ALL");
 
-  const { data: allStudios, isLoading, isError, error } = useQuery({
-    queryKey: ["platform", "studios"],
-    queryFn: () => platformApi.listStudios(),
+  // A page of studios at a time, filtered on the server.
+  const studiosQuery = useInfiniteQuery({
+    queryKey: ["platform", "studios", filter],
+    queryFn: ({ pageParam }) => platformApi.listStudiosPage(filter === "ALL" ? undefined : filter, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor ?? undefined : undefined),
   });
+  const { isLoading, isError, error } = studiosQuery;
   const { data: analytics } = useQuery({
     queryKey: ["platform", "analytics"],
     queryFn: () => platformApi.getAnalytics(),
   });
 
-  const studios = allStudios?.filter(
-    (s) => filter === "ALL" || s.status === filter,
-  );
-  const paged = usePagedList(studios ?? [], 15);
+  const studios = studiosQuery.data?.pages.flatMap((pg) => pg.items);
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: StudioStatus }) =>
@@ -158,8 +159,8 @@ const PlatformDashboard = () => {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Welcome back</h1>
           <p className="text-sm text-muted-foreground">
-            {allStudios
-              ? `${allStudios.length} studios and stores on Zuri`
+            {analytics
+              ? `${analytics.studios.total} studios and stores on Zuri`
               : " "}
           </p>
         </div>
@@ -286,7 +287,7 @@ const PlatformDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.rows.map((s) => {
+                {(studios ?? []).map((s) => {
                   const busy =
                     busyId === s.id ||
                     (statusMutation.isPending &&
@@ -396,13 +397,7 @@ const PlatformDashboard = () => {
               </TableBody>
             </Table>
           </div>
-          <TablePagination
-            page={paged.page}
-            pageSize={paged.pageSize}
-            total={paged.total}
-            onPageChange={paged.setPage}
-            noun="studios"
-          />
+          <LoadMore query={studiosQuery} label="Load more studios" />
         </Card>
       )}
     </PlatformLayout>

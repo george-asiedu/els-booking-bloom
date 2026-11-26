@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/apiClient";
+import { CursorPage, Envelope, cursorPage, cursorQuery } from "./core";
 
 export interface PackageOfferDTO {
   id: string;
@@ -63,7 +64,8 @@ export interface MyVoucherDTO {
 }
 
 export const vouchersApi = {
-  mine: async () => (await apiRequest<{ data: MyVoucherDTO[] }>("/vouchers/mine", { auth: true })).data,
+  minePage: async (cursor?: string | null, limit = 20): Promise<CursorPage<MyVoucherDTO>> =>
+    cursorPage(await apiRequest<Envelope<MyVoucherDTO[]>>(`/vouchers/mine?${cursorQuery(cursor, limit)}`, { auth: true })),
   packages: async () => (await apiRequest<{ data: PackageOfferDTO[] }>("/vouchers/packages")).data,
   buyGiftCard: async (body: {
     amount: number;
@@ -84,7 +86,8 @@ export const vouchersApi = {
       `/vouchers/check?code=${encodeURIComponent(code)}${serviceId ? `&serviceId=${encodeURIComponent(serviceId)}` : ""}`,
     )).data,
   // Admin
-  list: async () => (await apiRequest<{ data: VoucherDTO[] }>("/vouchers", { auth: true })).data,
+  listPage: async (cursor?: string | null, limit = 25): Promise<CursorPage<VoucherDTO>> =>
+    cursorPage(await apiRequest<Envelope<VoucherDTO[]>>(`/vouchers?${cursorQuery(cursor, limit)}`, { auth: true })),
   redeem: async (id: string, amount?: number) =>
     apiRequest<{ message: string }>(`/vouchers/${id}/redeem`, { method: "POST", auth: true, body: { amount } }),
   allPackages: async () => (await apiRequest<{ data: PackageOfferDTO[] }>("/vouchers/packages/all", { auth: true })).data,

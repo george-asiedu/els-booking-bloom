@@ -526,8 +526,12 @@ export const platformApi = {
     return platformRequest<StudioOption[]>("/studios/options");
   },
 
-  async listStudios(): Promise<StudioSummary[]> {
-    return platformRequest<StudioSummary[]>("/studios");
+  async listStudiosPage(
+    status?: StudioStatus,
+    cursor?: string | null,
+    limit = 15,
+  ): Promise<PlatformPage<StudioSummary>> {
+    return platformPage<StudioSummary>("/studios", { status, cursor, limit });
   },
 
   // ---- Users (every studio) ----

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { format } from "date-fns";
 import { ExternalLink, Gift, Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -24,7 +25,14 @@ const AdminVouchers = () => {
   const { toast } = useToast();
   const { features } = useStudio();
   const booking = features.booking !== false;
-  const { data: sold = [], isLoading } = useQuery({ queryKey: ["admin-vouchers"], queryFn: () => vouchersApi.list() });
+  const soldQuery = useInfiniteQuery({
+    queryKey: ["admin-vouchers"],
+    queryFn: ({ pageParam }) => vouchersApi.listPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor ?? undefined : undefined),
+  });
+  const sold = soldQuery.data?.pages.flatMap((pg) => pg.items) ?? [];
+  const isLoading = soldQuery.isLoading;
   const { data: offers = [] } = useQuery({ queryKey: ["admin-packages"], queryFn: () => vouchersApi.allPackages(), enabled: booking });
   const { data: services = [] } = useQuery({ queryKey: ["admin-services"], queryFn: () => servicesApi.listAll(), enabled: booking });
   const serviceName = (id: string | null) => services.find((s) => s.id === id)?.name ?? "";
@@ -193,6 +201,7 @@ const AdminVouchers = () => {
           </Table>
         </div>
       )}
+      <LoadMore query={soldQuery} label="Load more" />
 
       <Dialog open={offerOpen} onOpenChange={setOfferOpen}>
         <DialogContent className="max-w-md">

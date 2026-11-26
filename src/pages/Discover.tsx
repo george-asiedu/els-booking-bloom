@@ -2,7 +2,8 @@ import { SearchBox } from "@/components/ui/search-box";
 import { useSeo } from "@/lib/seo";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { MapPin, Star, Store } from "lucide-react";
 import { NavSection } from "./landing/LandingNav";
 import { FooterSection } from "./landing/ClosingSections";
@@ -49,16 +50,18 @@ const Discover = () => {
     if (kind) next.set("kind", kind);
     setParams(next, { replace: true });
   }, [term, kind, setParams]);
-  const { data = [], isLoading, isFetching } = useQuery({
+  const directory = useInfiniteQuery({
     queryKey: ["directory", term, kind],
-    queryFn: async () =>
-      (
-        await apiRequest<{ data: Listing[] }>(
-          `/platform/directory?${new URLSearchParams({ ...(term ? { q: term } : {}), ...(kind ? { kind } : {}) })}`,
-        )
-      ).data,
+    queryFn: ({ pageParam }) =>
+      apiRequest<{ data: Listing[]; pagination?: { nextCursor: string | null; hasMore: boolean } }>(
+        `/platform/directory?${new URLSearchParams({ limit: "24", ...(term ? { q: term } : {}), ...(kind ? { kind } : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.pagination?.hasMore ? last.pagination.nextCursor ?? undefined : undefined),
     placeholderData: (prev) => prev,
   });
+  const data = directory.data?.pages.flatMap((pg) => pg.data) ?? [];
+  const { isLoading, isFetching } = directory;
   useHideSplashWhen(!isLoading);
   useSeo({
     title: "Zuri Marketplace: book beauty studios and shop online in Ghana",
@@ -172,6 +175,7 @@ const Discover = () => {
                 </a>
               ))}
         </div>
+        <LoadMore query={directory} label="Show more businesses" />
         {!isLoading && data.length === 0 && (
           <div className="mt-6 rounded-2xl border border-dashed border-border p-10 text-center">
             <p className="font-medium">No businesses match that yet</p>
