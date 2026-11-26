@@ -1,7 +1,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
 import { useQuery } from "@tanstack/react-query";
-import PaystackPop from "@paystack/inline-js";
+import { openPaystackCheckout } from "@/lib/paystackCheckout";
 import { paymentsApi } from "@/lib/api";
 import { downloadReceipt, receiptFromVerify } from "@/lib/receipt";
 import { useStudio } from "@/hooks/useStudio";
@@ -69,18 +69,16 @@ const PaymentCallback = () => {
         receipt?.type === "partial" ? "PARTIAL" : "FULL",
       );
       processing.hide();
-      const popup = new PaystackPop();
-      popup.resumeTransaction(init.access_code, {
-        onSuccess: () => {
-          // The new charge uses a fresh reference; point the screen at it so it
-          // re-verifies and flips to success.
-          navigate(`?reference=${encodeURIComponent(init.reference)}`, {
-            replace: true,
-          });
-        },
-        onError: (e: { message?: string }) =>
-          toast({ variant: "destructive", title: "Payment failed", description: e?.message }),
+      // A popup error is a failed payment, not a failure to reopen it.
+      const result = await openPaystackCheckout(init.access_code).catch((e: unknown) => {
+        toast({ variant: "destructive", title: "Payment failed", description: e instanceof Error ? e.message : undefined });
+        return null;
       });
+      if (result === "paid") {
+        // The new charge uses a fresh reference; point the screen at it so it
+        // re-verifies and flips to success.
+        navigate(`?reference=${encodeURIComponent(init.reference)}`, { replace: true });
+      }
     } catch (err) {
       processing.hide();
       toast({

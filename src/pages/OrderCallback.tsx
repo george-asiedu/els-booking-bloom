@@ -4,7 +4,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { ShopLayout } from "@/components/shop/ShopLayout";
 import { SHOP_CTA } from "@/components/shop/ProductCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import PaystackPop from "@paystack/inline-js";
+import { openPaystackCheckout } from "@/lib/paystackCheckout";
 import { ordersApi } from "@/lib/api";
 import { downloadOrderReceipt } from "@/lib/receipt";
 import { useStudio } from "@/hooks/useStudio";
@@ -80,16 +80,14 @@ const OrderCallback = () => {
       processing.show(PROCESSING.preparing);
       const init = await ordersApi.repay(orderId);
       processing.hide();
-      const popup = new PaystackPop();
-      popup.resumeTransaction(init.accessCode, {
-        onSuccess: () => {
-          navigate(`?reference=${encodeURIComponent(init.reference)}`, {
-            replace: true,
-          });
-        },
-        onError: (e: { message?: string }) =>
-          toast({ variant: "destructive", title: "Payment failed", description: e?.message }),
+      // A popup error is a failed payment, not a failure to reopen it.
+      const result = await openPaystackCheckout(init.accessCode).catch((e: unknown) => {
+        toast({ variant: "destructive", title: "Payment failed", description: e instanceof Error ? e.message : undefined });
+        return null;
       });
+      if (result === "paid") {
+        navigate(`?reference=${encodeURIComponent(init.reference)}`, { replace: true });
+      }
     } catch (err) {
       processing.hide();
       toast({
