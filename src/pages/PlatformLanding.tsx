@@ -8,6 +8,7 @@ import { StorefrontsSection } from "./landing/ShowcaseSections";
 import { LoyaltyReviewsSection } from "./landing/ProductSections";
 import { PlatformMetricsSection } from "./landing/TrustSections";
 import { StickySetupCta } from "./landing/StickySetupCta";
+import { MarketplaceSection } from "./landing/MarketplaceSection";
 import { PricingSection, TrainingSection, FaqSection, FooterSection } from "./landing/ClosingSections";
 import {
   PhotoHero,
@@ -34,6 +35,7 @@ const PlatformLanding = () => {
       <DifferenceBand />
       <TypesCarousel />
       <StorefrontsSection />
+      <MarketplaceSection />
       <PlatformMetricsSection />
       <StepsBand />
       <LoyaltyReviewsSection />

@@ -120,7 +120,7 @@ export const NAV_LINKS = [
   { href: "/#features", label: "Features" },
   { href: "/#how", label: "How it works" },
   { href: "/#pricing", label: "Pricing" },
-  { href: "/discover", label: "Find a business" },
+  { href: "/#marketplace", label: "Marketplace" },
 ];
 
 // How a prospective studio gets in touch: WhatsApp when configured, else email.

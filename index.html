@@ -52,6 +52,19 @@
         "logo": "https://zuristudios.com/zuri-logo.png"
       }
     </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Zuri",
+        "url": "https://zuristudios.com/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://zuristudios.com/discover?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
     <!-- Loading screen. Plain HTML/CSS so it paints before any JavaScript has
          downloaded; src/lib/splash.ts fades it out once the page is ready. -->
     <style>

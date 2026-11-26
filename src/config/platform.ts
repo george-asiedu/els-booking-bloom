@@ -80,6 +80,7 @@ const STANDARD_FEATURES = [
   "Reviews & photo/video gallery",
   "A banner for offers and promotions",
   "500 MB of storage for photos and videos",
+  "Free listing on the Zuri marketplace",
 ];
 
 export const PLANS: PlanDef[] = [
@@ -107,6 +108,7 @@ export const PLANS: PlanDef[] = [
       "Payments settled straight to your account",
       "Business insights: what to act on, not just charts",
       "1 GB of storage",
+      "Free listing on the Zuri marketplace",
     ],
   },
   {
@@ -124,6 +126,7 @@ export const PLANS: PlanDef[] = [
       "Customer accounts, loyalty points & referrals",
       "Promotions and discount banners",
       "Business insights: what to act on, not just charts",
+      "Free listing on the Zuri marketplace",
     ],
   },
 ];
