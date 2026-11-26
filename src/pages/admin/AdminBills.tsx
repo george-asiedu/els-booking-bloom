@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { format } from "date-fns";
 import QRCode from "qrcode";
 import { Copy, Loader2, MessageCircle, Plus, Receipt, Trash2 } from "lucide-react";
@@ -217,10 +218,26 @@ const AdminBills = () => {
   const [paying, setPaying] = useState<Bill | null>(null);
   const [method, setMethod] = useState("cash");
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["bills"],
-    queryFn: () => apiRequest<{ data: Bill[]; totals: { unpaid: number; paid: number } }>("/bills", { auth: true }),
+  // One page at a time, per tab. Totals and counts come from the server over
+  // every bill, so they are right however many pages are loaded.
+  type BillsPage = {
+    data: Bill[];
+    totals: { unpaid: number; paid: number };
+    counts: Record<BillTab, number>;
+    pagination?: { nextCursor: string | null; hasMore: boolean };
+  };
+  const billsQuery = useInfiniteQuery({
+    queryKey: ["bills", tab],
+    queryFn: ({ pageParam }) =>
+      apiRequest<BillsPage>(
+        `/bills?${new URLSearchParams({ limit: "25", ...(tab !== "ALL" ? { status: tab } : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
+        { auth: true },
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.pagination?.hasMore ? last.pagination.nextCursor ?? undefined : undefined),
   });
+  const isLoading = billsQuery.isLoading;
+  const data = billsQuery.data?.pages[0];
   const refresh = () => qc.invalidateQueries({ queryKey: ["bills"] });
   const fail = (e: unknown) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Something went wrong" });
   const markPaid = useMutation({
@@ -234,9 +251,8 @@ const AdminBills = () => {
     onError: fail,
   });
 
-  const bills = data?.data ?? [];
-  const shown = tab === "ALL" ? bills : bills.filter((b) => b.status === tab);
-  const count = (s: Bill["status"]) => bills.filter((b) => b.status === s).length;
+  const shown = billsQuery.data?.pages.flatMap((pg) => pg.data) ?? [];
+  const count = (s: BillTab) => data?.counts?.[s] ?? 0;
 
   return (
     <AdminLayout>
@@ -254,7 +270,7 @@ const AdminBills = () => {
           { key: "UNPAID", label: "Unpaid", count: count("UNPAID") },
           { key: "PAID", label: "Paid", count: count("PAID") },
           { key: "VOID", label: "Cancelled", count: count("VOID") },
-          { key: "ALL", label: "All", count: bills.length },
+          { key: "ALL", label: "All", count: count("ALL") },
         ]}
         value={tab}
         onChange={setTab}
@@ -306,6 +322,7 @@ const AdminBills = () => {
           </Table>
         </div>
       )}
+      <LoadMore query={billsQuery} label="Load more bills" />
 
       <NewBillDialog open={creating} onClose={() => setCreating(false)} onCreated={(b) => { setCreating(false); refresh(); setSharing(b); }} />
       <ShareDialog bill={sharing} onClose={() => setSharing(null)} />

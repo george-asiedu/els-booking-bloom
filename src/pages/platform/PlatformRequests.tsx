@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { Loader2, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,11 +32,15 @@ const PlatformRequests = () => {
   const { toast } = useToast();
   const [filter, setFilter] = useState<FeatureRequestStatus | "ALL">("ALL");
 
-  const { data: requests = [], isLoading } = useQuery({
+  const requestsQuery = useInfiniteQuery({
     queryKey: ["platform", "feature-requests", filter],
-    queryFn: () =>
-      platformApi.listFeatureRequests(filter === "ALL" ? undefined : filter),
+    queryFn: ({ pageParam }) =>
+      platformApi.listFeatureRequestsPage(filter === "ALL" ? undefined : filter, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor ?? undefined : undefined),
   });
+  const requests = requestsQuery.data?.pages.flatMap((pg) => pg.items) ?? [];
+  const isLoading = requestsQuery.isLoading;
 
   const mutation = useMutation({
     mutationFn: ({
@@ -217,6 +222,7 @@ const PlatformRequests = () => {
           ))}
         </div>
       )}
+      <LoadMore query={requestsQuery} label="Load more requests" />
     </PlatformLayout>
   );
 };

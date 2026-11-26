@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { Loader2, Quote, Star, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,10 +14,14 @@ const PlatformReviews = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: reviews = [], isLoading } = useQuery({
+  const reviewsQuery = useInfiniteQuery({
     queryKey: ["platform", "reviews"],
-    queryFn: () => platformApi.listReviews(),
+    queryFn: ({ pageParam }) => platformApi.listReviewsPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor ?? undefined : undefined),
   });
+  const reviews = reviewsQuery.data?.pages.flatMap((pg) => pg.items) ?? [];
+  const isLoading = reviewsQuery.isLoading;
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["platform", "reviews"] });
@@ -114,6 +119,7 @@ const PlatformReviews = () => {
           ))}
         </div>
       )}
+      <LoadMore query={reviewsQuery} label="Load more testimonials" />
     </PlatformLayout>
   );
 };

@@ -454,6 +454,25 @@ export interface ScheduledJobDTO {
   updatedAt: string | null;
 }
 
+export interface PlatformPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+/** GET a cursor-paginated platform list. */
+const platformPage = async <T,>(
+  path: string,
+  q: { cursor?: string | null; limit?: number } & Record<string, string | number | null | undefined>,
+): Promise<PlatformPage<T>> => {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
+  const res = await platformRequest<{ data: T[]; pagination?: { nextCursor: string | null; hasMore: boolean } }>(
+    `${path}?${params}`,
+  );
+  return { items: res.data, nextCursor: res.pagination?.nextCursor ?? null, hasMore: res.pagination?.hasMore ?? false };
+};
+
 interface Envelope<T> {
   message: string;
   data: T;
@@ -662,14 +681,16 @@ export const platformApi = {
     });
   },
 
-  async listFeatureRequests(
+  async listFeatureRequestsPage(
     status?: FeatureRequestStatus,
-  ): Promise<PlatformFeatureRequest[]> {
-    const qs = status ? `?status=${status}` : "";
-    const res = await platformRequest<Envelope<PlatformFeatureRequest[]>>(
-      `/feature-requests${qs}`,
+    cursor?: string | null,
+    limit = 20,
+  ): Promise<{ items: PlatformFeatureRequest[]; nextCursor: string | null; hasMore: boolean }> {
+    const qs = new URLSearchParams({ limit: String(limit), ...(status ? { status } : {}), ...(cursor ? { cursor } : {}) });
+    const res = await platformRequest<Envelope<PlatformFeatureRequest[]> & { pagination?: { nextCursor: string | null; hasMore: boolean } }>(
+      `/feature-requests?${qs}`,
     );
-    return res.data;
+    return { items: res.data, nextCursor: res.pagination?.nextCursor ?? null, hasMore: res.pagination?.hasMore ?? false };
   },
 
   async updateFeatureRequestStatus(
@@ -691,9 +712,8 @@ export const platformApi = {
     return res.data;
   },
 
-  async listReviews(): Promise<PlatformReviewRow[]> {
-    const res = await platformRequest<Envelope<PlatformReviewRow[]>>("/reviews");
-    return res.data;
+  async listReviewsPage(cursor?: string | null, limit = 20): Promise<PlatformPage<PlatformReviewRow>> {
+    return platformPage<PlatformReviewRow>("/reviews", { cursor, limit });
   },
   async setReviewApproved(
     id: string,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoadMore } from "@/components/LoadMore";
 import { ImagePlus, Loader2, Lightbulb, Send, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -41,10 +42,14 @@ const AdminFeatureRequests = () => {
     if (fileInput.current) fileInput.current.value = "";
   };
 
-  const { data: requests = [], isLoading } = useQuery({
+  const requestsQuery = useInfiniteQuery({
     queryKey: ["feature-requests"],
-    queryFn: () => featureRequestsApi.list(),
+    queryFn: ({ pageParam }) => featureRequestsApi.listPage(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor ?? undefined : undefined),
   });
+  const requests = requestsQuery.data?.pages.flatMap((pg) => pg.items) ?? [];
+  const isLoading = requestsQuery.isLoading;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -239,6 +244,7 @@ const AdminFeatureRequests = () => {
               ))}
             </div>
           )}
+          <LoadMore query={requestsQuery} label="Load more requests" />
         </div>
       </div>
     </AdminLayout>

@@ -1,5 +1,5 @@
 import { apiRequest } from "../apiClient";
-import { Envelope } from "./core";
+import { Envelope, CursorPage, cursorPage, cursorQuery } from "./core";
 
 // ---------------- Feature requests (studio -> platform) ----------------
 
@@ -25,12 +25,12 @@ export interface FeatureRequestDTO {
 }
 
 export const featureRequestsApi = {
-  async list(): Promise<FeatureRequestDTO[]> {
+  async listPage(cursor?: string | null, limit = 20): Promise<CursorPage<FeatureRequestDTO>> {
     const res = await apiRequest<Envelope<FeatureRequestDTO[]>>(
-      "/feature-requests",
+      `/feature-requests?${cursorQuery(cursor, limit)}`,
       { auth: true },
     );
-    return res.data;
+    return cursorPage(res);
   },
 
   async create(input: {
