@@ -126,7 +126,6 @@ export const PLANS: PlanDef[] = [
       "Sell products during booking",
       "Payments settled straight to your account",
       "Business insights: what to act on, not just charts",
-      "Manage your staff",
       "{storagePremium} of storage for photos and videos",
       "{storageExtra}",
       "Free listing on the Zuri marketplace",
