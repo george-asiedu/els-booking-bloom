@@ -21,6 +21,9 @@ export interface FeatureRequestDTO {
   monthlyFee?: number | null;
   /** Pictures attached to the request (up to 5). */
   images?: string[];
+  /** An optional PDF or Word document explaining it in detail. */
+  documentUrl?: string | null;
+  documentName?: string | null;
   createdAt: string;
 }
 
@@ -37,6 +40,8 @@ export const featureRequestsApi = {
     title: string;
     description: string;
     images?: string[];
+    documentUrl?: string;
+    documentName?: string;
   }): Promise<FeatureRequestDTO> {
     const res = await apiRequest<Envelope<FeatureRequestDTO>>(
       "/feature-requests",

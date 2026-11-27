@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCursorPages } from "@/hooks/useCursorPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
-import { ImagePlus, Loader2, Lightbulb, Send, X } from "lucide-react";
+import { FileText, ImagePlus, Loader2, Lightbulb, Send, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,20 @@ const AdminFeatureRequests = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+  // One optional document (PDF or Word) with the detail.
+  const [doc, setDoc] = useState<File | null>(null);
+  const docInput = useRef<HTMLInputElement>(null);
+  const DOC_TYPES = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+  const pickDoc = (picked: FileList | null) => {
+    const f = picked?.[0];
+    if (docInput.current) docInput.current.value = "";
+    if (!f) return;
+    if (!DOC_TYPES.includes(f.type) || f.size > 10 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "That file can't be attached", description: "Use a PDF or Word document up to 10 MB." });
+      return;
+    }
+    setDoc(f);
+  };
   const MAX_IMAGES = 5;
 
   // Small previews of the chosen pictures; released when they change.
@@ -56,12 +70,14 @@ const AdminFeatureRequests = () => {
     mutationFn: async () => {
       // Pictures go up first, then the request carries their addresses.
       const images = await Promise.all(files.map((f) => uploadStudioMedia(f, "requests")));
-      return featureRequestsApi.create({ title, description, images });
+      const documentUrl = doc ? await uploadStudioMedia(doc, "requests") : undefined;
+      return featureRequestsApi.create({ title, description, images, ...(documentUrl ? { documentUrl, documentName: doc!.name } : {}) });
     },
     onSuccess: () => {
       setTitle("");
       setDescription("");
       setFiles([]);
+      setDoc(null);
       queryClient.invalidateQueries({ queryKey: ["feature-requests"] });
       toast({
         title: "Request submitted",
@@ -163,6 +179,26 @@ const AdminFeatureRequests = () => {
               </div>
               <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
             </div>
+            <div className="space-y-2">
+              <Label>Document (optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Have a longer explanation, a spec or a brief? Attach one PDF or Word document, up to 10 MB.
+              </p>
+              {doc ? (
+                <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">{doc.name}</span>
+                  <button type="button" aria-label="Remove the document" onClick={() => setDoc(null)} className="rounded-full p-0.5 hover:bg-accent">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" size="sm" onClick={() => docInput.current?.click()}>
+                  <FileText className="mr-2 h-4 w-4" /> Attach a document
+                </Button>
+              )}
+              <input ref={docInput} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={(e) => pickDoc(e.target.files)} />
+            </div>
             <div className="flex justify-end">
               <Button onClick={() => mutation.mutate()} disabled={!canSubmit}>
                 {mutation.isPending ? (
@@ -211,6 +247,11 @@ const AdminFeatureRequests = () => {
                               </a>
                             ))}
                           </div>
+                        )}
+                        {r.documentUrl && (
+                          <a href={r.documentUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                            <FileText className="h-4 w-4" /> {r.documentName || "Document"}
+                          </a>
                         )}
                         <p className="mt-2 text-xs text-muted-foreground">
                           {format(new Date(r.createdAt), "MMM d, yyyy")}

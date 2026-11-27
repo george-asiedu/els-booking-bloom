@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useCursorPages } from "@/hooks/useCursorPages";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoadMore } from "@/components/LoadMore";
-import { Loader2, Lightbulb } from "lucide-react";
+import { FileText, Loader2, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -146,6 +146,11 @@ const PlatformRequests = () => {
                           </a>
                         ))}
                       </div>
+                    )}
+                    {r.documentUrl && (
+                      <a href={r.documentUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                        <FileText className="h-4 w-4" /> {r.documentName || "Document"}
+                      </a>
                     )}
                     <p className="mt-2 text-xs text-muted-foreground">
                       {format(new Date(r.createdAt), "MMM d, yyyy")}
