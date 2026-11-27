@@ -32,6 +32,7 @@ import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { productsApi, productCategoriesApi, productReviewsApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
+import { optionPrice, optionBase, hasOptionPrices } from "@/lib/api/products";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -320,8 +321,11 @@ const ProductDetail = () => {
   }
 
   const deliveryFee = commerce?.delivery_fee ?? 0;
-  const guestTotal = lineTotal_(product.effective_price, qty) + (fulfillment === "DELIVERY" ? deliveryFeeFor(commerce, pick.zoneId) : 0);
-  const lineTotal = lineTotal_(product.effective_price, qty);
+  // Each unit is priced by its own option, so a mix of options adds up right.
+  const unitRows = variantLines();
+  const lineTotal = lineTotal_(1, unitRows.reduce((n, l) => n + optionPrice(product, l.size) * l.quantity, 0));
+  const lineBefore = lineTotal_(1, unitRows.reduce((n, l) => n + optionBase(product, l.size) * l.quantity, 0));
+  const guestTotal = lineTotal + (fulfillment === "DELIVERY" ? deliveryFeeFor(commerce, pick.zoneId) : 0);
   const categoryName = categories.find((c) => c.slug === product.category)?.name ?? product.category.replace(/-/g, " ");
   const others = allProducts.filter((p) => p.id !== product.id);
   // Same category first, then pieces for the same audience, eight in all.
@@ -417,9 +421,16 @@ const ProductDetail = () => {
               </span>
             </a>
 
+            <p className="mt-4 text-2xl font-semibold tabular-nums">
+              {product.on_promo && <span className="mr-2 text-base font-normal text-muted-foreground line-through">{formatGHS(optionBase(product, size || null))}</span>}
+              {hasOptionPrices(product) && !size && <span className="mr-1.5 text-base font-normal text-muted-foreground">From</span>}
+              {formatGHS(optionPrice(product, size || null))}
+              {product.unit && <span className="ml-1 text-base font-normal text-muted-foreground">per {product.unit}</span>}
+            </p>
+
             {product.sizes.length > 0 && (
               <div className="mt-7">
-                <p className="text-sm font-semibold">Select size</p>
+                <p className="text-sm font-semibold">{product.variants.length > 0 ? "Choose an option" : "Select size"}</p>
                 <div className="mt-3 flex flex-wrap gap-2.5">
                   {product.sizes.map((sz) => (
                     <button
@@ -433,6 +444,7 @@ const ProductDetail = () => {
                       )}
                     >
                       {sz}
+                      {hasOptionPrices(product) && <span className={cn("ml-1.5 text-xs", size === sz ? "opacity-80" : "text-muted-foreground")}>{formatGHS(optionPrice(product, sz))}</span>}
                     </button>
                   ))}
                 </div>
@@ -511,7 +523,7 @@ const ProductDetail = () => {
                   Add to cart
                 </Button>
                 <span className="flex h-12 items-center rounded-xl border border-foreground/80 px-5 text-sm font-semibold tabular-nums">
-                  {product.on_promo && <span className="mr-2 font-normal text-muted-foreground line-through">{formatGHS(product.price * qty)}</span>}
+                  {product.on_promo && <span className="mr-2 font-normal text-muted-foreground line-through">{formatGHS(lineBefore)}</span>}
                   {formatGHS(lineTotal)}
                 </span>
               </div>

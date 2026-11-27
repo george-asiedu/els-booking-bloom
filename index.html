@@ -165,7 +165,9 @@
   </head>
 
   <body>
-    <div id="splash" role="status" aria-label="Loading">
+    <!-- data-root-domain: the platform's own address (VITE_ROOT_DOMAIN), so the
+         loading screen knows it from a studio at <slug>.<root>. Vite fills it in. -->
+    <div id="splash" role="status" aria-label="Loading" data-root-domain="%VITE_ROOT_DOMAIN%">
       <div class="splash-mark" id="splash-mark"></div>
       <p class="splash-name" id="splash-name"></p>
       <div class="splash-bar"></div>

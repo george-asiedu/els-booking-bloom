@@ -4,7 +4,7 @@ import { useCursorPages } from "@/hooks/useCursorPages";
 import { useState } from "react";
 import { ProductDetails } from "@/components/admin/RowDetails";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Loader2, ShoppingBag, ImageOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShoppingBag, ImageOff, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,7 +68,9 @@ interface ProductFormData {
   stock: string;
   trackStock: boolean;
   popular: boolean;
-  sizes: string;
+  unit: string;
+  /** Each option a customer can choose, with its own price (blank = the main price). */
+  options: { label: string; price: string }[];
   colors: { name: string; hex: string }[];
   images: string[];
   audience: ProductAudience;
@@ -86,13 +88,30 @@ const emptyForm: ProductFormData = {
   stock: "0",
   trackStock: true,
   popular: false,
-  sizes: "",
+  unit: "",
+  options: [],
   colors: [],
   images: [],
   audience: "UNISEX",
   brand: "",
   attributes: [],
 };
+
+/**
+ * The options a customer chooses from. If any option has its own price, every
+ * option is saved with one (a blank one takes the main price); otherwise they
+ * are plain choices that all cost the same.
+ */
+const optionFields = (data: ProductFormData) => {
+  const rows = data.options.map((o) => ({ label: o.label.trim(), price: o.price.trim() })).filter((o) => o.label);
+  if (rows.some((o) => o.price)) {
+    const main = parseFloat(data.price) || 0;
+    return { variants: rows.map((o) => ({ label: o.label, price: o.price ? parseFloat(o.price) : main })) };
+  }
+  return { variants: [], sizes: rows.map((o) => o.label) };
+};
+
+const UNIT_SUGGESTIONS = ["kg", "crate", "bag", "dozen", "piece", "litre", "bundle", "tray", "pack"];
 
 const AdminProducts = () => {
   // The row whose details drawer is open.
@@ -145,7 +164,8 @@ const AdminProducts = () => {
         image,
         newImages,
         images: data.images,
-        sizes: data.sizes.split(",").map((x) => x.trim()).filter(Boolean),
+        unit: data.unit.trim() || null,
+        ...optionFields(data),
         colors: data.colors.filter((c) => c.name.trim()).map((c) => `${c.name.trim()}|${c.hex}`),
         audience: data.audience,
         brand: data.brand.trim() || null,
@@ -215,7 +235,10 @@ const AdminProducts = () => {
       stock: p.stock.toString(),
       trackStock: p.track_stock,
       popular: p.popular,
-      sizes: p.sizes.join(", "),
+      unit: p.unit ?? "",
+      options: p.variants.length
+        ? p.variants.map((v) => ({ label: v.label, price: String(v.price) }))
+        : p.sizes.map((label) => ({ label, price: "" })),
       colors: p.colors,
       audience: p.audience,
       brand: p.brand ?? "",
@@ -609,9 +632,47 @@ const AdminProducts = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sizes">Sizes (optional)</Label>
-              <Input id="sizes" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} placeholder="S, M, L, XL" />
-              <p className="text-xs text-muted-foreground">Separate with commas. Customers must pick one. All sizes share the stock above.</p>
+              <Label htmlFor="unit">Sold by (optional)</Label>
+              <Input id="unit" list="unit-suggestions" maxLength={20} value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="kg, crate, bag, dozen..." />
+              <datalist id="unit-suggestions">
+                {UNIT_SUGGESTIONS.map((u) => <option key={u} value={u} />)}
+              </datalist>
+              <p className="text-xs text-muted-foreground">Shows after the price: GHS 45 per kg. Customers order a whole number of them.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Options and prices (optional)</Label>
+              {form.options.map((o, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    aria-label={`Option ${i + 1} name`}
+                    value={o.label}
+                    maxLength={40}
+                    placeholder="e.g. 5 kg bag, or Large"
+                    onChange={(e) => setForm({ ...form, options: form.options.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
+                  />
+                  <Input
+                    aria-label={`Option ${i + 1} price`}
+                    className="w-32"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Price"
+                    value={o.price}
+                    onChange={(e) => setForm({ ...form, options: form.options.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)) })}
+                  />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove option" onClick={() => setForm({ ...form, options: form.options.filter((_, j) => j !== i) })}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {form.options.length < 30 && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, options: [...form.options, { label: "", price: "" }] })}>
+                  <Plus className="mr-2 h-4 w-4" /> Add option
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Customers must pick one. Give an option a price and each one can cost something different (1 kg, 5 kg, a 20 kg crate). Leave every price empty and they all cost the main price. All options share the stock above, and a sale takes the same percentage off each.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Colours (optional)</Label>

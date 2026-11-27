@@ -1,5 +1,6 @@
 import { apiRequest, tokenStore } from "../apiClient";
-import { productsApi } from "./products";
+import { optionPrice, productsApi } from "./products";
+import { effectivePriceFor } from "../variantPricing";
 import { Envelope } from "./core";
 
 // ---------------- Commerce: cart ----------------
@@ -34,6 +35,7 @@ interface RawCart {
       name: string;
       price: number;
       promoPrice: number | null;
+      variants?: unknown;
       imageUrl: string | null;
       stock: number;
       trackStock: boolean;
@@ -45,8 +47,7 @@ interface RawCart {
 const normalizeCart = (c: RawCart | null): CartDTO => {
   const items = (c?.items ?? []).map((it) => {
     const p = it.product;
-    const onPromo = p.promoPrice != null && p.promoPrice < p.price;
-    const unit = onPromo ? (p.promoPrice as number) : p.price;
+    const unit = effectivePriceFor(p, it.size);
     return {
       product_id: it.productId,
       size: it.size ?? "",
@@ -97,7 +98,7 @@ const guestCart = async (): Promise<CartDTO> => {
   const products = await productsApi.listActive();
   const items: CartItemDTO[] = lines.map((l) => {
     const p = products.find((x) => x.id === l.productId);
-    const unit = p?.effective_price ?? 0;
+    const unit = p ? optionPrice(p, l.size) : 0;
     const room = p?.track_stock ? p.stock : null;
     const quantity = room !== null ? Math.min(l.quantity, Math.max(room, 1)) : l.quantity;
     return {

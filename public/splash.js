@@ -17,7 +17,7 @@
   // The platform's own pages (console, landing, signup, studio sign-in,
   // legal) are always Zuri's, even when a studio was last opened on this
   // address (locally, or after "Enter dashboard" from the console).
-  var platformPage = /^\/(platform|welcome|onboarding|studio-login|privacy|terms)(\/|$)/.test(
+  var platformPage = /^\/(platform|welcome|onboarding|studio-login|privacy|terms|refunds)(\/|$)/.test(
     location.pathname,
   );
   var studio = null;
@@ -27,12 +27,22 @@
     } catch (e) {}
   }
 
+  // The platform's own address is the configured root domain (for example
+  // dev.zuristudios.com, which has three parts, so counting them is not
+  // enough). A studio is <slug>.<root>. Vite replaces the placeholder at build
+  // time; unreplaced or empty, fall back to counting the parts.
+  var rootAttr = (splash && splash.getAttribute("data-root-domain")) || "";
+  var root = /^%/.test(rootAttr)
+    ? ""
+    : rootAttr.replace(/^https?:\/\//, "").replace(/[\/?#].*$/, "").replace(/:\d+$/, "").toLowerCase();
   var labels = location.hostname.split(".");
+  var host = location.hostname.toLowerCase();
   var looksLikePlatform =
     platformPage ||
-    location.hostname === "localhost" ||
-    labels.length <= 2 ||
-    labels[0] === "www";
+    host === "localhost" ||
+    (root
+      ? host === root || host === "www." + root
+      : labels.length <= 2 || labels[0] === "www");
 
   if (studio && studio.name) {
     nameEl.textContent = studio.name;

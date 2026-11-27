@@ -3,6 +3,7 @@ import { Heart, ImageOff } from "lucide-react";
 import { useWishlist } from "@/hooks/useWishlist";
 import { Stars } from "./Stars";
 import type { ProductDTO } from "@/lib/api";
+import { hasOptionPrices } from "@/lib/api/products";
 import { formatGHS } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
@@ -73,7 +74,9 @@ export const ProductCard = ({
         </div>
         <p className="shrink-0 rounded-lg bg-muted px-2.5 py-1.5 text-right text-xs font-semibold tabular-nums">
           {product.on_promo && <span className="mr-1 font-normal text-muted-foreground line-through">{formatGHS(product.price)}</span>}
+          {hasOptionPrices(product) && <span className="mr-1 font-normal text-muted-foreground">From</span>}
           {formatGHS(product.effective_price)}
+          {product.unit && <span className="ml-0.5 font-normal text-muted-foreground">/ {product.unit}</span>}
         </p>
       </div>
     </Link>

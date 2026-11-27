@@ -1,5 +1,6 @@
 import { apiRequest } from "../apiClient";
 import { CategoryDTO } from "./categories";
+import { readVariants, effectivePriceFor, basePriceFor, type Variant } from "../variantPricing";
 import { CursorPage, Envelope, cursorPage, cursorQuery, uploadStudioMedia } from "./core";
 
 // ---------------- Commerce: products ----------------
@@ -17,6 +18,10 @@ export interface ProductDTO {
   // Every photo, main one first.
   images: string[];
   sizes: string[];
+  /** What one item is sold as ("kg", "crate"...), shown after the price. */
+  unit: string | null;
+  /** A price for each option; empty when every option costs the same. */
+  variants: Variant[];
   colors: { name: string; hex: string }[];
   rating_average: number | null;
   rating_count: number;
@@ -45,6 +50,8 @@ interface RawProduct {
   imageUrl: string | null;
   images?: string[];
   sizes?: string[];
+  unit?: string | null;
+  variants?: unknown;
   colors?: string[];
   ratingAverage?: number | null;
   ratingCount?: number;
@@ -73,6 +80,8 @@ const normalizeProduct = (p: RawProduct): ProductDTO => {
     image_url: p.imageUrl,
     images: [...(p.imageUrl ? [p.imageUrl] : []), ...(p.images ?? [])],
     sizes: p.sizes ?? [],
+    unit: p.unit ?? null,
+    variants: readVariants(p.variants),
     colors: (p.colors ?? []).map((c) => {
       const [name, hex] = c.split("|");
       return { name, hex };
@@ -112,6 +121,10 @@ export interface ProductInput {
   images?: string[];
   newImages?: File[];
   sizes?: string[];
+  /** What one item is sold as ("kg", "crate"...). Blank clears it. */
+  unit?: string | null;
+  /** A price for each option. An empty list goes back to one price. */
+  variants?: Variant[];
   colors?: string[];
   audience?: ProductAudience;
   brand?: string | null;
@@ -142,6 +155,16 @@ const withExtraPhotos = async (input: Partial<ProductInput>) => {
   const added = await Promise.all((input.newImages ?? []).map((f) => uploadStudioMedia(f, "products")));
   return { images: [...(input.images ?? []), ...added] };
 };
+
+/** What one unit costs for the chosen option (the lowest price when none is chosen), after any sale. */
+export const optionPrice = (p: ProductDTO, size?: string | null): number =>
+  effectivePriceFor({ price: p.price, promoPrice: p.promo_price, variants: p.variants }, size);
+/** The same before any sale. */
+export const optionBase = (p: ProductDTO, size?: string | null): number => basePriceFor({ price: p.price, variants: p.variants }, size);
+/** "per kg" for a product sold by the kg, else an empty string. */
+export const perUnit = (p: { unit: string | null }): string => (p.unit ? `per ${p.unit}` : "");
+/** True when options cost different amounts. */
+export const hasOptionPrices = (p: ProductDTO): boolean => new Set(p.variants.map((v) => v.price)).size > 1;
 
 export const productsApi = {
   async listActive(): Promise<ProductDTO[]> {
