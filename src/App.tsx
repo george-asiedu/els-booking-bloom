@@ -112,6 +112,7 @@ const Discover = lazy(() => import("./pages/Discover"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
 const Terms = lazy(() => import("./pages/legal/Terms"));
+const StaffPortal = lazy(() => import("./pages/staff/StaffPortal"));
 const Refunds = lazy(() => import("./pages/legal/Refunds"));
 const StudioPolicies = lazy(() => import("./pages/StudioPolicies"));
 
@@ -308,6 +309,14 @@ const App = () => (
               
               {/* Admin Routes — one guard + persistent sidebar for all */}
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route
+                path="/staff"
+                element={
+                  <ProtectedRoute staffArea>
+                    <StaffPortal />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/studio-login" element={<StudioLogin />} />
               <Route path="/admin" element={<AdminOutlet />}>
                 <Route index element={<AdminDashboard />} />

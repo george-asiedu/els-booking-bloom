@@ -15,7 +15,7 @@ const STUDIO_SLUG_KEY = "els_studio_slug";
 export interface AuthUser {
   id: string;
   email: string;
-  role: "CUSTOMER" | "ADMIN";
+  role: "CUSTOMER" | "ADMIN" | "STAFF";
 }
 
 // The session itself is an HttpOnly cookie that scripts can't read; this only

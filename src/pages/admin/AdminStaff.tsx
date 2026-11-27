@@ -28,10 +28,11 @@ interface Form {
   name: string;
   role: string;
   email: string;
+  phone: string;
   serviceIds: string[];
   active: boolean;
 }
-const empty: Form = { name: "", role: "", email: "", serviceIds: [], active: true };
+const empty: Form = { name: "", role: "", email: "", phone: "", serviceIds: [], active: true };
 
 /** Stylists and chairs: who customers can book, and which services each does. */
 const AdminStaff = () => {
@@ -54,7 +55,7 @@ const AdminStaff = () => {
 
   const save = useMutation({
     mutationFn: () => {
-      const input = { name: form.name.trim(), role: form.role.trim() || null, email: form.email.trim() || null, serviceIds: form.serviceIds, active: form.active, photo };
+      const input = { name: form.name.trim(), role: form.role.trim() || null, email: form.email.trim() || null, phone: form.phone.trim() || null, serviceIds: form.serviceIds, active: form.active, photo };
       return editing ? staffApi.update(editing.id, input) : staffApi.create(input);
     },
     onSuccess: () => {
@@ -87,7 +88,7 @@ const AdminStaff = () => {
   };
   const startEdit = (s: StaffDTO) => {
     setEditing(s);
-    setForm({ name: s.name, role: s.role ?? "", email: s.email ?? "", serviceIds: s.serviceIds, active: s.active !== false });
+    setForm({ name: s.name, role: s.role ?? "", email: s.email ?? "", phone: s.phone ?? "", serviceIds: s.serviceIds, active: s.active !== false });
     setPhoto(null);
     setOpen(true);
   };
@@ -129,6 +130,13 @@ const AdminStaff = () => {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{s.name}</p>
                   {s.role && <p className="truncate text-sm text-muted-foreground">{s.role}</p>}
+                  <p className="mt-1 text-xs">
+                    {s.userId ? (
+                      <span className="text-emerald-700 dark:text-emerald-400">Has a login</span>
+                    ) : (
+                      <span className="text-muted-foreground">No login yet. Edit and add their email to give them one.</span>
+                    )}
+                  </p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {s.serviceIds.length
                       ? s.serviceIds.map(serviceName).filter(Boolean).join(", ")
@@ -179,9 +187,16 @@ const AdminStaff = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="staff-email">Email for booking alerts (optional)</Label>
-              <Input id="staff-email" type="email" maxLength={120} placeholder="name@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <p className="text-xs text-muted-foreground">They are emailed when a booking with them is about to start, and when it is due. Customers never see it. Leave it empty and your admins get the alert instead.</p>
+              <Label htmlFor="staff-email">Email{editing ? "" : " (required)"}</Label>
+              <Input id="staff-email" type="email" required={!editing} maxLength={120} placeholder="name@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <p className="text-xs text-muted-foreground">This is how they sign in and where their booking alerts go. Customers never see it.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="staff-phone">Phone number{editing ? "" : " (required)"}</Label>
+              <Input id="staff-phone" type="tel" required={!editing} maxLength={30} placeholder="024 000 0000" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              {!editing && (
+                <p className="text-xs text-muted-foreground">Their account is created as soon as you save. They set their own password the first time they sign in at your studio's admin sign-in page, using a code sent to this email. They can then see only their own bookings.</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="staff-photo">Photo (optional)</Label>

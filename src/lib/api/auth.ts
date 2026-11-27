@@ -25,6 +25,21 @@ export const authApi = {
     return persistAuth(res.data);
   },
 
+  /** A team member's first visit: email a code to their address (always answers the same). */
+  async firstVisitCode(email: string): Promise<string> {
+    const res = await apiRequest<{ message: string }>("/auth/first-visit", { method: "POST", body: { email } });
+    return res.message;
+  },
+
+  /** The code and the password they chose: sets it and signs them in. */
+  async firstVisitSetPassword(email: string, code: string, password: string): Promise<AuthUser> {
+    const res = await apiRequest<Envelope<{ user: AuthUser }>>("/auth/first-visit/set-password", {
+      method: "POST",
+      body: { email, code, password },
+    });
+    return persistAuth(res.data);
+  },
+
   async signup(payload: SignupPayload): Promise<AuthUser> {
     const res = await apiRequest<Envelope<{ user: AuthUser }>>(
       "/auth/signup",

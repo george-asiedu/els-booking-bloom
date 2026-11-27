@@ -5,9 +5,11 @@ import { Loader2 } from "lucide-react";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  /** The team member's own area: a staff account (or an owner who is also on the team). */
+  staffArea?: boolean;
 }
 
-export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children, requireAdmin = false, staffArea = false }: ProtectedRouteProps) => {
   const { user, isLoading, isAdmin } = useAuth();
 
   if (isLoading) {
@@ -20,6 +22,15 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
 
   if (!user) {
     return <Navigate to="/admin/login" replace />;
+  }
+
+  // A team member who wanders into the dashboard goes to their own page.
+  if (requireAdmin && user.role === "STAFF") {
+    return <Navigate to="/staff" replace />;
+  }
+
+  if (staffArea && user.role !== "STAFF" && !isAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   if (requireAdmin && !isAdmin) {

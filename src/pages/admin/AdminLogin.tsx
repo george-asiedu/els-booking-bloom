@@ -1,4 +1,5 @@
 import { SignInCodeStep } from "@/components/auth/SignInCodeStep";
+import { StaffFirstVisit } from "@/components/auth/StaffFirstVisit";
 import { useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -54,6 +55,8 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   // Set once the password checked out and the account asks for a code.
   const [codeFor, setCodeFor] = useState<LoginFormValues | null>(null);
+  // A team member whose account the owner created and who has no password yet.
+  const [firstVisit, setFirstVisit] = useState(false);
   const navigate = useNavigate();
   const { signIn, signOut } = useAuth();
   const { toast } = useToast();
@@ -86,13 +89,13 @@ const AdminLogin = () => {
       return;
     }
 
-    if (user?.role !== "ADMIN") {
+    if (user?.role !== "ADMIN" && user?.role !== "STAFF") {
       signOut();
       setIsLoading(false);
       toast({
         variant: "destructive",
-        title: "Not an admin account",
-        description: "This login is for studio admins only.",
+        title: "Not a team account",
+        description: "This login is for the studio's owner and team.",
       });
       return;
     }
@@ -101,7 +104,7 @@ const AdminLogin = () => {
       title: "Signed in",
       description: "You've successfully logged in.",
     });
-    navigate("/admin");
+    navigate(user.role === "STAFF" ? "/staff" : "/admin");
   };
 
   // Admin accounts belong to one studio. With none chosen (the platform's own
@@ -126,11 +129,15 @@ const AdminLogin = () => {
               </>
             )}
           </div>
-          <CardTitle>Admin login</CardTitle>
-          <CardDescription>Sign in to manage {studioName}</CardDescription>
+          <CardTitle>{firstVisit ? "Set your password" : "Team login"}</CardTitle>
+          <CardDescription>
+            {firstVisit ? `Welcome to ${studioName}` : `Owners and team members of ${studioName} sign in here`}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {codeFor ? (
+          {firstVisit ? (
+            <StaffFirstVisit onBack={() => setFirstVisit(false)} onSignedIn={() => navigate("/staff")} />
+          ) : codeFor ? (
             <SignInCodeStep loading={isLoading} onSubmit={(c) => onSubmit(codeFor, c)} onBack={() => setCodeFor(null)} />
           ) : (
           <Form {...form}>
@@ -173,6 +180,13 @@ const AdminLogin = () => {
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign in
               </Button>
+              <button
+                type="button"
+                onClick={() => setFirstVisit(true)}
+                className="w-full text-center text-sm text-primary hover:underline"
+              >
+                First time here? Set your password
+              </button>
             </form>
           </Form>
           )}

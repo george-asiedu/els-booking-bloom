@@ -25,6 +25,13 @@ interface AuthContextType {
     payload: SignupPayload,
   ) => Promise<{ error: Error | null; user: AuthUser | null }>;
   signOut: () => void;
+  /** A team member's first visit: the code goes to their email, then they choose a password. */
+  startFirstVisit: (email: string) => Promise<{ error: Error | null; message?: string }>;
+  finishFirstVisit: (
+    email: string,
+    code: string,
+    password: string,
+  ) => Promise<{ error: Error | null; user: AuthUser | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,6 +79,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const startFirstVisit = useCallback(async (email: string) => {
+    try {
+      return { error: null, message: await authApi.firstVisitCode(email) };
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error("Couldn't send the code") };
+    }
+  }, []);
+
+  const finishFirstVisit = useCallback(async (email: string, code: string, password: string) => {
+    try {
+      const authedUser = await authApi.firstVisitSetPassword(email, code, password);
+      setUser(authedUser);
+      return { error: null, user: authedUser };
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error("Couldn't set the password"), user: null };
+    }
+  }, []);
+
   const signOut = useCallback(() => {
     clearAppBadge();
     authApi.logout();
@@ -88,8 +113,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signIn,
       signUp,
       signOut,
+      startFirstVisit,
+      finishFirstVisit,
     }),
-    [user, isLoading, signIn, signUp, signOut],
+    [user, isLoading, signIn, signUp, signOut, startFirstVisit, finishFirstVisit],
   );
 
   return (
