@@ -17,7 +17,7 @@ const Refunds = () => (
       {
         heading: "1. Customers: bookings, orders, bills and gift cards",
         body: [
-          "Each studio or shop sets its own cancellation, refund and delivery policy and publishes it on its Policies page, linked from the bottom of its website and shown before you book or pay. That policy applies to your purchase.",
+          "Each studio or shop sets its own cancellation, refund and delivery policy and publishes it on its Policies page, linked from the bottom of its website. Read it before you book or pay: that policy applies to your purchase.",
           "To ask for a refund or to cancel:",
           "- Open your booking or order in your account and send a cancellation request, or contact the studio with your booking or order number and the reason. A guest can use the studio's contact details.",
           "- The studio decides, and tells you whether you will be refunded, how much, and when.",

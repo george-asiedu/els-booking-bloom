@@ -401,7 +401,7 @@ export const LandingContentEditor = ({ value, onChange, studioName, onSave, savi
 
       <Section
         title="Your policies"
-        description="Customers see these on your Policies page and before they book or pay. Payments go straight to your own Paystack account, so any refund is made by you. Leave a box empty to show the standard wording."
+        description="Customers find these on your Policies page, linked from the bottom of your website. Payments go straight to your own Paystack account, so any refund is made by you. Leave a box empty to show the standard wording."
       >
         {POLICY_FIELDS.map((p) => (
           <div key={p.field} className="space-y-1.5">
