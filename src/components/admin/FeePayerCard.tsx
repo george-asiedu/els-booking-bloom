@@ -70,7 +70,7 @@ export const FeePayerCard = () => {
           Payment processing fee
         </CardTitle>
         <CardDescription>
-          Paystack charges {pct}% on each online payment. Choose who pays it. The example is a {formatGHS(EXAMPLE)} sale, before the platform's commission.
+          Paystack charges {pct}% on each online payment. Choose who pays it. The example is a {formatGHS(EXAMPLE)} sale.
         </CardDescription>
       </CardHeader>
       <CardContent>

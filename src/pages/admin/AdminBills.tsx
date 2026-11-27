@@ -102,8 +102,11 @@ const NewBillDialog = ({ open, onClose, onCreated }: { open: boolean; onClose: (
   const { features } = useStudio();
   const [form, setForm] = useState({ customerName: "", customerPhone: "", customerEmail: "", note: "" });
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
-  const services = useQuery({ queryKey: ["bill-services"], queryFn: () => servicesApi.listActive(), enabled: open });
-  const products = useQuery({ queryKey: ["bill-products"], queryFn: () => productsApi.listActive(), enabled: open && Boolean(features?.commerce) });
+  // A store has no services, and a studio without a shop has no products: only offer what exists.
+  const hasServices = features?.booking !== false;
+  const hasProducts = Boolean(features?.commerce);
+  const services = useQuery({ queryKey: ["bill-services"], queryFn: () => servicesApi.listActive(), enabled: open && hasServices });
+  const products = useQuery({ queryKey: ["bill-products"], queryFn: () => productsApi.listActive(), enabled: open && hasProducts });
 
   const total = lines.reduce((s, l) => s + (Number(l.unitPrice) || 0) * (Number(l.quantity) || 0), 0);
   const setLine = (i: number, patch: Partial<Line>) => setLines(lines.map((l, j) => (j === i ? { ...l, ...patch } : l)));
@@ -162,17 +165,19 @@ const NewBillDialog = ({ open, onClose, onCreated }: { open: boolean; onClose: (
               </div>
             ))}
             <div className="flex flex-wrap gap-2">
+              {hasServices && (
               <Select
-                value=""
-                onValueChange={(id) => {
-                  const s = services.data?.find((x) => x.id === id);
-                  if (s) setLines([...lines.filter((l) => l.name.trim()), { name: s.name, quantity: 1, unitPrice: s.effective_price, kind: "service" }]);
-                }}
-              >
-                <SelectTrigger className="h-9 w-44" aria-label="Add a service"><SelectValue placeholder="Add a service" /></SelectTrigger>
-                <SelectContent>{services.data?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name} · {formatGHS(s.effective_price)}</SelectItem>)}</SelectContent>
-              </Select>
-              {!!features?.commerce && (
+                  value=""
+                  onValueChange={(id) => {
+                    const s = services.data?.find((x) => x.id === id);
+                    if (s) setLines([...lines.filter((l) => l.name.trim()), { name: s.name, quantity: 1, unitPrice: s.effective_price, kind: "service" }]);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-44" aria-label="Add a service"><SelectValue placeholder="Add a service" /></SelectTrigger>
+                  <SelectContent>{services.data?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name} · {formatGHS(s.effective_price)}</SelectItem>)}</SelectContent>
+                </Select>
+              )}
+              {hasProducts && (
                 <Select
                   value=""
                   onValueChange={(id) => {

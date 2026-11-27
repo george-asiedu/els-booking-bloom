@@ -1,7 +1,7 @@
 import { InstallBanner } from "@/components/security/InstallApp";
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LogOut, Menu, X, type LucideIcon } from "lucide-react";
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X, type LucideIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,23 @@ export const DashboardShell = ({
 }) => {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  // On laptops and larger the menu can be hidden for more room. Remembered per browser.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("zuri-sidebar-collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebar = () =>
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem("zuri-sidebar-collapsed", c ? "0" : "1");
+      } catch {
+        /* storage blocked: it just won't be remembered */
+      }
+      return !c;
+    });
   const isActive = (path: string) =>
     exact.includes(path) ? pathname === path : pathname === path || pathname.startsWith(`${path}/`);
 
@@ -112,7 +129,7 @@ export const DashboardShell = ({
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/40">
-      <aside className="hidden w-64 shrink-0 md:block">{sidebar}</aside>
+      <aside className={cn("hidden w-64 shrink-0", !collapsed && "md:block")}>{sidebar}</aside>
       {open && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
@@ -123,6 +140,16 @@ export const DashboardShell = ({
         <header className="flex shrink-0 items-center gap-3 border-b border-border bg-background px-4 py-3 md:px-6">
           <button type="button" className="rounded-md p-2 hover:bg-accent md:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            className="hidden rounded-md p-2 hover:bg-accent md:inline-flex"
+            onClick={toggleSidebar}
+            aria-label={collapsed ? "Show the menu" : "Hide the menu"}
+            aria-pressed={collapsed}
+            title={collapsed ? "Show the menu" : "Hide the menu"}
+          >
+            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
             {topBar}

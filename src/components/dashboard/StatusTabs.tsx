@@ -19,9 +19,13 @@ export function StatusTabs<K extends string>({
   onChange: (key: K) => void;
   className?: string;
 }) {
+  // "All" always comes first, wherever the tabs are used.
+  const isAll = (t: StatusTab<K>) => t.label.trim().toLowerCase() === "all" || String(t.key).toLowerCase() === "all";
+  const ordered = [...tabs.filter(isAll), ...tabs.filter((t) => !isAll(t))];
   return (
-    <div role="tablist" className={cn("flex gap-1 overflow-x-auto border-b border-border", className)}>
-      {tabs.map((t) => {
+    // overflow-y-hidden: with only overflow-x set the browser adds a vertical scrollbar (the little up and down arrows).
+    <div role="tablist" className={cn("flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", className)}>
+      {ordered.map((t) => {
         const active = t.key === value;
         return (
           <button
