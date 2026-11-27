@@ -103,10 +103,10 @@ export const NavSection = ({ solid = false }: { solid?: boolean }) => {
               ))}
               <ThemeToggle />
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/studio-login">Studio login</Link>
+                <Link to="/studio-login">Owner login</Link>
               </Button>
               <Button size="sm" className="group" asChild>
-                <Link to="/onboarding">Set up your studio</Link>
+                <Link to="/onboarding">Set up your website</Link>
               </Button>
             </nav>
             <div className="flex items-center gap-1 lg:hidden">
@@ -139,10 +139,10 @@ export const NavSection = ({ solid = false }: { solid?: boolean }) => {
                 ))}
                 <div className="mt-2 flex flex-col gap-2">
                   <Button variant="outline" asChild>
-                    <Link to="/studio-login">Studio login</Link>
+                    <Link to="/studio-login">Owner login</Link>
                   </Button>
                   <Button asChild>
-                    <Link to="/onboarding">Set up your studio</Link>
+                    <Link to="/onboarding">Set up your website</Link>
                   </Button>
                 </div>
               </div>

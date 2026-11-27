@@ -69,27 +69,27 @@ const Eyebrow = ({ children, light = false }: { children: React.ReactNode; light
 /** Full-width photo with the headline over it. */
 export const PhotoHero = () => (
   <section className="relative isolate flex min-h-[calc(100svh-19rem)] items-end overflow-hidden md:min-h-[calc(100svh-14rem)] md:items-center">
-    <HeroSlides images={[hero, barberShop, typeBraids, salonOwner]} className="absolute inset-0 -z-20" imgClassName="object-[60%_30%]" />
+    <HeroSlides images={[hero, "/hero/shop-farm.jpg", barberShop, "/hero/shop-clothing.jpg", salonOwner]} className="absolute inset-0 -z-20" imgClassName="object-[60%_30%]" />
     <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/45 to-black/30 md:bg-gradient-to-r md:from-black/80 md:via-black/45 md:to-black/10" />
     <div className="container mx-auto px-4 pb-10 pt-24 md:pb-10 md:pt-24">
       <div className="max-w-xl text-white">
         <div className="hero-rise [animation-delay:100ms]">
-          <Eyebrow light>BOOKINGS · PAYMENTS · YOUR OWN WEBSITE</Eyebrow>
+          <Eyebrow light>BOOKINGS · SHOPS · PAYMENTS · YOUR OWN WEBSITE</Eyebrow>
         </div>
         <h1 className="hero-rise mt-4 text-balance font-serif text-4xl font-semibold leading-[1.08] [animation-delay:220ms] sm:text-5xl md:text-6xl">
-          Your beauty business, beautifully online.
+          Your business, online and open for customers.
         </h1>
         <p className="hero-rise mt-5 max-w-md text-white/85 [animation-delay:340ms] md:text-lg">
-          A website with your name, online booking, and payments by Mobile Money or card, paid
-          straight to you. Ready the same day.
+          A website with your name. Take bookings or sell products, and get paid by Mobile Money
+          or card, straight to you. Ready the same day.
         </p>
         <div className="hero-rise mt-8 flex flex-col gap-3 [animation-delay:460ms] sm:flex-row">
           <Button size="lg" className="rounded-full px-7 transition-transform hover:-translate-y-0.5 active:scale-[0.97]" asChild>
-            <Link to="/onboarding">Set up your studio</Link>
+            <Link to="/onboarding">Set up your website</Link>
           </Button>
           <Button size="lg" variant="outline" className="rounded-full border-white/70 bg-transparent px-7 text-white hover:bg-white/15 hover:text-white" asChild>
             <a href={studioUrl(PLATFORM.demoSlug)} target="_blank" rel="noreferrer">
-              See a real studio
+              See a live example
             </a>
           </Button>
         </div>
@@ -101,7 +101,7 @@ export const PhotoHero = () => (
 const WHY = [
   { icon: Globe, title: "Your own website" },
   { icon: Wallet, title: "Paid straight to you" },
-  { icon: CalendarCheck, title: "Bookings run themselves" },
+  { icon: CalendarCheck, title: "Bookings and orders run themselves" },
   { icon: ShieldCheck, title: "Made in Ghana, for Ghana" },
 ];
 
@@ -136,12 +136,12 @@ export const ApproachSplit = () => (
       <Reveal delay={120}>
         <Eyebrow>MADE FOR HOW YOU WORK</Eyebrow>
         <h2 className="mt-3 text-balance font-serif text-3xl font-semibold md:text-4xl">
-          Less time on your phone, more time with clients.
+          Less time on your phone, more time on your business.
         </h2>
         <p className="mt-4 text-muted-foreground">
-          No more answering "are you free Saturday?" in your DMs. Clients see your prices and real
-          free times, book, and pay a deposit. You get the booking, the money and a reminder sent
-          for you.
+          No more answering "are you free Saturday?" or "do you still have this?" in your DMs.
+          Customers see your prices, your real free times and what's in stock, then book or order
+          and pay. You get the booking or order, the money and the reminders sent for you.
         </p>
         <p className="mt-3 text-muted-foreground">
           Everything is managed from one simple dashboard, on your phone or laptop.
@@ -155,10 +155,10 @@ export const ApproachSplit = () => (
 );
 
 const FEATURED = [
-  { img: bookingPhone, title: "Your booking website", text: "Your name, your colour, your prices and gallery, at your own web address." },
+  { img: bookingPhone, title: "Your own website", text: "Your name, your colour, your prices, your gallery or products, at your own web address." },
   { img: paymentsPhone, title: "Payments and deposits", text: "Mobile Money or card. Deposits cut no-shows, and the money comes to you." },
-  { img: shopOwner, title: "An online shop", text: "Sell products with your studio, or run Zuri Stores for anything you sell." },
-  { img: loyaltyRobe, title: "Loyalty and reviews", text: "Points for every visit, rewards for referrals, and reviews new clients can read." },
+  { img: "/hero/shop-other.jpg", title: "An online shop", text: "Sell products with your studio, or run Zuri Stores for anything you sell: clothes, food, farm produce and more." },
+  { img: loyaltyRobe, title: "Loyalty and reviews", text: "Points for every visit or order, rewards for referrals, and reviews new customers can read." },
 ];
 
 /** The main pieces, as photo cards. */
@@ -190,9 +190,9 @@ export const FeaturedCards = () => (
 );
 
 const DIFFERENCE = [
-  { icon: Smartphone, title: "Built for phones", text: "Clients book and pay from their phones; you run it all from yours." },
+  { icon: Smartphone, title: "Built for phones", text: "Customers book, order and pay from their phones; you run it all from yours." },
   { icon: Wallet, title: "No middleman holding your money", text: "Payments settle to your own Mobile Money or bank account." },
-  { icon: Gift, title: "Clients who come back", text: "Reminders, points and referral rewards happen on their own." },
+  { icon: Gift, title: "Customers who come back", text: "Reminders, points and referral rewards happen on their own." },
 ];
 
 /** Dark band: what makes Zuri different, beside a photo. Kept compact. */
@@ -217,7 +217,7 @@ export const DifferenceBand = () => (
         </ul>
       </Reveal>
       <Reveal delay={120}>
-        <img src={barberAtWork} alt="A barber giving a straight-razor shave" loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover md:aspect-[5/4]" />
+        <img src="/hero/shop-farm.jpg" alt="Farmers harvesting greens in the field" loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover md:aspect-[5/4]" />
       </Reveal>
     </div>
   </section>
@@ -247,6 +247,12 @@ const TYPES = [
   { img: typeHenna, label: "Henna artists" },
   { img: typeTeeth, label: "Teeth whitening" },
   { img: typeSchool, label: "Beauty schools and training" },
+  { img: "/hero/shop-farm.jpg", label: "Farms and fresh produce" },
+  { img: "/hero/shop-clothing.jpg", label: "Clothing and fashion shops" },
+  { img: "/hero/shop-food.jpg", label: "Food and groceries" },
+  { img: "/hero/shop-bakery.jpg", label: "Bakeries and cake makers" },
+  { img: "/hero/shop-electronics.jpg", label: "Electronics and gadgets" },
+  { img: "/hero/shop-home.jpg", label: "Home and living" },
   { img: typeBoutique, label: "Beauty supply and shops" },
 ];
 
@@ -258,12 +264,11 @@ export const TypesCarousel = () => {
     <section className="py-16 md:py-24">
       <div className="container mx-auto px-4">
         <Reveal className="mx-auto mb-10 max-w-xl text-center">
-          <Eyebrow>FOR EVERY KIND OF BEAUTY BUSINESS</Eyebrow>
+          <Eyebrow>FOR EVERY KIND OF BUSINESS</Eyebrow>
           <h2 className="mt-3 font-serif text-3xl font-semibold md:text-4xl">Find your kind of business</h2>
           <p className="mt-3 text-muted-foreground">
-            Shops, home studios and mobile artists alike. Don't see yours? If you take bookings,
-            Zuri works for you. Selling something else?{" "}
-            <Link to="/onboarding" className="font-medium text-foreground underline underline-offset-4">Try Zuri Stores</Link>.
+            Studios, shops, farms and mobile artists alike. Don't see yours? If you take bookings,
+            or sell something, Zuri works for you.
           </p>
         </Reveal>
         <div className="relative">
@@ -297,7 +302,7 @@ const STEPS = [
   { title: "Pick a plan", text: "Standard, Premium or Storefront, monthly or yearly." },
   { title: "Make it yours", text: "Add your logo, colour, services or products, and your hours." },
   { title: "Connect payouts", text: "Add your Mobile Money or bank account to get paid." },
-  { title: "Share your link", text: "Put it on Instagram and WhatsApp and take bookings the same day." },
+  { title: "Share your link", text: "Put it on Instagram and WhatsApp and take bookings or orders the same day." },
 ];
 
 /** Dark band: how setting up works. */
@@ -307,7 +312,7 @@ export const StepsBand = () => (
       <Reveal className="mx-auto mb-10 max-w-xl text-center">
         <Eyebrow light>GETTING STARTED</Eyebrow>
         <h2 className="mt-3 font-serif text-3xl font-semibold md:text-4xl">Set up in about 5 minutes</h2>
-        <p className="mt-3 text-band-foreground/70">From sign-up to your first paid booking.</p>
+        <p className="mt-3 text-band-foreground/70">From sign-up to your first paid booking or order.</p>
       </Reveal>
       <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s, i) => (
@@ -380,10 +385,10 @@ export const PhotoCta = () => (
     <Reveal className={cn("container mx-auto px-4 py-14 text-white md:py-20")}>
       <Eyebrow light>READY WHEN YOU ARE</Eyebrow>
       <h2 className="mt-3 max-w-lg text-balance font-serif text-3xl font-semibold md:text-5xl">
-        Start taking bookings today.
+        Start taking bookings and orders today.
       </h2>
       <Button size="lg" className="mt-7 rounded-full px-8 transition-transform hover:-translate-y-0.5" asChild>
-        <Link to="/onboarding">Set up your studio</Link>
+        <Link to="/onboarding">Set up your website</Link>
       </Button>
     </Reveal>
   </section>

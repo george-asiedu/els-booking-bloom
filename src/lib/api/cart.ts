@@ -16,6 +16,11 @@ export interface CartItemDTO {
   line_total: number;
   in_stock: boolean;
   max_qty: number | null; // null when stock isn't tracked
+  /** Pre-order: the day it is ready (YYYY-MM-DD), while that day is still ahead. */
+  available_from: string | null;
+  /** The least of this product that can be ordered (all its lines together). */
+  min_quantity: number;
+  unit: string | null;
 }
 
 export interface CartDTO {
@@ -36,6 +41,10 @@ interface RawCart {
       price: number;
       promoPrice: number | null;
       variants?: unknown;
+      unit?: string | null;
+      availableFrom?: string | null;
+      minQuantity?: number;
+      bulkTiers?: unknown;
       imageUrl: string | null;
       stock: number;
       trackStock: boolean;
@@ -43,6 +52,18 @@ interface RawCart {
     };
   }[];
 }
+
+/** A bulk price follows the total of a product in the basket, whichever options it is in. */
+const withBulkPrices = (items: CartItemDTO[], bulk: Map<string, { price: number; promoPrice: number | null; variants?: unknown; bulkTiers?: unknown }>): CartItemDTO[] => {
+  const totals = new Map<string, number>();
+  for (const i of items) totals.set(i.product_id, (totals.get(i.product_id) ?? 0) + i.quantity);
+  return items.map((i) => {
+    const p = bulk.get(i.product_id);
+    if (!p) return i;
+    const unit = effectivePriceFor(p, i.size, totals.get(i.product_id));
+    return { ...i, unit_price: unit, line_total: Math.round(unit * i.quantity * 100) / 100 };
+  });
+};
 
 const normalizeCart = (c: RawCart | null): CartDTO => {
   const items = (c?.items ?? []).map((it) => {
@@ -59,12 +80,19 @@ const normalizeCart = (c: RawCart | null): CartDTO => {
       line_total: Math.round(unit * it.quantity * 100) / 100,
       in_stock: p.active && (!p.trackStock || p.stock > 0),
       max_qty: p.trackStock ? p.stock : null,
+      available_from: p.availableFrom && new Date(p.availableFrom).getTime() > Date.now() ? p.availableFrom.slice(0, 10) : null,
+      min_quantity: p.minQuantity && p.minQuantity > 1 ? p.minQuantity : 1,
+      unit: p.unit ?? null,
     };
   });
+  const priced = withBulkPrices(
+    items,
+    new Map((c?.items ?? []).map((it) => [it.productId, it.product])),
+  );
   const subtotal =
-    Math.round(items.reduce((s, i) => s + i.line_total, 0) * 100) / 100;
-  const count = items.reduce((s, i) => s + i.quantity, 0);
-  return { items, subtotal, count };
+    Math.round(priced.reduce((s, i) => s + i.line_total, 0) * 100) / 100;
+  const count = priced.reduce((s, i) => s + i.quantity, 0);
+  return { items: priced, subtotal, count };
 };
 
 // ---- A visitor without an account keeps a basket on their own device. It has
@@ -112,12 +140,19 @@ const guestCart = async (): Promise<CartDTO> => {
       line_total: Math.round(unit * quantity * 100) / 100,
       in_stock: Boolean(p?.in_stock),
       max_qty: room,
+      available_from: p?.preorder ? p.available_from : null,
+      min_quantity: p?.min_quantity ?? 1,
+      unit: p?.unit ?? null,
     };
   });
-  return {
+  const priced = withBulkPrices(
     items,
-    subtotal: Math.round(items.reduce((s, i) => s + i.line_total, 0) * 100) / 100,
-    count: items.reduce((n, i) => n + i.quantity, 0),
+    new Map(products.map((p) => [p.id, { price: p.price, promoPrice: p.promo_price, variants: p.variants, bulkTiers: p.bulk_tiers }])),
+  );
+  return {
+    items: priced,
+    subtotal: Math.round(priced.reduce((s, i) => s + i.line_total, 0) * 100) / 100,
+    count: priced.reduce((n, i) => n + i.quantity, 0),
   };
 };
 

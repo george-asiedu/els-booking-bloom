@@ -1,6 +1,6 @@
 import { apiRequest } from "../apiClient";
 import { CategoryDTO } from "./categories";
-import { readVariants, effectivePriceFor, basePriceFor, type Variant } from "../variantPricing";
+import { readVariants, readTiers, effectivePriceFor, basePriceFor, type Variant, type BulkTier } from "../variantPricing";
 import { CursorPage, Envelope, cursorPage, cursorQuery, uploadStudioMedia } from "./core";
 
 // ---------------- Commerce: products ----------------
@@ -22,6 +22,13 @@ export interface ProductDTO {
   unit: string | null;
   /** A price for each option; empty when every option costs the same. */
   variants: Variant[];
+  /** Pre-order: the day it is ready (YYYY-MM-DD), while that day is still ahead. */
+  available_from: string | null;
+  preorder: boolean;
+  /** The least a customer can order, in units. */
+  min_quantity: number;
+  /** Cheaper per unit in bulk, smallest quantity first. */
+  bulk_tiers: BulkTier[];
   colors: { name: string; hex: string }[];
   rating_average: number | null;
   rating_count: number;
@@ -52,6 +59,9 @@ interface RawProduct {
   sizes?: string[];
   unit?: string | null;
   variants?: unknown;
+  availableFrom?: string | null;
+  minQuantity?: number;
+  bulkTiers?: unknown;
   colors?: string[];
   ratingAverage?: number | null;
   ratingCount?: number;
@@ -82,6 +92,10 @@ const normalizeProduct = (p: RawProduct): ProductDTO => {
     sizes: p.sizes ?? [],
     unit: p.unit ?? null,
     variants: readVariants(p.variants),
+    available_from: p.availableFrom ? p.availableFrom.slice(0, 10) : null,
+    preorder: Boolean(p.availableFrom) && new Date(p.availableFrom as string).getTime() > Date.now(),
+    min_quantity: p.minQuantity && p.minQuantity > 1 ? p.minQuantity : 1,
+    bulk_tiers: readTiers(p.bulkTiers),
     colors: (p.colors ?? []).map((c) => {
       const [name, hex] = c.split("|");
       return { name, hex };
@@ -125,6 +139,11 @@ export interface ProductInput {
   unit?: string | null;
   /** A price for each option. An empty list goes back to one price. */
   variants?: Variant[];
+  /** Pre-order: the day it is ready (YYYY-MM-DD). Null clears it. */
+  availableFrom?: string | null;
+  minQuantity?: number;
+  /** Cheaper per unit in bulk. An empty list clears it. */
+  bulkTiers?: BulkTier[];
   colors?: string[];
   audience?: ProductAudience;
   brand?: string | null;
@@ -157,8 +176,8 @@ const withExtraPhotos = async (input: Partial<ProductInput>) => {
 };
 
 /** What one unit costs for the chosen option (the lowest price when none is chosen), after any sale. */
-export const optionPrice = (p: ProductDTO, size?: string | null): number =>
-  effectivePriceFor({ price: p.price, promoPrice: p.promo_price, variants: p.variants }, size);
+export const optionPrice = (p: ProductDTO, size?: string | null, qty?: number): number =>
+  effectivePriceFor({ price: p.price, promoPrice: p.promo_price, variants: p.variants, bulkTiers: p.bulk_tiers }, size, qty);
 /** The same before any sale. */
 export const optionBase = (p: ProductDTO, size?: string | null): number => basePriceFor({ price: p.price, variants: p.variants }, size);
 /** "per kg" for a product sold by the kg, else an empty string. */

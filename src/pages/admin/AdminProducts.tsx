@@ -4,6 +4,7 @@ import { useCursorPages } from "@/hooks/useCursorPages";
 import { useState } from "react";
 import { ProductDetails } from "@/components/admin/RowDetails";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useStudio } from "@/hooks/useStudio";
 import { Plus, Pencil, Trash2, Loader2, ShoppingBag, ImageOff, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,11 @@ interface ProductFormData {
   trackStock: boolean;
   popular: boolean;
   unit: string;
+  /** Pre-order: the day it is ready (a date, or empty). */
+  availableFrom: string;
+  minQuantity: string;
+  /** Cheaper per unit in bulk. */
+  tiers: { minQty: string; percentOff: string }[];
   /** Each option a customer can choose, with its own price (blank = the main price). */
   options: { label: string; price: string }[];
   colors: { name: string; hex: string }[];
@@ -89,6 +95,9 @@ const emptyForm: ProductFormData = {
   trackStock: true,
   popular: false,
   unit: "",
+  availableFrom: "",
+  minQuantity: "1",
+  tiers: [],
   options: [],
   colors: [],
   images: [],
@@ -111,9 +120,72 @@ const optionFields = (data: ProductFormData) => {
   return { variants: [], sizes: rows.map((o) => o.label) };
 };
 
+/** Pre-orders, a minimum order and bulk prices. Up front for a farm, tucked under "more" for other shops. */
+const SellingOptions = ({
+  form,
+  setForm,
+  isFarm,
+}: {
+  form: ProductFormData;
+  setForm: (f: ProductFormData) => void;
+  isFarm: boolean;
+}) => {
+  const used = Boolean(form.availableFrom) || form.minQuantity !== "1" || form.tiers.length > 0;
+  const body = (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="availableFrom">{isFarm ? "Ready from (pre-order)" : "Ready from (pre-order, optional)"}</Label>
+          <Input id="availableFrom" type="date" value={form.availableFrom} onChange={(e) => setForm({ ...form, availableFrom: e.target.value })} />
+          <p className="text-xs text-muted-foreground">
+            A date ahead (a harvest, a restock) opens it for pre-orders: customers order now, it shows "Pre-order", and their delivery can't be earlier. Use the stock above for how many you expect.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="minQuantity">Minimum order{form.unit ? ` (${form.unit})` : ""}</Label>
+          <Input id="minQuantity" type="number" min={1} step={1} value={form.minQuantity} onChange={(e) => setForm({ ...form, minQuantity: e.target.value })} />
+          <p className="text-xs text-muted-foreground">The least a customer can order of it, all options together. 1 means no minimum.</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Bulk prices (optional)</Label>
+        {form.tiers.map((t, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Input aria-label={`Bulk price ${i + 1} quantity`} className="w-28" type="number" min={2} placeholder="From qty" value={t.minQty} onChange={(e) => setForm({ ...form, tiers: form.tiers.map((x, j) => (j === i ? { ...x, minQty: e.target.value } : x)) })} />
+            <Input aria-label={`Bulk price ${i + 1} discount`} className="w-28" type="number" min={1} max={90} step="0.5" placeholder="% off" value={t.percentOff} onChange={(e) => setForm({ ...form, tiers: form.tiers.map((x, j) => (j === i ? { ...x, percentOff: e.target.value } : x)) })} />
+            <span className="text-sm text-muted-foreground">{t.minQty && t.percentOff ? `${t.minQty}+ ${form.unit || "items"}: ${t.percentOff}% off` : ""}</span>
+            <Button type="button" variant="ghost" size="icon" aria-label="Remove bulk price" onClick={() => setForm({ ...form, tiers: form.tiers.filter((_, j) => j !== i) })}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        {form.tiers.length < 6 && (
+          <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, tiers: [...form.tiers, { minQty: "", percentOff: "" }] })}>
+            <Plus className="mr-2 h-4 w-4" /> Add a bulk price
+          </Button>
+        )}
+        <p className="text-xs text-muted-foreground">Cheaper per unit when a customer buys enough: for example 10+ kg is 5% off and 50+ kg is 10% off. It follows the total bought of this product, and a sale is used instead when it is cheaper.</p>
+      </div>
+    </div>
+  );
+  return isFarm ? (
+    <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+      <p className="font-medium">Farm and bulk selling</p>
+      {body}
+    </div>
+  ) : (
+    <details className="rounded-xl border p-4" open={used}>
+      <summary className="cursor-pointer font-medium">More selling options: pre-orders, minimum order, bulk prices</summary>
+      <div className="mt-4">{body}</div>
+    </details>
+  );
+};
+
 const UNIT_SUGGESTIONS = ["kg", "crate", "bag", "dozen", "piece", "litre", "bundle", "tray", "pack"];
 
 const AdminProducts = () => {
+  const { config: studioConfig } = useStudio();
+  const isFarm = studioConfig?.shopCategory === "farm" || (studioConfig?.shopCategories ?? []).includes("farm");
   // The row whose details drawer is open.
   const [details, setDetails] = useState<ProductDTO | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -165,6 +237,11 @@ const AdminProducts = () => {
         newImages,
         images: data.images,
         unit: data.unit.trim() || null,
+        availableFrom: data.availableFrom || null,
+        minQuantity: Math.max(1, parseInt(data.minQuantity || "1", 10) || 1),
+        bulkTiers: data.tiers
+          .filter((t) => t.minQty.trim() && t.percentOff.trim())
+          .map((t) => ({ minQty: parseInt(t.minQty, 10), percentOff: parseFloat(t.percentOff) })),
         ...optionFields(data),
         colors: data.colors.filter((c) => c.name.trim()).map((c) => `${c.name.trim()}|${c.hex}`),
         audience: data.audience,
@@ -217,7 +294,7 @@ const AdminProducts = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...emptyForm, category: categories[0]?.slug ?? "" });
+    setForm({ ...emptyForm, unit: isFarm ? "kg" : "", category: categories[0]?.slug ?? "" });
     setImage(null);
     setNewImages([]);
     setIsDialogOpen(true);
@@ -236,6 +313,9 @@ const AdminProducts = () => {
       trackStock: p.track_stock,
       popular: p.popular,
       unit: p.unit ?? "",
+      availableFrom: p.available_from ?? "",
+      minQuantity: String(p.min_quantity),
+      tiers: p.bulk_tiers.map((t) => ({ minQty: String(t.minQty), percentOff: String(t.percentOff) })),
       options: p.variants.length
         ? p.variants.map((v) => ({ label: v.label, price: String(v.price) }))
         : p.sizes.map((label) => ({ label, price: "" })),
@@ -674,6 +754,7 @@ const AdminProducts = () => {
                 Customers must pick one. Give an option a price and each one can cost something different (1 kg, 5 kg, a 20 kg crate). Leave every price empty and they all cost the main price. All options share the stock above, and a sale takes the same percentage off each.
               </p>
             </div>
+            <SellingOptions form={form} setForm={setForm} isFarm={isFarm} />
             <div className="space-y-2">
               <Label>Colours (optional)</Label>
               {form.colors.map((c, i) => (

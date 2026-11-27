@@ -263,6 +263,11 @@ const AdminOrders = () => {
                         )}
                         {order.fulfillment === "delivery" ? "Delivery" : "Pickup"}
                       </div>
+                      {order.ready_from && (
+                        <p className="mt-1 text-xs font-medium text-primary">
+                          Pre-order: ready from {new Date(`${order.ready_from}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </p>
+                      )}
                       {order.fulfillment === "delivery" &&
                         order.delivery_address && (
                           <p className="text-xs text-muted-foreground max-w-[180px] mt-1">

@@ -12,6 +12,7 @@ import {
   Palette,
   Scissors,
   Shirt,
+  Sprout,
   ShoppingBag,
   Smartphone,
   Sofa,
@@ -32,6 +33,7 @@ export const SHOP_CATEGORIES: readonly { id: ShopCategoryId; label: string; icon
   { id: "hair", label: "Hair & wigs", icon: Scissors },
   { id: "perfume", label: "Perfume & fragrance", icon: SprayCan },
   { id: "food", label: "Food & groceries", icon: Apple },
+  { id: "farm", label: "Farm & produce", icon: Sprout },
   { id: "drinks", label: "Drinks", icon: CupSoda },
   { id: "bakery", label: "Cakes & pastries", icon: CakeSlice },
   { id: "electronics", label: "Electronics & gadgets", icon: Headphones },
@@ -47,5 +49,5 @@ export const SHOP_CATEGORIES: readonly { id: ShopCategoryId; label: string; icon
 
 export type ShopCategoryId =
   | "clothing" | "shoes" | "bags-accessories" | "jewellery" | "beauty" | "hair" | "perfume"
-  | "food" | "drinks" | "bakery" | "electronics" | "phones" | "home" | "kids" | "health"
+  | "food" | "farm" | "drinks" | "bakery" | "electronics" | "phones" | "home" | "kids" | "health"
   | "sports" | "books" | "art" | "other";

@@ -3,6 +3,7 @@ import { useNoIndex } from "@/lib/seo";
 import { Link } from "react-router-dom";
 import { CouponBox } from "@/components/shop/CouponBox";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { ShoppingBag, Minus, Plus, Loader2, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
@@ -80,7 +81,11 @@ const Cart = () => {
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const count = items.reduce((n, i) => n + i.quantity, 0);
-  const blocked = items.some((i) => !i.in_stock);
+  // A minimum order counts all of a product's lines together.
+  const boughtOf = new Map<string, number>();
+  for (const i of items) boughtOf.set(i.product_id, (boughtOf.get(i.product_id) ?? 0) + i.quantity);
+  const underMin = items.filter((i) => (boughtOf.get(i.product_id) ?? 0) < i.min_quantity);
+  const blocked = items.some((i) => !i.in_stock) || underMin.length > 0;
   const inBag = new Set(items.map((i) => i.product_id));
   const suggestions = allProducts.filter((p) => !inBag.has(p.id) && p.in_stock);
   const checkout = blocked ? (
@@ -127,6 +132,10 @@ const Cart = () => {
                         <p className="mt-0.5 text-sm text-muted-foreground">{[item.color, item.size && `Size ${item.size}`].filter(Boolean).join(" · ")}</p>
                       )}
                       {!item.in_stock && <p className="mt-1 text-sm text-destructive">No longer in stock. Remove it to continue.</p>}
+                      {item.available_from && <p className="mt-1 text-sm font-medium text-primary">Pre-order: ready from {format(new Date(`${item.available_from}T12:00:00`), "d MMMM")}</p>}
+                      {(boughtOf.get(item.product_id) ?? 0) < item.min_quantity && (
+                        <p className="mt-1 text-sm text-destructive">Minimum order: {item.min_quantity}{item.unit ? ` ${item.unit}` : ""}. Add more to continue.</p>
+                      )}
                       <p className="mt-1 text-sm tabular-nums text-muted-foreground md:hidden">{GHS(item.unit_price)}</p>
                       <button type="button" onClick={() => removeMutation.mutate(item)} className="mt-3 text-xs underline underline-offset-2 hover:text-destructive">
                         Remove from basket

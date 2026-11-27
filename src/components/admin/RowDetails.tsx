@@ -181,6 +181,7 @@ export const OrderDetails = ({ item, onClose, footer }: { item: OrderDTO | null;
                 },
                 ...(item.fulfillment === "delivery" ? [{ label: "Deliver to", value: item.delivery_address }] : []),
                 ...(item.delivery_zone ? [{ label: "Area", value: item.delivery_zone }] : []),
+                ...(item.ready_from ? [{ label: "Pre-order, ready from", value: new Date(`${item.ready_from}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long" }) }] : []),
                 ...(item.delivery_slot ? [{ label: "Customer chose", value: item.delivery_slot }] : []),
                 ...(item.delivery_note ? [{ label: "Note for the rider", value: item.delivery_note }] : []),
                 ...(item.delivery_eta ? [{ label: item.fulfillment === "delivery" ? "Expected" : "Collect by", value: item.delivery_eta }] : []),

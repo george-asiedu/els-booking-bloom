@@ -61,6 +61,8 @@ export interface OrderDTO {
   delivery_note: string | null;
   delivery_zone: string | null;
   delivery_slot: string | null;
+  /** Pre-order items: the day the order is ready from (YYYY-MM-DD). */
+  ready_from: string | null;
   delivery_eta: string | null;
   status_updated_at: string | null;
   handover_code: string | null;
@@ -95,6 +97,7 @@ export interface RawOrder {
   deliveryNote?: string | null;
   deliveryZone?: string | null;
   deliverySlot?: string | null;
+  readyFrom?: string | null;
   deliveryEta?: string | null;
   statusUpdatedAt?: string | null;
   handoverCode?: string | null;
@@ -139,6 +142,7 @@ export const normalizeOrder = (o: RawOrder): OrderDTO => {
     delivery_note: o.deliveryNote ?? null,
     delivery_zone: o.deliveryZone ?? null,
     delivery_slot: o.deliverySlot ?? null,
+    ready_from: o.readyFrom ? o.readyFrom.slice(0, 10) : null,
     delivery_eta: o.deliveryEta ?? null,
     status_updated_at: o.statusUpdatedAt ?? null,
     handover_code: o.handoverCode ?? null,

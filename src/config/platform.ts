@@ -14,7 +14,7 @@ export const SITE_DEFAULTS = {
   name: "Zuri",
   // Short line above the hero headline: who the product is for. Deliberately
   // not a list of trades, so no beauty business reads itself as left out.
-  heroBadge: "Made for beauty businesses across Ghana",
+  heroBadge: "Made for businesses across Ghana",
   // Digits with country code: what a wa.me link needs.
   whatsapp: "233203631199",
   email: "zuristudios53@gmail.com",
@@ -42,7 +42,7 @@ export const LEGAL = {
 export const PLATFORM = {
   ...SITE_DEFAULTS,
   description:
-    "Zuri gives beauty studios their own booking website: clients book a free time, pay by Mobile Money or card, and earn loyalty points.",
+    "Zuri gives studios and shops their own website: customers book a free time or order online, pay by Mobile Money or card, and earn loyalty points.",
   // Platform root domain (studios live at <slug>.<rootDomain> in production).
   // Normalised to a bare host: strips any scheme, path, port and stray dots so a
   // misconfigured value (e.g. an API URL) can't produce a broken storefront URL.

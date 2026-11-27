@@ -15,7 +15,7 @@ export const LoyaltyReviewsSection = () => {
               </h2>
               <p className="mt-4 text-muted-foreground">
                 Points for every visit, a bonus when they bring a friend, and
-                their reviews on your page for new clients to read.
+                their reviews on your page for new customers to read.
               </p>
             </div>
           </div>

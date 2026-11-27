@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { productsApi, productCategoriesApi, productReviewsApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
 import { optionPrice, optionBase, hasOptionPrices } from "@/lib/api/products";
+import { format } from "date-fns";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -129,7 +130,12 @@ const ProductDetail = () => {
       toast({ variant: "destructive", title: "Couldn't send your review", description: e instanceof Error ? e.message : "Please try again." }),
   });
 
-  const maxQty = product?.track_stock ? product.stock : 99;
+  const maxQty = product?.track_stock ? product.stock : 999;
+  const minQty = product?.min_quantity ?? 1;
+  // Start at the least that can be ordered.
+  useEffect(() => {
+    if (product?.id) setQty((q) => Math.max(q, product.min_quantity));
+  }, [product?.id, product?.min_quantity]);
   useEffect(() => {
     setExtras((rows) => {
       const want = Math.max(0, qty - 1);
@@ -234,6 +240,11 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = () => {
+    if (product && qty < product.min_quantity) {
+      toast({ variant: "destructive", title: `The minimum order is ${product.min_quantity}${product.unit ? ` ${product.unit}` : ""}` });
+      setQty(product.min_quantity);
+      return;
+    }
     if (!optionsChosen()) return;
     // No account needed: a visitor's basket stays on their own device.
     if (user?.role === "ADMIN") {
@@ -323,7 +334,7 @@ const ProductDetail = () => {
   const deliveryFee = commerce?.delivery_fee ?? 0;
   // Each unit is priced by its own option, so a mix of options adds up right.
   const unitRows = variantLines();
-  const lineTotal = lineTotal_(1, unitRows.reduce((n, l) => n + optionPrice(product, l.size) * l.quantity, 0));
+  const lineTotal = lineTotal_(1, unitRows.reduce((n, l) => n + optionPrice(product, l.size, qty) * l.quantity, 0));
   const lineBefore = lineTotal_(1, unitRows.reduce((n, l) => n + optionBase(product, l.size) * l.quantity, 0));
   const guestTotal = lineTotal + (fulfillment === "DELIVERY" ? deliveryFeeFor(commerce, pick.zoneId) : 0);
   const categoryName = categories.find((c) => c.slug === product.category)?.name ?? product.category.replace(/-/g, " ");
@@ -428,6 +439,23 @@ const ProductDetail = () => {
               {product.unit && <span className="ml-1 text-base font-normal text-muted-foreground">per {product.unit}</span>}
             </p>
 
+            {product.preorder && product.available_from && (
+              <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                Pre-order · ready from {format(new Date(`${product.available_from}T12:00:00`), "d MMMM")}
+              </p>
+            )}
+            {(minQty > 1 || product.bulk_tiers.length > 0) && (
+              <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                {minQty > 1 && <p>Minimum order: <span className="font-medium text-foreground">{minQty}{product.unit ? ` ${product.unit}` : ""}</span></p>}
+                {product.bulk_tiers.length > 0 && (
+                  <p>
+                    Buy more, pay less:{" "}
+                    {product.bulk_tiers.map((t) => `${t.minQty}+${product.unit ? ` ${product.unit}` : ""} ${t.percentOff}% off`).join(" · ")}
+                  </p>
+                )}
+              </div>
+            )}
+
             {product.sizes.length > 0 && (
               <div className="mt-7">
                 <p className="text-sm font-semibold">{product.variants.length > 0 ? "Choose an option" : "Select size"}</p>
@@ -514,8 +542,8 @@ const ProductDetail = () => {
             {product.in_stock ? (
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <div className="flex h-12 items-center rounded-xl border border-input">
-                  <button type="button" aria-label="Less" className="h-full px-3.5 disabled:opacity-40" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></button>
-                  <span className="w-8 text-center text-sm tabular-nums">{qty}</span>
+                  <button type="button" aria-label="Less" className="h-full px-3.5 disabled:opacity-40" disabled={qty <= minQty} onClick={() => setQty((q) => Math.max(minQty, q - 1))}><Minus className="h-4 w-4" /></button>
+                  <input type="number" inputMode="numeric" aria-label="Quantity" min={minQty} max={maxQty} value={qty} onChange={(e) => { const n = Math.floor(Number(e.target.value)); if (n >= 1) setQty(Math.min(maxQty, n)); }} onBlur={() => setQty((q) => Math.max(minQty, q))} className="w-14 bg-transparent text-center text-sm tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
                   <button type="button" aria-label="More" className="h-full px-3.5 disabled:opacity-40" disabled={qty >= maxQty} onClick={() => setQty((q) => Math.min(maxQty, q + 1))}><Plus className="h-4 w-4" /></button>
                 </div>
                 <Button className="h-12 flex-1 rounded-xl px-6 sm:flex-none" disabled={addMutation.isPending} onClick={handleAddToCart}>
@@ -568,7 +596,7 @@ const ProductDetail = () => {
                       {fulfillment === "DELIVERY" && (
                         <>
                           <Textarea placeholder="Delivery address" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
-                          <DeliveryChoice settings={commerce} value={pick} onChange={setPick} />
+                          <DeliveryChoice settings={commerce} value={pick} onChange={setPick} notBefore={product.preorder ? product.available_from : null} />
                         </>
                       )}
                       <div>

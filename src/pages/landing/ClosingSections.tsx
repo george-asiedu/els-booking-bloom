@@ -64,7 +64,7 @@ export const TrainingSection = () => (
       </ol>
       <div className="mt-9 text-center">
         <Button size="lg" className="rounded-full px-8" asChild>
-          <Link to="/onboarding">Set up your studio</Link>
+          <Link to="/onboarding">Set up your website</Link>
         </Button>
       </div>
     </div>
@@ -250,7 +250,7 @@ export const FooterSection = () => {
             <div className="col-span-2 md:col-span-2">
               <BrandLogo stacked />
               <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-                Bookings, payments and a website for every kind of beauty business in Ghana.
+                Bookings, shops, payments and a website for every kind of business in Ghana.
               </p>
             </div>
             <FooterCol
@@ -265,7 +265,7 @@ export const FooterSection = () => {
               title="Studios"
               links={[
                 { label: "Studio login", to: "/studio-login" },
-                { label: "Set up your studio", to: "/onboarding" },
+                { label: "Set up your website", to: "/onboarding" },
               ]}
             />
             <FooterCol

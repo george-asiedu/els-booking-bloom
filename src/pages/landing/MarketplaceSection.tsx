@@ -58,7 +58,7 @@ export const MarketplaceSection = () => {
             Get found by customers looking for you
           </h2>
           <p className="mt-4 max-w-xl text-muted-foreground">
-            The Zuri marketplace lists beauty studios, salons, barbers and online shops across Ghana in one place.
+            The Zuri marketplace lists studios, salons, barbers, farms and online shops across Ghana in one place.
             Customers search by area or service, compare reviews, then book or buy on the business&apos;s own website.
             Every plan includes a free listing.
           </p>

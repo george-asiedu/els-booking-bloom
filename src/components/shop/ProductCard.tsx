@@ -25,7 +25,7 @@ export const ProductCard = ({
 }) => {
   const { has, toggle } = useWishlist();
   const saved = has(product.id);
-  const label = !product.in_stock ? "Sold out" : product.on_promo ? "Sale" : badge;
+  const label = !product.in_stock ? "Sold out" : product.preorder ? "Pre-order" : product.on_promo ? "Sale" : badge;
   return (
     <Link to={`/shop/${product.id}`} className={cn("group flex flex-col", className)}>
       <div className={cn("relative overflow-hidden rounded-2xl bg-muted", tall ? "min-h-[20rem] flex-1" : "aspect-[3/4]")}>

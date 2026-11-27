@@ -103,6 +103,21 @@ export const SHOP_TEMPLATES: Record<ShopCategoryId, ShopTemplate> = {
     badges: ["Fresh daily", "Fast delivery", "Pay by MoMo or card"],
     joinTitle: "Order again, earn points",
   }),
+  // A farm: fresh produce, fish and livestock, often sold ahead of harvest and
+  // in bulk. The product form puts pre-orders, minimum orders and bulk prices
+  // up front for these shops (they are there for every shop).
+  farm: T({
+    eyebrow: "Fresh from the farm",
+    headline: "From our farm to your table.",
+    subtext: "Produce, fish and farm goods, harvested for you. Order what's ready today or pre-order the next harvest, and we'll deliver or you can collect.",
+    cta: "Order fresh",
+    headingStyle: "serif",
+    newTitle: "Ready this week",
+    bestTitle: "Most ordered",
+    badges: ["Harvested fresh", "Delivery or farm pickup", "Pay by MoMo or card"],
+    joinTitle: "Order again, earn points",
+    joinText: "Create an account to earn points on every order and hear first when a new harvest is open.",
+  }),
   drinks: T({
     eyebrow: "Drinks",
     headline: "Something to sip on.",

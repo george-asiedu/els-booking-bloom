@@ -32,14 +32,19 @@ export const DeliveryChoice = ({
   value,
   onChange,
   labelClassName,
+  notBefore,
 }: {
   settings: CommerceSettingsDTO | undefined;
   value: DeliveryPick;
   onChange: (v: DeliveryPick) => void;
   labelClassName?: string;
+  /** Pre-order items: the first day anything can be delivered (YYYY-MM-DD). */
+  notBefore?: string | null;
 }) => {
   if (!settings || (!settings.delivery_zones.length && !settings.delivery_slots.length)) return null;
-  const days = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i));
+  // Days start today, or on the pre-order's ready day when that is later.
+  const start = notBefore && notBefore > format(new Date(), "yyyy-MM-dd") ? new Date(`${notBefore}T12:00:00`) : new Date();
+  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   return (
     <div className="space-y-4">
       {settings.delivery_zones.length > 0 && (
@@ -71,7 +76,7 @@ export const DeliveryChoice = ({
                   onClick={() => onChange({ ...value, date: iso })}
                   className={cn("min-w-16 shrink-0 border px-2 py-1.5 text-center text-xs", on ? "border-foreground bg-foreground text-background" : "border-border hover:bg-accent")}
                 >
-                  <span className="block font-medium">{i === 0 ? "Today" : i === 1 ? "Tomorrow" : format(d, "EEE")}</span>
+                  <span className="block font-medium">{format(d, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") ? "Today" : format(d, "yyyy-MM-dd") === format(addDays(new Date(), 1), "yyyy-MM-dd") ? "Tomorrow" : format(d, "EEE")}</span>
                   <span className="block opacity-80">{format(d, "d MMM")}</span>
                 </button>
               );

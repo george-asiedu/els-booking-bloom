@@ -26,12 +26,35 @@ export const basePriceFor = (p: { price: number; variants?: unknown }, size?: st
   return variant?.price ?? p.price;
 };
 
-/** What one unit costs for the chosen option, after any sale. */
+export interface BulkTier {
+  minQty: number;
+  percentOff: number;
+}
+
+/** Bulk prices as a clean list, smallest quantity first. */
+export const readTiers = (raw: unknown): BulkTier[] => {
+  if (!Array.isArray(raw)) return [];
+  const out: BulkTier[] = [];
+  for (const t of raw) {
+    const { minQty, percentOff } = (t ?? {}) as { minQty?: unknown; percentOff?: unknown };
+    if (Number(minQty) >= 2 && Number(percentOff) > 0 && Number(percentOff) < 100) out.push({ minQty: Math.floor(Number(minQty)), percentOff: Number(percentOff) });
+  }
+  return out.sort((a, b) => a.minQty - b.minQty);
+};
+
+/** The percentage off for buying `qty` of it (0 when no tier fits). */
+export const tierPercent = (raw: unknown, qty: number): number => [...readTiers(raw)].reverse().find((t) => qty >= t.minQty)?.percentOff ?? 0;
+
+/** What one unit costs for the chosen option and quantity: after any sale, or the bulk price if that is lower. */
 export const effectivePriceFor = (
-  p: { price: number; promoPrice: number | null; variants?: unknown },
+  p: { price: number; promoPrice: number | null; variants?: unknown; bulkTiers?: unknown },
   size?: string | null,
+  qty?: number,
 ): number => {
   const base = basePriceFor(p, size);
-  if (p.promoPrice != null && p.promoPrice < p.price && p.price > 0) return round2((base * p.promoPrice) / p.price);
-  return base;
+  let price = base;
+  if (p.promoPrice != null && p.promoPrice < p.price && p.price > 0) price = round2((base * p.promoPrice) / p.price);
+  const off = qty ? tierPercent(p.bulkTiers, qty) : 0;
+  if (off > 0) price = Math.min(price, round2(base * (1 - off / 100)));
+  return price;
 };

@@ -277,7 +277,7 @@ const Checkout = () => {
             {fulfillment === "DELIVERY" && (
               <div className="space-y-4 border-t border-border pt-6">
                 <h2 className="font-medium">Delivery information</h2>
-                <DeliveryChoice settings={commerce} value={pick} onChange={setPick} labelClassName="text-xs uppercase tracking-wider" />
+                <DeliveryChoice settings={commerce} value={pick} onChange={setPick} labelClassName="text-xs uppercase tracking-wider" notBefore={items.map((i) => i.available_from).filter((d): d is string => Boolean(d)).sort().pop() ?? null} />
                 <div>
                   <Label htmlFor="co-phone" className="text-xs uppercase tracking-wider">Phone *</Label>
                   <Input id="co-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-2 rounded-none" />
