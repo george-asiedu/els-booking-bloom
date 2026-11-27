@@ -1,13 +1,15 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
-import { CalendarDays, Clock, Loader2, LogOut, MessageCircle, Phone, User } from "lucide-react";
+import { CalendarDays, Check, Clock, Loader2, LogOut, MessageCircle, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/dashboard/KpiTile";
 import { StudioMark } from "@/components/StudioMark";
 import { NotificationsCard } from "@/components/security/NotificationsCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudio } from "@/hooks/useStudio";
+import { useToast } from "@/hooks/use-toast";
+import { formatGHS } from "@/lib/currency";
 import { apiRequest } from "@/lib/apiClient";
 import { whatsappLink } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,8 @@ interface Booking {
   appointmentDate: string;
   appointmentTime: string;
   service: { name: string; duration: string | null } | null;
+  /** For their own confirmation: read-only. */
+  money: { total: number; paid: number; balance: number; label: "Unpaid" | "Part paid" | "Paid in full" };
 }
 interface Me {
   id: string;
@@ -41,6 +45,8 @@ const dayLabel = (iso: string) => {
  */
 const StaffPortal = () => {
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const { name: studioName, config } = useStudio();
 
   const me = useQuery({
@@ -52,6 +58,17 @@ const StaffPortal = () => {
     queryFn: async () => (await apiRequest<{ data: Booking[] }>("/staff/me/bookings", { auth: true })).data,
     refetchInterval: 60_000,
   });
+
+  const markDone = useMutation({
+    mutationFn: (id: string) => apiRequest<{ message: string }>(`/staff/me/bookings/${id}/done`, { method: "POST", auth: true }),
+    onSuccess: (r) => {
+      toast({ title: r.message });
+      qc.invalidateQueries({ queryKey: ["staff-bookings"] });
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't mark it done" }),
+  });
+  // A booking can be marked done once its day has come.
+  const todayKey = new Date().toISOString().slice(0, 10);
 
   const groups = useMemo(() => {
     const out = new Map<string, Booking[]>();
@@ -125,10 +142,35 @@ const StaffPortal = () => {
                       {b.status === "PENDING" ? "Waiting for approval" : b.status === "CONFIRMED" ? "Confirmed" : "Done"}
                     </span>
                   </div>
+                  {b.money.total > 0 && (
+                    <p className="mt-2 text-sm">
+                      <span className="font-medium tabular-nums">{formatGHS(b.money.total)}</span>
+                      <span className="text-muted-foreground"> · </span>
+                      <span className={cn(b.money.label === "Paid in full" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400")}>
+                        {b.money.label === "Paid in full"
+                          ? "Paid in full"
+                          : b.money.label === "Part paid"
+                            ? `Part paid: ${formatGHS(b.money.paid)} paid, ${formatGHS(b.money.balance)} to collect`
+                            : `Not paid: ${formatGHS(b.money.balance)} to collect`}
+                      </span>
+                    </p>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button asChild size="sm" variant="outline">
                       <a href={`tel:${b.phone.replace(/\s+/g, "")}`}><Phone className="mr-1.5 h-4 w-4" /> Call</a>
                     </Button>
+                    {b.status === "CONFIRMED" && b.appointmentDate.slice(0, 10) <= todayKey && (
+                      <Button
+                        size="sm"
+                        disabled={markDone.isPending}
+                        onClick={() => {
+                          const owed = b.money.balance > 0 ? ` ${formatGHS(b.money.balance)} is still to collect.` : "";
+                          if (window.confirm(`Mark ${b.fullName}'s ${b.service?.name ?? "booking"} as done?${owed}`)) markDone.mutate(b.id);
+                        }}
+                      >
+                        {markDone.isPending && markDone.variables === b.id ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Check className="mr-1.5 h-4 w-4" />} Mark as done
+                      </Button>
+                    )}
                     {whatsappLink(b.phone) && (
                       <Button asChild size="sm" variant="outline">
                         <a href={whatsappLink(b.phone, `Hello ${b.fullName.split(" ")[0]}, this is ${me.data?.name ?? "your stylist"} from ${studioName} about your ${b.service?.name ?? "appointment"} at ${b.appointmentTime}.`) ?? undefined} target="_blank" rel="noreferrer">

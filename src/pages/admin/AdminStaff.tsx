@@ -134,7 +134,7 @@ const AdminStaff = () => {
                     {s.userId ? (
                       <span className="text-emerald-700 dark:text-emerald-400">Has a login</span>
                     ) : (
-                      <span className="text-muted-foreground">No login yet. Edit and add their email to give them one.</span>
+                      <span className="text-muted-foreground">No login. Edit and add their email to give them one.</span>
                     )}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -187,15 +187,17 @@ const AdminStaff = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="staff-email">Email{editing ? "" : " (required)"}</Label>
-              <Input id="staff-email" type="email" required={!editing} maxLength={120} placeholder="name@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <p className="text-xs text-muted-foreground">This is how they sign in and where their booking alerts go. Customers never see it.</p>
+              <Label htmlFor="staff-email">Email (optional)</Label>
+              <Input id="staff-email" type="email" maxLength={120} placeholder="name@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <p className="text-xs text-muted-foreground">
+                With an email they get their own sign-in, see their bookings and are alerted when one is about to start. Customers never see it. Without one, your admins get their alerts.
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="staff-phone">Phone number{editing ? "" : " (required)"}</Label>
-              <Input id="staff-phone" type="tel" required={!editing} maxLength={30} placeholder="024 000 0000" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Label htmlFor="staff-phone">Phone number (optional)</Label>
+              <Input id="staff-phone" type="tel" maxLength={30} placeholder="024 000 0000" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               {!editing && (
-                <p className="text-xs text-muted-foreground">Their account is created as soon as you save. They set their own password the first time they sign in at your studio's admin sign-in page, using a code sent to this email. They can then see only their own bookings.</p>
+                <p className="text-xs text-muted-foreground">If you add an email, their account is created as soon as you save. They set their own password the first time they sign in, using a code sent to that email. They then see their own bookings, with the price and payment, and can mark them done. Nothing else.</p>
               )}
             </div>
             <div className="space-y-2">
