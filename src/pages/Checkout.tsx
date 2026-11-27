@@ -310,6 +310,11 @@ const Checkout = () => {
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Proceed to payment
             </button>
+            <p className="text-center text-xs text-muted-foreground">
+              By paying you agree to this shop's{" "}
+              <Link to="/policies" className="underline">delivery, cancellation and refund policies</Link>.
+              Refunds are made by the shop.
+            </p>
           </div>
 
           <aside className="border border-border lg:sticky lg:top-24">

@@ -8,6 +8,19 @@ export interface Section {
   body: string[];
 }
 
+/** Lines starting with "- " become one bullet list; the rest stay paragraphs. */
+const groupBody = (body: string[]): (string | string[])[] => {
+  const out: (string | string[])[] = [];
+  for (const line of body) {
+    if (line.startsWith("- ")) {
+      const last = out[out.length - 1];
+      if (Array.isArray(last)) last.push(line.slice(2));
+      else out.push([line.slice(2)]);
+    } else out.push(line);
+  }
+  return out;
+};
+
 export const LegalPage = ({
   title,
   updated,
@@ -40,19 +53,23 @@ export const LegalPage = ({
         {sections.map((s) => (
           <section key={s.heading}>
             <h2 className="mb-2 text-lg font-semibold text-foreground">{s.heading}</h2>
-            {s.body.map((p, i) => (
-              <p key={i} className="mb-2 text-sm leading-relaxed text-muted-foreground">
-                {p}
-              </p>
-            ))}
+            {groupBody(s.body).map((g, i) =>
+              Array.isArray(g) ? (
+                <ul key={i} className="mb-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-muted-foreground">
+                  {g.map((li, j) => (
+                    <li key={j}>{li}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p key={i} className="mb-2 text-sm leading-relaxed text-muted-foreground">
+                  {g}
+                </p>
+              ),
+            )}
           </section>
         ))}
       </div>
 
-      <p className="mt-12 rounded-lg border border-border bg-secondary p-4 text-xs text-muted-foreground">
-        This is a general template provided for convenience and is not legal
-        advice. Please have it reviewed by a qualified lawyer before relying on it.
-      </p>
     </main>
   </div>
 );

@@ -15,8 +15,8 @@ export interface OnboardingConfig {
   commissionPremiumPercent: number;
   setupFeeStandard: number;
   setupFeePremium: number;
-  // Subscription setup fee per plan (0 = none), paid at signup instead of the
-  // first period and covering the first setupFeeMonths* months.
+  // Subscription setup fee per plan (0 = none): a one-time fee added to the
+  // first period's price at signup. setupFeeMonths* are no longer used.
   subscriptionSetupFeeStandard: number;
   subscriptionSetupFeePremium: number;
   setupFeeMonthsMonthly: number;
@@ -80,6 +80,7 @@ export interface SignupSummary {
   cadence: Cadence;
   billingMode: BillingMode;
   amountPaid: number | null;
+  setupFeePaid?: number | null;
   currency: string;
   paidAt: string | null;
   periodStart: string | null;

@@ -75,8 +75,6 @@ const PlatformBilling = () => {
   const set = (patch: Partial<PlatformBillingConfig>) => setForm({ ...form, ...patch });
   const setupFee = (plan: Plan) =>
     form[`subscriptionSetupFee${PLAN_KEY[plan]}` as const];
-  const coverMonths = (cadence: Cadence) =>
-    cadence === "YEARLY" ? form.setupFeeMonthsYearly : form.setupFeeMonthsMonthly;
 
   return (
     <PlatformLayout>
@@ -139,8 +137,9 @@ const PlatformBilling = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-sm text-muted-foreground">
-              New studios pay this at signup instead of their first month or year. Set a plan's
-              fee to 0 to turn it off for that plan.
+              A one-time fee added to a new studio's first payment. If a plan is GHS 200 and the
+              setup fee is GHS 100, the studio pays GHS 300 at signup, then GHS 200 at each
+              renewal. Set a plan's fee to 0 to turn it off for that plan.
             </p>
 
             <div className="grid gap-6 sm:grid-cols-3">
@@ -153,34 +152,6 @@ const PlatformBilling = () => {
                   suffix="GHS"
                 />
               ))}
-            </div>
-
-            <div className="space-y-3 border-t pt-5">
-              <div>
-                <p className="font-medium">How long the setup fee covers</p>
-                <p className="text-sm text-muted-foreground">
-                  This depends on how a studio chooses to pay, not on which plan it picks. It's
-                  the same for every plan.
-                </p>
-              </div>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Field
-                  label="Studios paying monthly"
-                  value={form.setupFeeMonthsMonthly}
-                  onChange={(v) => set({ setupFeeMonthsMonthly: num(v) })}
-                  suffix="months"
-                  min={1}
-                  max={24}
-                />
-                <Field
-                  label="Studios paying yearly"
-                  value={form.setupFeeMonthsYearly}
-                  onChange={(v) => set({ setupFeeMonthsYearly: num(v) })}
-                  suffix="months"
-                  min={1}
-                  max={24}
-                />
-              </div>
             </div>
 
             <div className="space-y-3 border-t pt-5">
@@ -248,7 +219,7 @@ const PlatformBilling = () => {
                           {plan.name}, paying {cadence === "YEARLY" ? "yearly" : "monthly"}:
                         </span>{" "}
                         {fee > 0
-                          ? `${formatGHS(fee)} at signup, covering the first ${coverMonths(cadence)} months, then ${then}.`
+                          ? `${formatGHS(price + fee)} at signup (${formatGHS(price)} plan + ${formatGHS(fee)} setup fee), then ${then}.`
                           : `No setup fee. ${then} from signup.`}
                       </li>
                     );

@@ -80,6 +80,10 @@ export interface StudioContentDTO {
   ctaImageUrl: string | null;
   contactHeading: string | null;
   showTestimonials: boolean;
+  // The studio's own policies, shown before customers book or pay.
+  cancellationPolicy?: string | null;
+  refundPolicy?: string | null;
+  deliveryPolicy?: string | null;
   // lib/studioTemplates: the kind of studio (default wording) and the layout.
   studioType?: string | null;
   // Every kind the studio offers; the first is studioType.

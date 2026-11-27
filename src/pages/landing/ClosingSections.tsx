@@ -92,7 +92,7 @@ export const PricingSection = () => {
                 Premium adds an online shop. Zuri Stores is a shop on its own, for
                 anything you sell.{" "}
                 {anySetup
-                  ? `A setup fee at signup covers your first ${anySetup.months} months, then the plan price applies. Cancel at any time.`
+                  ? `A one-time ${GHS(anySetup.fee)} setup fee is added to your first payment. After that it's just the plan price. Cancel at any time.`
                   : hasNoSetupFee(billing)
                     ? "There's no setup fee and you can cancel at any time."
                     : "You can cancel at any time."}
@@ -162,7 +162,7 @@ export const PricingSection = () => {
                     <p className="mt-3 rounded-md bg-accent/60 px-3 py-2 text-sm">
                       Starts with a{" "}
                       <span className="font-semibold tabular-nums">{GHS(setup.fee)}</span>{" "}
-                      setup fee that covers your first {setup.months} months.
+                      one-time setup fee on your first payment. Renewals are the plan price alone.
                     </p>
                   ) : null;
                 })()}
@@ -273,6 +273,7 @@ export const FooterSection = () => {
               links={[
                 { label: "Privacy", to: "/privacy" },
                 { label: "Terms", to: "/terms" },
+                { label: "Refunds", to: "/refunds" },
               ]}
             />
           </div>

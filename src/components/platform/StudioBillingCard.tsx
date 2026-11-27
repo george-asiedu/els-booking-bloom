@@ -83,7 +83,7 @@ export const StudioBillingCard = ({
             <dt className="text-muted-foreground">Signed up with</dt>
             <dd className="text-right">
               {billing.signup
-                ? `${formatGHS(billing.signup.amount)}${billing.signup.coverageMonths ? ` · covered ${billing.signup.coverageMonths} months` : ""}`
+                ? `${formatGHS(billing.signup.amount)}${billing.signup.setupFee ? ` · includes ${formatGHS(billing.signup.setupFee)} setup fee` : ""}${billing.signup.coverageMonths ? ` · covered ${billing.signup.coverageMonths} months` : ""}`
                 : "Created by you (no signup payment)"}
             </dd>
           </div>

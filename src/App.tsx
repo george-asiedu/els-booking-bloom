@@ -112,6 +112,8 @@ const Discover = lazy(() => import("./pages/Discover"));
 const Onboarding = lazy(() => import("./pages/onboarding/Onboarding"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
 const Terms = lazy(() => import("./pages/legal/Terms"));
+const Refunds = lazy(() => import("./pages/legal/Refunds"));
+const StudioPolicies = lazy(() => import("./pages/StudioPolicies"));
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -221,6 +223,8 @@ const App = () => (
               <Route path="/onboarding/callback" element={<Onboarding />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/refunds" element={<Refunds />} />
+              <Route path="/policies" element={<StudioPolicies />} />
               <Route path="/s/:slug" element={<StudioEntry />} />
               <Route path="/services" element={<Services />} />
               <Route

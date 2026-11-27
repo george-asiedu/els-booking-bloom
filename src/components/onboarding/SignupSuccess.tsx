@@ -150,11 +150,28 @@ export const SignupSuccess = ({
                   {planName} · {subscription ? (summary.cadence === "YEARLY" ? "Yearly" : "Monthly") : "Pay as you earn"}
                 </dd>
               </div>
-              {summary.amountPaid != null && summary.amountPaid > 0 && (
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{subscription ? "Setup fee paid" : "Activation fee paid"}</dt>
-                  <dd className="font-semibold tabular-nums">{formatGHS(summary.amountPaid)}</dd>
-                </div>
+              {subscription && summary.setupFeePaid != null && summary.setupFeePaid > 0 && summary.amountPaid != null ? (
+                <>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">First {summary.cadence === "YEARLY" ? "year" : "month"}</dt>
+                    <dd className="tabular-nums">{formatGHS(summary.amountPaid - summary.setupFeePaid)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">One-time setup fee</dt>
+                    <dd className="tabular-nums">{formatGHS(summary.setupFeePaid)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Total paid</dt>
+                    <dd className="font-semibold tabular-nums">{formatGHS(summary.amountPaid)}</dd>
+                  </div>
+                </>
+              ) : (
+                summary.amountPaid != null && summary.amountPaid > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">{subscription ? (summary.coverageMonths ? "Setup fee paid" : "Paid") : "Activation fee paid"}</dt>
+                    <dd className="font-semibold tabular-nums">{formatGHS(summary.amountPaid)}</dd>
+                  </div>
+                )
               )}
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Date</dt>

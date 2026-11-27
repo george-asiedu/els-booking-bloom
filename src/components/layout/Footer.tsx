@@ -131,7 +131,16 @@ export const Footer = () => {
           <p>
             © {new Date().getFullYear()} {studioName}
           </p>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link to="/policies" className="transition-colors hover:text-primary">
+              Policies
+            </Link>
+            <Link to="/privacy" className="transition-colors hover:text-primary">
+              Privacy
+            </Link>
+            <Link to="/terms" className="transition-colors hover:text-primary">
+              Terms
+            </Link>
             <Link to="/admin/login" className="transition-colors hover:text-primary">
               Studio login
             </Link>

@@ -30,6 +30,27 @@ interface EditorProps {
   saving: boolean;
 }
 
+const POLICY_FIELDS = [
+  {
+    field: "cancellationPolicy",
+    label: "Cancellations and rescheduling",
+    placeholder: "For example: Please give us 24 hours' notice to cancel or move your appointment. A deposit is not returned for a no-show.",
+    hint: "How much notice you need, and what happens to a deposit.",
+  },
+  {
+    field: "refundPolicy",
+    label: "Refunds and returns",
+    placeholder: "For example: Unused products can be returned within 7 days with the receipt. Services are not refunded once done.",
+    hint: "When you refund, how, and how long it takes. You pay refunds yourself, by Mobile Money, cash or bank.",
+  },
+  {
+    field: "deliveryPolicy",
+    label: "Delivery and collection",
+    placeholder: "For example: We deliver within Accra in 1 to 2 days. You can also collect from our studio.",
+    hint: "Areas, fees and times for delivery, and how collection works. Only needed if you sell products.",
+  },
+] as const;
+
 /** One text slot. Blank shows the default, which doubles as the placeholder. */
 const TextSlot = ({
   field,
@@ -295,6 +316,29 @@ export const LandingContentEditor = ({ value, onChange, studioName, onSave, savi
           />
         </div>
         <TextSlot {...text("contactHeading")} label="Contact" />
+      </Section>
+
+      <Section
+        title="Your policies"
+        description="Customers see these on your Policies page and before they book or pay. Payments go straight to your own Paystack account, so any refund is made by you. Leave a box empty to show the standard wording."
+      >
+        {POLICY_FIELDS.map((p) => (
+          <div key={p.field} className="space-y-1.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <Label htmlFor={`policy-${p.field}`}>{p.label}</Label>
+              <span className="text-xs tabular-nums text-muted-foreground">{(value[p.field] ?? "").length}/1500</span>
+            </div>
+            <Textarea
+              id={`policy-${p.field}`}
+              rows={4}
+              maxLength={1500}
+              value={value[p.field] ?? ""}
+              placeholder={p.placeholder}
+              onChange={(e) => set({ [p.field]: e.target.value } as Partial<StudioContentDTO>)}
+            />
+            <p className="text-xs text-muted-foreground">{p.hint}</p>
+          </div>
+        ))}
       </Section>
 
       <Section title="Loyalty" description="Shown when loyalty points are switched on for your studio.">

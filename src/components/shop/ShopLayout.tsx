@@ -241,7 +241,12 @@ export const ShopLayout = ({ children }: { children: ReactNode }) => {
         <div className="border-t border-border">
           <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
             <span>© {new Date().getFullYear()} {name}</span>
-            <a href="https://zuristudios.com" target="_blank" rel="noreferrer" className="hover:text-foreground">Powered by Zuri</a>
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <Link to="/policies" className="hover:text-foreground">Policies</Link>
+              <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+              <Link to="/terms" className="hover:text-foreground">Terms</Link>
+              <a href="https://zuristudios.com" target="_blank" rel="noreferrer" className="hover:text-foreground">Powered by Zuri</a>
+            </span>
           </div>
         </div>
       </footer>

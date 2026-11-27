@@ -18,8 +18,25 @@ export const SITE_DEFAULTS = {
   // Digits with country code: what a wa.me link needs.
   whatsapp: "233203631199",
   email: "zuristudios53@gmail.com",
+  // For calls (digits with country code), shown as 0544 738 983.
+  phone: "233544738983",
   // A live studio to showcase from the landing page.
   demoSlug: "els",
+};
+
+/**
+ * Who is behind Zuri, for the Terms, Privacy Policy and Refund Policy. Change
+ * it here and every legal page follows.
+ */
+export const LEGAL = {
+  updated: "27 November 2026",
+  operator: "Zuri Studios, operated by George Kobina Asiedu Amoah trading as Zuri",
+  address: "Kasoa, Ofaakor, Central Region, Ghana",
+  phoneDisplay: "0544 738 983",
+  whatsappDisplay: "0203 631 199",
+  // The Data Protection Commission registration number. Leave empty until
+  // Zuri is registered; the Privacy Policy only mentions it once it is set.
+  dpcRegistrationNumber: "",
 };
 
 export const PLATFORM = {

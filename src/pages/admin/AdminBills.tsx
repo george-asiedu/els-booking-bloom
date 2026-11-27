@@ -35,6 +35,7 @@ interface Bill {
   status: "UNPAID" | "PAID" | "VOID";
   paidAt: string | null;
   paidVia: string | null;
+  paidNote?: string | null;
   createdAt: string;
   payUrl: string | null;
 }
@@ -218,12 +219,15 @@ const AdminBills = () => {
   const [sharing, setSharing] = useState<Bill | null>(null);
   const [paying, setPaying] = useState<Bill | null>(null);
   const [method, setMethod] = useState("cash");
+  const [received, setReceived] = useState("");
+  const [payNote, setPayNote] = useState("");
 
   // One page at a time, per tab. Totals and counts come from the server over
   // every bill, so they are right however many pages are loaded.
   type BillsPage = {
     data: Bill[];
     totals: { unpaid: number; paid: number };
+    today?: { cash: number; counter: number; online: number; count: number };
     counts: Record<BillTab, number>;
     pagination?: { nextCursor: string | null; hasMore: boolean };
   };
@@ -242,10 +246,23 @@ const AdminBills = () => {
   const refresh = () => qc.invalidateQueries({ queryKey: ["bills"] });
   const fail = (e: unknown) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Something went wrong" });
   const markPaid = useMutation({
-    mutationFn: (id: string) => apiRequest(`/bills/${id}/paid`, { method: "POST", auth: true, body: { method } }),
-    onSuccess: () => { setPaying(null); refresh(); toast({ title: "Marked as paid" }); },
+    mutationFn: (id: string) =>
+      apiRequest<{ message: string }>(`/bills/${id}/paid`, {
+        method: "POST",
+        auth: true,
+        body: { method, ...(method === "cash" && received.trim() ? { received: Number(received) } : {}), ...(payNote.trim() ? { note: payNote.trim() } : {}) },
+      }),
+    onSuccess: (res) => { setPaying(null); refresh(); toast({ title: res.message }); },
     onError: fail,
   });
+  const remind = useMutation({
+    mutationFn: (id: string) => apiRequest<{ message: string }>(`/bills/${id}/remind`, { method: "POST", auth: true }),
+    onSuccess: (res) => toast({ title: res.message }),
+    onError: fail,
+  });
+  const openPaying = (b: Bill) => { setMethod("cash"); setReceived(""); setPayNote(""); setPaying(b); };
+  const receivedNum = Number(received);
+  const change = paying && method === "cash" && received.trim() && Number.isFinite(receivedNum) ? receivedNum - paying.total : null;
   const cancel = useMutation({
     mutationFn: (id: string) => apiRequest(`/bills/${id}/void`, { method: "POST", auth: true }),
     onSuccess: refresh,
@@ -262,9 +279,15 @@ const AdminBills = () => {
         subtitle="Bill a walk-in and send a payment link. Every bill stays on record: paid online, paid at the counter, or cancelled."
         actions={<Button onClick={() => setCreating(true)}><Plus className="mr-2 h-4 w-4" /> New bill</Button>}
       />
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <KpiTile tone="amber" label="Waiting to be paid" value={formatGHS(data?.totals.unpaid ?? 0)} hint={`${count("UNPAID")} unpaid`} />
         <KpiTile tone="green" label="Paid" value={formatGHS(data?.totals.paid ?? 0)} hint={`${count("PAID")} paid`} />
+        <KpiTile
+          tone="green"
+          label="Taken today"
+          value={formatGHS((data?.today?.cash ?? 0) + (data?.today?.counter ?? 0) + (data?.today?.online ?? 0))}
+          hint={`Cash ${formatGHS(data?.today?.cash ?? 0)} · Counter ${formatGHS(data?.today?.counter ?? 0)} · Online ${formatGHS(data?.today?.online ?? 0)}`}
+        />
       </div>
       <StatusTabs<BillTab>
         tabs={[
@@ -307,12 +330,16 @@ const AdminBills = () => {
                   <TableCell>
                     <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS[b.status].className)}>{STATUS[b.status].label}</span>
                     {b.status === "PAID" && b.paidVia && <p className="mt-1 text-xs text-muted-foreground">{VIA[b.paidVia] ?? b.paidVia}</p>}
+                    {b.status === "PAID" && b.paidNote && <p className="text-xs text-muted-foreground">{b.paidNote}</p>}
                   </TableCell>
                   <TableCell className="text-right">
                     {b.status === "UNPAID" && (
                       <div className="flex flex-wrap justify-end gap-1.5">
                         <Button size="sm" variant="outline" onClick={() => setSharing(b)}>Link and QR</Button>
-                        <Button size="sm" variant="outline" onClick={() => { setMethod("cash"); setPaying(b); }}>Paid at counter</Button>
+                        <Button size="sm" variant="outline" onClick={() => openPaying(b)}>Paid at counter</Button>
+                        {b.customerEmail && (
+                          <Button size="sm" variant="ghost" disabled={remind.isPending} onClick={() => remind.mutate(b.id)}>Send reminder</Button>
+                        )}
                         <Button size="sm" variant="ghost" onClick={() => confirm(`Cancel bill ${b.number}?`) && cancel.mutate(b.id)}>Cancel</Button>
                       </div>
                     )}
@@ -333,7 +360,7 @@ const AdminBills = () => {
             <DialogTitle>Paid at the counter</DialogTitle>
             <DialogDescription>{paying ? `${paying.number}: ${formatGHS(paying.total)} from ${paying.customerName}.` : ""} How did they pay?</DialogDescription>
           </DialogHeader>
-          <Select value={method} onValueChange={setMethod}>
+          <Select value={method} onValueChange={(v) => { setMethod(v); setReceived(""); }}>
             <SelectTrigger aria-label="How they paid"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="cash">Cash</SelectItem>
@@ -341,8 +368,24 @@ const AdminBills = () => {
               <SelectItem value="card">Card machine</SelectItem>
             </SelectContent>
           </Select>
+          {method === "cash" && paying && (
+            <div className="space-y-1.5">
+              <Label htmlFor="bill-received">Cash received (optional)</Label>
+              <Input id="bill-received" type="number" inputMode="decimal" min={paying.total} step="0.01" value={received} onChange={(e) => setReceived(e.target.value)} placeholder={String(paying.total)} />
+              {change != null && (
+                <p className={cn("text-sm", change < 0 ? "text-destructive" : "text-muted-foreground")}>
+                  {change < 0 ? `${formatGHS(-change)} short` : change === 0 ? "No change to give" : `Give back ${formatGHS(change)} in change`}
+                </p>
+              )}
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="bill-paynote">Note (optional)</Label>
+            <Input id="bill-paynote" maxLength={120} value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="For example: received by Ama" />
+          </div>
+          {paying?.customerEmail && <p className="text-xs text-muted-foreground">A receipt will be emailed to {paying.customerEmail}.</p>}
           <DialogFooter>
-            <Button disabled={markPaid.isPending} onClick={() => paying && markPaid.mutate(paying.id)}>
+            <Button disabled={markPaid.isPending || (change != null && change < 0)} onClick={() => paying && markPaid.mutate(paying.id)}>
               {markPaid.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Mark as paid
             </Button>
           </DialogFooter>

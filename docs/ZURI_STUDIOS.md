@@ -54,7 +54,7 @@ Small businesses in Ghana and across Africa run on WhatsApp, Instagram DMs and p
 | Included storage | 500 MB | 1 GB | Not limited |
 | Extra storage | 500 MB for GHS 5 a month | 500 MB for GHS 5 a month | Not needed |
 
-Each plan can be paid monthly or yearly (the year is two months cheaper). Anything the business owes on top of its plan (a feature fee, extra storage, in-person training) is shown on its Billing page and added to the next renewal, or paid straight away.
+Each plan can be paid monthly or yearly (the year is two months cheaper). A one-time setup fee of GHS 100 is added to the first payment only (for example a GHS 200 plan costs GHS 300 at signup and GHS 200 at each renewal). The setup fee is not refundable. Anything the business owes on top of its plan (a feature fee, extra storage, in-person training) is shown on its Billing page and added to the next renewal, or paid straight away.
 
 ## 4. Features
 
@@ -75,9 +75,10 @@ Each plan can be paid monthly or yearly (the year is two months cheaper). Anythi
 - **Appointments**: calendar (works offline), services, staff, opening hours, closed days, deposits, waitlist, no-show tracking, and customers who miss twice pay in full next time.
 - **Shop and orders**: products with sizes, colours, stock and cost price; categories; coupons; reviews; **scheduled sales** such as Black Friday (a % off on chosen weekdays between two dates, with a banner, switching on and off by itself).
 - **Delivery**: stages with "Overdue" flags, delivery areas with their own fees, delivery time windows, a rider link to send on WhatsApp (address, call button, items, no account needed), handover codes for delivery and pickup, and a record of failed deliveries and why.
-- **Bills for walk-ins**: build a bill from services, products or custom lines; get a link and QR code; send it on WhatsApp; the customer is emailed the bill and a receipt. Over- or under-payments are refused and flagged for a refund.
+- **Bills for walk-ins**: build a bill from services, products or custom lines; get a link and QR code; send it on WhatsApp; the customer is emailed the bill and a receipt. Over- or under-payments are refused and flagged for a refund. A bill paid in cash, by Mobile Money to the owner's own number or on a card machine is recorded at the counter (with the cash received and change worked out), and the customer is emailed a receipt. Unpaid bills can be emailed again, and the page shows what was taken today, split into cash, counter and online.
 - **Payments**: settled to the business's own account. The business chooses whether the customer or the business covers the card and Mobile Money fee.
-- **Cancellations**: customer cancellations need the business's approval, with an instant notification, and a way to record a refund paid outside the app.
+- **Cancellations**: customer cancellations need the business's approval, with an instant notification, and a way to record a refund paid outside the app. Refunds are always made by the business, never by Zuri, because Zuri never holds the money.
+- **Policies page**: every studio and store has a Policies page (cancellations, refunds, delivery, payments, contact) linked from its footer and shown before booking and checkout. The owner writes their own wording, or the standard text is shown.
 - **Insights** (Premium and Zuri Stores): see section 5.
 - **Money**: expenses and profit by month, monthly reports, CSV exports of bookings, orders, customers and expenses, low-stock alerts.
 - **Customers**: a directory with spending history and private notes.

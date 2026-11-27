@@ -202,8 +202,8 @@ export interface PlatformBillingConfig {
   commissionPremiumPercent: number;
   setupFeeStandard: number;
   setupFeePremium: number;
-  // Subscription setup fee per plan (0 = none), paid at signup instead of the
-  // first period and covering the first setupFeeMonths* months.
+  // Subscription setup fee per plan (0 = none): a one-time fee added to the
+  // first period's price at signup. setupFeeMonths* are no longer used.
   subscriptionSetupFeeStandard: number;
   subscriptionSetupFeePremium: number;
   setupFeeMonthsMonthly: number;
@@ -297,7 +297,7 @@ export interface StudioBillingSummary {
   currentPeriodEnd: string | null;
   currentPeriodStart: string | null;
   daysLeft: number | null;
-  signup: { reference: string; amount: number; coverageMonths: number | null; date: string } | null;
+  signup: { reference: string; amount: number; setupFee?: number | null; coverageMonths: number | null; date: string } | null;
   lastPayment: EarningEntry | null;
   // What this customer pays per period now, after its own terms.
   yourPrice?: { list: number; amount: number; percent: number; custom: boolean };

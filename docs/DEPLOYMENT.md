@@ -85,3 +85,18 @@ site, then open `develop → main` to release.
   subdomain from one bucket with one wildcard certificate, and sits next to
   your EU API.
 - **Deploys only after CI** means a broken build never reaches either site.
+
+## 4. Before launch: legal
+
+- **Data Protection Commission:** register Zuri, then put the registration number in
+  `LEGAL.dpcRegistrationNumber` in `src/config/platform.ts`. The Privacy Policy mentions
+  it only once it is set.
+- **Who Zuri is:** the operator name, address, phone and WhatsApp on the Terms, Privacy
+  and Refund pages come from `LEGAL` in `src/config/platform.ts`. Check them.
+- **Lawyer review** of `/terms`, `/privacy` and `/refunds` before going live.
+- **Paystack:** confirm in writing that your use (studios paid into their own accounts
+  through split payments) is allowed under the Merchant Services Agreement, which
+  forbids acting as a payment aggregator, and that charging customers the processing
+  fee on top is allowed (card rules forbid card surcharges).
+- **Studios' own pages:** each studio's website shows a Policies page, as Paystack requires
+  (refund policy, delivery policy, contact details, data protection).

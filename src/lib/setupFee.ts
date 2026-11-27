@@ -2,15 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { onboardingApi, type OnboardingConfig, type Plan, type Cadence } from "@/lib/onboardingApi";
 
 /**
- * The subscription setup fee for a plan and cadence, and the months it covers,
- * or null when that plan has none (the first period is paid at its normal
- * price). Mirrors subscriptionSetupFor in ELS-Server platformService.
+ * The one-time subscription setup fee for a plan, ADDED to the first period's
+ * price at signup (the next renewal is the plan price alone), or null when that
+ * plan has none. Mirrors subscriptionSetupFeeFor in ELS-Server platformService.
  */
 export const subscriptionSetup = (
   cfg: OnboardingConfig | null | undefined,
   plan: Plan,
-  cadence: Cadence,
-): { fee: number; months: number } | null => {
+  _cadence?: Cadence,
+): { fee: number } | null => {
   if (!cfg) return null;
   const fee =
     plan === "PREMIUM"
@@ -19,10 +19,7 @@ export const subscriptionSetup = (
         ? (cfg.subscriptionSetupFeeStorefront ?? 0)
         : cfg.subscriptionSetupFeeStandard;
   if (!(fee > 0)) return null;
-  return {
-    fee,
-    months: cadence === "YEARLY" ? cfg.setupFeeMonthsYearly : cfg.setupFeeMonthsMonthly,
-  };
+  return { fee };
 };
 
 /** The public billing settings (setup fees etc.), cached for the session. */

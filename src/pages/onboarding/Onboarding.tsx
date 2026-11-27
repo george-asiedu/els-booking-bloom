@@ -122,16 +122,18 @@ const Onboarding = () => {
   // Subscription setup fee for the selected plan, when the platform sets one.
   const subSetup = revShare ? null : subscriptionSetup(cfg, plan, cadence);
   const per = cadence === "MONTHLY" ? "month" : "year";
-  // Amount charged now: the activation fee (revenue-share), the setup fee
-  // (subscription with one), or the first period's price.
-  const dueToday = revShare ? setupFee : subSetup ? subSetup.fee : price;
+  // Amount charged now: the activation fee (revenue-share), or the first
+  // period's price plus the one-time setup fee (subscription).
+  const setupNow = subSetup ? subSetup.fee : 0;
+  const dueToday = revShare ? setupFee : price + setupNow;
   // Welcome discount (set by the super admin): off the plan price for the first
-  // months, subscription plans only. It does not apply to a setup fee. A promo
+  // months, subscription plans only. It never applies to the setup fee. A promo
   // code and the welcome discount don't stack: the bigger one is used.
   const welcomePct = !revShare ? cfg?.newStudioDiscountPercent ?? 0 : 0;
   const welcomeMonths = cfg?.newStudioDiscountMonths ?? 0;
-  const dueTodayPct = Math.max(promo?.percent ?? 0, subSetup ? 0 : welcomePct);
-  const dueTodayAfter = Math.round(dueToday * (1 - dueTodayPct / 100) * 100) / 100;
+  const dueTodayPct = revShare ? promo?.percent ?? 0 : Math.max(promo?.percent ?? 0, welcomePct);
+  const dueTodayAfter =
+    Math.round((revShare ? setupFee : price) * (1 - dueTodayPct / 100) * 100) / 100 + setupNow;
 
   // Load the platform billing config so we know whether to offer revenue-share.
   useEffect(() => {
@@ -435,7 +437,7 @@ const Onboarding = () => {
                     const s = billingMode === "SUBSCRIPTION" ? subscriptionSetup(cfg, p.id, cadence) : null;
                     return s ? (
                       <p className="mt-1 text-xs font-medium text-foreground">
-                        {GHS(s.fee)} setup fee covers your first {s.months} months
+                        + {GHS(s.fee)} one-time setup fee on your first payment
                       </p>
                     ) : null;
                   })()}
@@ -498,7 +500,7 @@ const Onboarding = () => {
                       {(() => {
                         const s = subscriptionSetup(cfg, plan, cadence);
                         return s
-                          ? `${GHS(s.fee)} setup fee for your first ${s.months} months, then ${GHS(price)}/${per}.`
+                          ? `${GHS(price)}/${per}, plus a one-time ${GHS(s.fee)} setup fee on your first payment.`
                           : `Pay ${GHS(price)}/${per} up front.`;
                       })()}{" "}
                       No cut of your sales.
@@ -666,6 +668,12 @@ const Onboarding = () => {
                     : "Plan subscription"
                 }
               />
+              {subSetup && (
+                <>
+                  <Row label={`First ${per}`} value={GHS(price)} />
+                  <Row label="One-time setup fee" value={GHS(subSetup.fee)} />
+                </>
+              )}
               <Row label="Studio" value={name} />
               <Row label="Web address" value={`${slug}`} mono />
               <Row label="Owner" value={email} />
@@ -715,9 +723,7 @@ const Onboarding = () => {
                 <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
                 <p>
                   <span className="font-semibold">Welcome offer: {welcomePct}% off your plan for your first {welcomeMonths} {welcomeMonths === 1 ? "month" : "months"}.</span>{" "}
-                  {subSetup
-                    ? `It applies to your renewals after the setup fee period, until ${welcomeMonths} ${welcomeMonths === 1 ? "month" : "months"} from today. Then the normal price applies.`
-                    : `It's applied automatically, including to your renewals within ${welcomeMonths} ${welcomeMonths === 1 ? "month" : "months"} of signing up. After that the normal price applies.`}
+                  {`It comes off the plan price only (not the setup fee), including your renewals within ${welcomeMonths} ${welcomeMonths === 1 ? "month" : "months"} of signing up. After that the normal price applies.`}
                 </p>
               </div>
             )}
@@ -727,7 +733,7 @@ const Onboarding = () => {
                   ? `A one-time ${GHS(setupFee)} activation fee today, then ${commissionPct}% of each customer payment. No recurring plan fee.`
                   : `No upfront fee. The platform takes ${commissionPct}% of each customer payment.`
                 : subSetup
-                  ? `The setup fee covers your first ${subSetup.months} months. After that your plan is ${GHS(price)}/${per}, which you renew from your dashboard. There are no automatic charges.`
+                  ? `Today covers your first ${per} (${GHS(price)}) plus the one-time ${GHS(subSetup.fee)} setup fee, which isn't refundable. Your next renewal is ${GHS(price)}/${per} with no setup fee, from your dashboard. There are no automatic charges.`
                   : `Covers one ${per}. You'll renew from your dashboard before it ends. There are no automatic charges.`}
             </p>
             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 text-sm">
@@ -739,8 +745,10 @@ const Onboarding = () => {
               />
               <span>
                 I have read and agree to the{" "}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a> and{" "}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>.
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a>{" "}
+                (including how Zuri handles my customers' information for me),{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a> and{" "}
+                <a href="/refunds" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Refund Policy</a>.
               </span>
             </label>
             <div className="mt-8 flex gap-3">
@@ -749,8 +757,8 @@ const Onboarding = () => {
               </Button>
               <Button className="flex-1" onClick={pay} disabled={submitting || !agreed}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {dueToday > 0
-                  ? `Pay ${GHS(dueToday)} & create my studio`
+                {dueTodayAfter > 0
+                  ? `Pay ${GHS(dueTodayAfter)} & create my studio`
                   : "Create my studio"}
               </Button>
             </div>
