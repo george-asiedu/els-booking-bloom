@@ -85,7 +85,7 @@ Each plan can be paid monthly or yearly (the year is two months cheaper). A one-
 - **Feature requests** can carry one PDF or Word document with the detail, besides up to 5 pictures.
 - **Booking alerts**: customers are reminded the day before and an hour before, then about 15 minutes before ("starting soon") and when the time arrives ("it's time"), by push if they have a device on, else email. The person doing the service is alerted at the same two moments, by email if they have an address on file (and by push if they also have an account), otherwise the studio's admins are.
 - **Cancellations**: customer cancellations need the business's approval, with an instant notification, and a way to record a refund paid outside the app. Refunds are always made by the business, never by Zuri, because Zuri never holds the money.
-- **Policies page**: every studio and store has a Policies page (cancellations, refunds, delivery, payments, contact) linked from its footer and shown before booking and checkout. The owner writes their own wording, or the standard text is shown.
+- **Policies page**: every studio and store has a Policies page (cancellations, refunds, delivery, payments, contact) linked from its footer. The owner writes their own wording, or the standard text is shown.
 - **Insights** (Premium and Zuri Stores): see section 5.
 - **Money**: expenses and profit by month, monthly reports, CSV exports of bookings, orders, customers and expenses, low-stock alerts.
 - **Customers**: a directory with spending history and private notes.

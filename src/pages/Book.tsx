@@ -6,7 +6,7 @@ import { vouchersApi, type VoucherCheck } from "@/lib/api/vouchers";
 import { slotIsBusyForStaff } from "@/lib/slots";
 import { useState, useEffect } from "react";
 import { PROCESSING, useProcessing } from "@/components/ProcessingOverlay";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -894,11 +894,7 @@ const Book = () => {
                         ? `Pay ${formatGHS(payNowAmount)} & Book`
                         : "Request Appointment"}
                 </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  By booking you agree to this studio's{" "}
-                  <Link to="/policies" className="underline">cancellation and refund policies</Link>.
-                  Refunds are made by the studio.
-                </p>
+
               </form>
             </Form>
           </div>
