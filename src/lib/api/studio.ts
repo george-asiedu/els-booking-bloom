@@ -66,6 +66,8 @@ export interface StudioContentDTO {
   heroHeadline: string | null;
   heroSubtext: string | null;
   heroImageUrl: string | null;
+  /** Up to 5 photos for the carousel at the top. With two or more they replace the default slides. */
+  heroImages?: string[];
   aboutHeading: string | null;
   aboutText: string | null;
   aboutImageUrl: string | null;

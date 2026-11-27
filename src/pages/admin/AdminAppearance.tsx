@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { WebsiteDesignPicker } from "@/components/admin/WebsiteDesignPicker";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Loader2, Upload, Trash2, Palette } from "lucide-react";
+import { Eye, Loader2, Upload, Trash2, Palette } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,8 @@ import { studioAdminApi, StudioBrandingDTO, StudioContentDTO } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useStudio } from "@/hooks/useStudio";
 import { LandingContentEditor } from "./appearance/LandingContentEditor";
+import { LivePreview } from "./appearance/LivePreview";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const FONT_OPTIONS = [
   { label: "Default", value: "__default__" },
@@ -169,7 +171,8 @@ const AdminAppearance = () => {
 
   return (
     <AdminLayout>
-      <div className="max-w-3xl space-y-6">
+      {/* Branding is a narrow form; the landing page tab has the form and the live preview side by side. */}
+      <div className="max-w-6xl space-y-6">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Palette className="h-6 w-6 text-primary" />
@@ -188,7 +191,7 @@ const AdminAppearance = () => {
           </TabsList>
 
           {/* ---- Branding ---- */}
-          <TabsContent value="branding" className="mt-4">
+          <TabsContent value="branding" className="mt-4 max-w-3xl">
             {brandingLoading || !brandForm ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -321,15 +324,41 @@ const AdminAppearance = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <div className="space-y-6">
-              <WebsiteDesignPicker value={contentForm} onChange={setContentForm} shop={features.booking === false} />
-              <LandingContentEditor
-                value={contentForm}
-                onChange={setContentForm}
-                studioName={studioName}
-                onSave={() => contentMutation.mutate()}
-                saving={contentMutation.isPending}
-              />
+              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,34rem)]">
+                <div className="min-w-0 space-y-6">
+                  {/* On smaller screens the preview opens in a window; on wide ones it sits beside the form. */}
+                  <div className="xl:hidden">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline" className="w-full">
+                          <Eye className="mr-2 h-4 w-4" /> Preview your site
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl">
+                        <DialogHeader>
+                          <DialogTitle>Preview</DialogTitle>
+                          <DialogDescription>How your site looks with what you have typed so far.</DialogDescription>
+                        </DialogHeader>
+                        <LivePreview value={contentForm} />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <WebsiteDesignPicker value={contentForm} onChange={setContentForm} shop={features.booking === false} />
+                  <LandingContentEditor
+                    value={contentForm}
+                    onChange={setContentForm}
+                    studioName={studioName}
+                    onSave={() => contentMutation.mutate()}
+                    saving={contentMutation.isPending}
+                  />
+                </div>
+                <div className="hidden xl:sticky xl:top-2 xl:block">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <LivePreview value={contentForm} />
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             )}
           </TabsContent>

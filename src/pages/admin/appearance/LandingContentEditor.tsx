@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ExternalLink, ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -180,6 +180,86 @@ const ImageSlot = ({
   );
 };
 
+const MAX_CAROUSEL = 5;
+
+/** Up to five photos for a carousel: add, remove and put them in order. */
+const PhotoCarouselSlot = ({ label, hint, value, onChange }: { label: string; hint: string; value: string[]; onChange: (urls: string[]) => void }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(0);
+  const { toast } = useToast();
+
+  const add = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const room = MAX_CAROUSEL - value.length;
+    const images = [...files].filter((f) => f.type.startsWith("image/")).slice(0, room);
+    if (images.length < files.length) toast({ title: images.length ? `Only ${room} more fit: the carousel holds ${MAX_CAROUSEL} photos` : "Use JPG, PNG or WebP photos" });
+    setUploading(images.length);
+    const added: string[] = [];
+    for (const f of images) {
+      try {
+        added.push(await uploadStudioMedia(f, "studio"));
+      } catch (error) {
+        toast({ variant: "destructive", title: "A photo didn't upload", description: error instanceof Error ? error.message : "Please try again." });
+      }
+      setUploading((n) => n - 1);
+    }
+    if (added.length) onChange([...value, ...added]);
+    setUploading(0);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+  const move = (i: number, by: number) => {
+    const next = [...value];
+    const j = i + by;
+    if (j < 0 || j >= next.length) return;
+    [next[i], next[j]] = [next[j]!, next[i]!];
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <Label>{label}</Label>
+        <span className="text-xs tabular-nums text-muted-foreground">{value.length}/{MAX_CAROUSEL}</span>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {value.map((src, i) => (
+          <div key={src} className="w-32 space-y-1">
+            <div className="relative h-20 overflow-hidden rounded-md border bg-muted">
+              <img src={src} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+              {i === 0 && <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold">First</span>}
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-0.5">
+                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label={`Move photo ${i + 1} earlier`} disabled={i === 0} onClick={() => move(i, -1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label={`Move photo ${i + 1} later`} disabled={i === value.length - 1} onClick={() => move(i, 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label={`Remove photo ${i + 1}`} onClick={() => onChange(value.filter((_, j) => j !== i))}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {Array.from({ length: uploading }).map((_, i) => (
+          <div key={`u${i}`} className="flex h-20 w-32 items-center justify-center rounded-md border bg-muted">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ))}
+        {value.length + uploading < MAX_CAROUSEL && (
+          <button type="button" onClick={() => inputRef.current?.click()} className="flex h-20 w-32 flex-col items-center justify-center gap-1 rounded-md border border-dashed text-xs text-muted-foreground hover:bg-accent">
+            <ImagePlus className="h-5 w-5" /> Add photos
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">{hint}</p>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => add(e.target.files)} />
+    </div>
+  );
+};
+
 const Section = ({ title, description, children }: { title: string; description: string; children: React.ReactNode }) => (
   <Card>
     <CardHeader className="pb-3">
@@ -223,10 +303,11 @@ export const LandingContentEditor = ({ value, onChange, studioName, onSave, savi
         <TextSlot {...text("heroEyebrow")} label="Small line above the headline" />
         <TextSlot {...text("heroHeadline")} label="Headline" />
         <TextSlot {...text("heroSubtext")} label="Sentence under the headline" multiline />
-        <ImageSlot
-          {...image("heroImageUrl")}
-          label="Background photo"
-          hint="A wide photo works best (at least 1600px across). Empty uses your newest gallery photo."
+        <PhotoCarouselSlot
+          label="Photos at the top (up to 5)"
+          hint="A wide photo works best (at least 1600px across). One photo is the background. Two or more make a carousel that fades from one to the next, in this order. None uses your newest gallery photos."
+          value={value.heroImages?.length ? value.heroImages : value.heroImageUrl ? [value.heroImageUrl] : []}
+          onChange={(urls) => set({ heroImages: urls, heroImageUrl: urls[0] ?? null })}
         />
       </Section>
 

@@ -196,8 +196,10 @@ const Index = () => {
   const galleryImgs = gallery
     .filter((g) => g.media_type === "image")
     .map((g) => ({ src: g.image_url, alt: g.title || studioName }));
-  const heroBg = content?.heroImageUrl ?? galleryImgs[0]?.src ?? heroFallback;
-  const heroSlides = [heroBg, ...galleryImgs.map((g) => g.src)];
+  const ownHero = content?.heroImages?.length ? content.heroImages : content?.heroImageUrl ? [content.heroImageUrl] : [];
+  const heroBg = ownHero[0] ?? galleryImgs[0]?.src ?? heroFallback;
+  // Two or more photos of their own are the carousel; one is the first slide, then the gallery.
+  const heroSlides = ownHero.length > 1 ? ownHero : [heroBg, ...galleryImgs.map((g) => g.src)];
   const aboutImg =
     content?.aboutImageUrl ?? galleryImgs[1]?.src ?? galleryImgs[0]?.src ?? heroFallback;
   const offerImg = galleryImgs[3]?.src ?? galleryImgs[0]?.src ?? heroFallback;
@@ -208,7 +210,7 @@ const Index = () => {
   // Keep the loading screen up until the hero is final (see useHideSplashWhen).
   const [heroLoaded, setHeroLoaded] = useState<string | null>(null);
   const heroChosen =
-    !configLoading && (Boolean(content?.heroImageUrl) || !features.gallery || !galleryLoading);
+    !configLoading && (ownHero.length > 0 || !features.gallery || !galleryLoading);
   useHideSplashWhen(heroChosen && heroLoaded === heroBg);
 
   const scrollReviews = (dir: 1 | -1) => {

@@ -1,6 +1,6 @@
-import { createContext, useContext, useMemo, ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { studioApi, StudioConfigDTO, StudioFeatureFlags } from "@/lib/api";
+import { studioApi, StudioConfigDTO, StudioContentDTO, StudioFeatureFlags } from "@/lib/api";
 import { studioStore } from "@/lib/apiClient";
 
 interface StudioContextType {
@@ -37,16 +37,45 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     enabled: Boolean(studioStore.getSlug()),
   });
 
+  // The Appearance page shows the site in a frame and sends it what the owner is
+  // typing, unsaved. Only inside that frame (same address, opened with
+  // ?zuri-preview) does the site take it; a normal visitor never does.
+  const [draft, setDraft] = useState<Partial<StudioContentDTO> | null>(null);
+  useEffect(() => {
+    let framed = false;
+    try {
+      framed = window.self !== window.top && new URLSearchParams(window.location.search).has("zuri-preview");
+    } catch {
+      framed = false;
+    }
+    if (!framed) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.source !== window.parent) return;
+      const d = e.data as { source?: string; content?: Partial<StudioContentDTO> } | null;
+      if (d?.source === "zuri-preview" && d.content && typeof d.content === "object") setDraft(d.content);
+    };
+    window.addEventListener("message", onMessage);
+    window.parent.postMessage({ source: "zuri-preview-ready" }, window.location.origin);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   // Theming is applied by <StudioTheme/> inside the router, so the platform
   // console stays neutral and a studio's colors never bleed onto other areas.
   const value = useMemo(
     () => ({
-      config: config ?? null,
+      config: config && draft
+        ? {
+            ...config,
+            content: { ...config.content, ...draft },
+            shopCategory: draft.shopCategory !== undefined ? draft.shopCategory : config.shopCategory,
+            shopCategories: draft.shopCategories ?? config.shopCategories,
+          }
+        : config ?? null,
       isLoading,
       name: config?.name || FALLBACK_NAME,
       features: config?.settings ?? ALL_ON,
     }),
-    [config, isLoading],
+    [config, isLoading, draft],
   );
 
   return (

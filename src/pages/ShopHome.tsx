@@ -41,7 +41,10 @@ const ShopHome = () => {
   useHideSplashWhen(!isLoading && !loadingProducts);
 
   const withPhotos = products.filter((p) => p.image_url);
-  const heroImg = content?.heroImageUrl ?? withPhotos[0]?.image_url ?? heroFallback;
+  const ownHero = content?.heroImages?.length ? content.heroImages : content?.heroImageUrl ? [content.heroImageUrl] : [];
+  const heroImg = ownHero[0] ?? withPhotos[0]?.image_url ?? heroFallback;
+  // Two or more photos of their own are the carousel; otherwise the first, then product photos.
+  const heroSlides = ownHero.length > 1 ? ownHero : [heroImg, ...withPhotos.map((p) => p.image_url!)];
   const banner = promos[0];
   const bannerImg = content?.ctaImageUrl ?? withPhotos[1]?.image_url ?? heroImg;
   const limelight = new Set(limelightPicks(products).map((p) => p.id));
@@ -64,7 +67,7 @@ const ShopHome = () => {
     <ShopLayout>
       {/* Hero */}
       <section className="relative isolate flex min-h-[calc(100svh-22rem)] items-center overflow-hidden md:min-h-[calc(100svh-20rem)]">
-        <HeroSlides images={[heroImg, ...withPhotos.map((p) => p.image_url!)]} className="absolute inset-0 -z-20" imgClassName="object-[50%_20%]" />
+        <HeroSlides images={heroSlides} className="absolute inset-0 -z-20" imgClassName="object-[50%_20%]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
         <div className="container mx-auto px-4 py-10 text-white md:px-12 md:py-12">
           <p className="hero-rise text-xs tracking-wider text-white/80 [animation-delay:80ms]">{content?.heroEyebrow || t.eyebrow}</p>
