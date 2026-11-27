@@ -32,7 +32,7 @@ import { ShopLayout as Layout } from "@/components/shop/ShopLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { productsApi, productCategoriesApi, productReviewsApi, cartApi, ordersApi, commerceApi } from "@/lib/api";
-import { optionPrice, optionBase, hasOptionPrices } from "@/lib/api/products";
+import { optionPrice, optionBase, hasOptionPrices, optionStock, hasOptionStock } from "@/lib/api/products";
 import { format } from "date-fns";
 import { ApiError } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -130,7 +130,14 @@ const ProductDetail = () => {
       toast({ variant: "destructive", title: "Couldn't send your review", description: e instanceof Error ? e.message : "Please try again." }),
   });
 
-  const maxQty = product?.track_stock ? product.stock : 999;
+  // With stock counted per option it is the chosen option's; before one is chosen, the most any has.
+  const maxQty = !product || !product.track_stock
+    ? 999
+    : hasOptionStock(product)
+      ? size
+        ? optionStock(product, size)
+        : Math.max(1, ...product.variants.map((v) => v.stock ?? 0))
+      : product.stock;
   const minQty = product?.min_quantity ?? 1;
   // Start at the least that can be ordered.
   useEffect(() => {
@@ -465,14 +472,16 @@ const ProductDetail = () => {
                       key={sz}
                       type="button"
                       aria-pressed={size === sz}
-                      onClick={() => setSize(sz)}
+                      disabled={Boolean(product && hasOptionStock(product) && optionStock(product, sz) <= 0)}
+                      onClick={() => { setSize(sz); if (product && hasOptionStock(product)) setQty((q) => Math.min(Math.max(q, product.min_quantity), Math.max(1, optionStock(product, sz)))); }}
                       className={cn(
-                        "h-10 min-w-10 rounded-xl border px-3 text-sm transition-colors",
+                        "h-10 min-w-10 rounded-xl border px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through",
                         size === sz ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
                       )}
                     >
                       {sz}
                       {hasOptionPrices(product) && <span className={cn("ml-1.5 text-xs", size === sz ? "opacity-80" : "text-muted-foreground")}>{formatGHS(optionPrice(product, sz))}</span>}
+                      {hasOptionStock(product) && optionStock(product, sz) <= 0 && <span className="ml-1.5 text-xs">Sold out</span>}
                     </button>
                   ))}
                 </div>

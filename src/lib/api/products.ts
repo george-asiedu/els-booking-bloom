@@ -1,6 +1,6 @@
 import { apiRequest } from "../apiClient";
 import { CategoryDTO } from "./categories";
-import { readVariants, readTiers, effectivePriceFor, basePriceFor, type Variant, type BulkTier } from "../variantPricing";
+import { readVariants, readTiers, effectivePriceFor, basePriceFor, stockForOption, usesOptionStock, type Variant, type BulkTier } from "../variantPricing";
 import { CursorPage, Envelope, cursorPage, cursorQuery, uploadStudioMedia } from "./core";
 
 // ---------------- Commerce: products ----------------
@@ -180,6 +180,11 @@ export const optionPrice = (p: ProductDTO, size?: string | null, qty?: number): 
   effectivePriceFor({ price: p.price, promoPrice: p.promo_price, variants: p.variants, bulkTiers: p.bulk_tiers }, size, qty);
 /** The same before any sale. */
 export const optionBase = (p: ProductDTO, size?: string | null): number => basePriceFor({ price: p.price, variants: p.variants }, size);
+/** How many of the chosen option can be bought (the product's stock when options share it). */
+export const optionStock = (p: ProductDTO, size?: string | null): number =>
+  stockForOption({ trackStock: p.track_stock, stock: p.stock, variants: p.variants }, size);
+/** True when each option counts its own stock. */
+export const hasOptionStock = (p: ProductDTO): boolean => usesOptionStock({ trackStock: p.track_stock, variants: p.variants });
 /** "per kg" for a product sold by the kg, else an empty string. */
 export const perUnit = (p: { unit: string | null }): string => (p.unit ? `per ${p.unit}` : "");
 /** True when options cost different amounts. */

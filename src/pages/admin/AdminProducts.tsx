@@ -76,7 +76,7 @@ interface ProductFormData {
   /** Cheaper per unit in bulk. */
   tiers: { minQty: string; percentOff: string }[];
   /** Each option a customer can choose, with its own price (blank = the main price). */
-  options: { label: string; price: string }[];
+  options: { label: string; price: string; stock: string }[];
   colors: { name: string; hex: string }[];
   images: string[];
   audience: ProductAudience;
@@ -112,10 +112,18 @@ const emptyForm: ProductFormData = {
  * are plain choices that all cost the same.
  */
 const optionFields = (data: ProductFormData) => {
-  const rows = data.options.map((o) => ({ label: o.label.trim(), price: o.price.trim() })).filter((o) => o.label);
-  if (rows.some((o) => o.price)) {
+  const rows = data.options.map((o) => ({ label: o.label.trim(), price: o.price.trim(), stock: o.stock.trim() })).filter((o) => o.label);
+  // A stock number on any option means every option counts its own (blank = none left).
+  const counted = rows.some((o) => o.stock);
+  if (rows.some((o) => o.price) || counted) {
     const main = parseFloat(data.price) || 0;
-    return { variants: rows.map((o) => ({ label: o.label, price: o.price ? parseFloat(o.price) : main })) };
+    return {
+      variants: rows.map((o) => ({
+        label: o.label,
+        price: o.price ? parseFloat(o.price) : main,
+        ...(counted ? { stock: Math.max(0, parseInt(o.stock || "0", 10) || 0) } : {}),
+      })),
+    };
   }
   return { variants: [], sizes: rows.map((o) => o.label) };
 };
@@ -317,8 +325,8 @@ const AdminProducts = () => {
       minQuantity: String(p.min_quantity),
       tiers: p.bulk_tiers.map((t) => ({ minQty: String(t.minQty), percentOff: String(t.percentOff) })),
       options: p.variants.length
-        ? p.variants.map((v) => ({ label: v.label, price: String(v.price) }))
-        : p.sizes.map((label) => ({ label, price: "" })),
+        ? p.variants.map((v) => ({ label: v.label, price: String(v.price), stock: v.stock !== undefined ? String(v.stock) : "" }))
+        : p.sizes.map((label) => ({ label, price: "", stock: "" })),
       colors: p.colors,
       audience: p.audience,
       brand: p.brand ?? "",
@@ -627,10 +635,11 @@ const AdminProducts = () => {
                   id="stock"
                   type="number"
                   min="0"
-                  value={form.stock}
-                  disabled={!form.trackStock}
+                  value={form.options.some((o) => o.stock.trim()) ? String(form.options.reduce((n, o) => n + (parseInt(o.stock || "0", 10) || 0), 0)) : form.stock}
+                  disabled={!form.trackStock || form.options.some((o) => o.stock.trim())}
                   onChange={(e) => setForm({ ...form, stock: e.target.value })}
                 />
+                {form.options.some((o) => o.stock.trim()) && <p className="text-xs text-muted-foreground">Added up from the options below.</p>}
               </div>
               <div className="flex items-center gap-2 pb-2">
                 <Switch
@@ -731,6 +740,16 @@ const AdminProducts = () => {
                     onChange={(e) => setForm({ ...form, options: form.options.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
                   />
                   <Input
+                    aria-label={`Option ${i + 1} stock`}
+                    className="w-24"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="In stock"
+                    value={o.stock}
+                    onChange={(e) => setForm({ ...form, options: form.options.map((x, j) => (j === i ? { ...x, stock: e.target.value } : x)) })}
+                  />
+                  <Input
                     aria-label={`Option ${i + 1} price`}
                     className="w-32"
                     type="number"
@@ -746,12 +765,12 @@ const AdminProducts = () => {
                 </div>
               ))}
               {form.options.length < 30 && (
-                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, options: [...form.options, { label: "", price: "" }] })}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, options: [...form.options, { label: "", price: "", stock: "" }] })}>
                   <Plus className="mr-2 h-4 w-4" /> Add option
                 </Button>
               )}
               <p className="text-xs text-muted-foreground">
-                Customers must pick one. Give an option a price and each one can cost something different (1 kg, 5 kg, a 20 kg crate). Leave every price empty and they all cost the main price. All options share the stock above, and a sale takes the same percentage off each.
+                Customers must pick one. Give an option a price and each one can cost something different (1 kg, 5 kg, a 20 kg crate). Leave every price empty and they all cost the main price. Give each option a number in stock and each counts its own (the stock above is then their total). Leave them empty and all options share the stock above. A sale takes the same percentage off each.
               </p>
             </div>
             <SellingOptions form={form} setForm={setForm} isFarm={isFarm} />

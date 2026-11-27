@@ -6,6 +6,8 @@
 export interface Variant {
   label: string;
   price: number;
+  /** How many of this option are in stock. Set on every option, or on none. */
+  stock?: number;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -14,8 +16,9 @@ export const readVariants = (raw: unknown): Variant[] => {
   if (!Array.isArray(raw)) return [];
   const out: Variant[] = [];
   for (const v of raw) {
-    const { label, price } = (v ?? {}) as { label?: unknown; price?: unknown };
-    if (typeof label === "string" && label.trim() && Number(price) > 0) out.push({ label: label.trim(), price: round2(Number(price)) });
+    const { label, price, stock } = (v ?? {}) as { label?: unknown; price?: unknown; stock?: unknown };
+    if (typeof label === "string" && label.trim() && Number(price) > 0)
+      out.push({ label: label.trim(), price: round2(Number(price)), ...(stock !== undefined && stock !== null && Number(stock) >= 0 ? { stock: Math.floor(Number(stock)) } : {}) });
   }
   return out;
 };
@@ -57,4 +60,16 @@ export const effectivePriceFor = (
   const off = qty ? tierPercent(p.bulkTiers, qty) : 0;
   if (off > 0) price = Math.min(price, round2(base * (1 - off / 100)));
   return price;
+};
+
+/** True when each option of the product counts its own stock. */
+export const usesOptionStock = (p: { trackStock: boolean; variants?: unknown }): boolean => {
+  const v = readVariants(p.variants);
+  return p.trackStock && v.length > 0 && v.every((x) => x.stock !== undefined);
+};
+
+/** How many can be bought: the chosen option's own stock, or the product's. */
+export const stockForOption = (p: { trackStock: boolean; stock: number; variants?: unknown }, size?: string | null): number => {
+  if (!usesOptionStock(p)) return p.stock;
+  return readVariants(p.variants).find((v) => v.label === size)?.stock ?? 0;
 };

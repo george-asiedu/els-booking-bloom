@@ -1,6 +1,6 @@
 import { apiRequest, tokenStore } from "../apiClient";
-import { optionPrice, productsApi } from "./products";
-import { effectivePriceFor } from "../variantPricing";
+import { optionPrice, optionStock, productsApi } from "./products";
+import { effectivePriceFor, stockForOption } from "../variantPricing";
 import { Envelope } from "./core";
 
 // ---------------- Commerce: cart ----------------
@@ -78,8 +78,8 @@ const normalizeCart = (c: RawCart | null): CartDTO => {
       image_url: p.imageUrl,
       quantity: it.quantity,
       line_total: Math.round(unit * it.quantity * 100) / 100,
-      in_stock: p.active && (!p.trackStock || p.stock > 0),
-      max_qty: p.trackStock ? p.stock : null,
+      in_stock: p.active && (!p.trackStock || stockForOption(p, it.size) > 0),
+      max_qty: p.trackStock ? stockForOption(p, it.size) : null,
       available_from: p.availableFrom && new Date(p.availableFrom).getTime() > Date.now() ? p.availableFrom.slice(0, 10) : null,
       min_quantity: p.minQuantity && p.minQuantity > 1 ? p.minQuantity : 1,
       unit: p.unit ?? null,
@@ -127,7 +127,7 @@ const guestCart = async (): Promise<CartDTO> => {
   const items: CartItemDTO[] = lines.map((l) => {
     const p = products.find((x) => x.id === l.productId);
     const unit = p ? optionPrice(p, l.size) : 0;
-    const room = p?.track_stock ? p.stock : null;
+    const room = p?.track_stock ? optionStock(p, l.size) : null;
     const quantity = room !== null ? Math.min(l.quantity, Math.max(room, 1)) : l.quantity;
     return {
       product_id: l.productId,
@@ -138,7 +138,7 @@ const guestCart = async (): Promise<CartDTO> => {
       image_url: p?.image_url ?? null,
       quantity,
       line_total: Math.round(unit * quantity * 100) / 100,
-      in_stock: Boolean(p?.in_stock),
+      in_stock: Boolean(p?.in_stock) && (room === null || room > 0),
       max_qty: room,
       available_from: p?.preorder ? p.available_from : null,
       min_quantity: p?.min_quantity ?? 1,
