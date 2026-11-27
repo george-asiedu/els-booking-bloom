@@ -64,7 +64,8 @@ All in the AWS console unless noted.
    - secret `AWS_DEPLOY_ROLE_ARN`
    - variables `AWS_REGION`, `S3_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`,
      `VITE_API_URL=https://api.zuristudios.com/api`,
-     `VITE_ROOT_DOMAIN=zuristudios.com`
+     `VITE_ROOT_DOMAIN=zuristudios.com`, `VITE_TURNSTILE_SITE_KEY` (the production
+     Cloudflare Turnstile site key; without it guest bookings and orders fail)
    - add yourself as a required reviewer if you want to approve each release.
 
 The workflow uploads hashed assets with a one-year cache and `index.html`
