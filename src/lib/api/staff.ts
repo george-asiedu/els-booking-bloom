@@ -6,6 +6,8 @@ export interface StaffDTO {
   name: string;
   role: string | null;
   photoUrl: string | null;
+  /** Where they are alerted when a booking with them is about to start (admin only). */
+  email?: string | null;
   /** Services this person does; empty means all. */
   serviceIds: string[];
   active?: boolean;
@@ -15,6 +17,7 @@ export interface StaffDTO {
 export interface StaffInput {
   name: string;
   role?: string | null;
+  email?: string | null;
   serviceIds: string[];
   active: boolean;
   photo?: File | null;

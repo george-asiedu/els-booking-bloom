@@ -77,6 +77,7 @@ Each plan can be paid monthly or yearly (the year is two months cheaper). A one-
 - **Delivery**: stages with "Overdue" flags, delivery areas with their own fees, delivery time windows, a rider link to send on WhatsApp (address, call button, items, no account needed), handover codes for delivery and pickup, and a record of failed deliveries and why.
 - **Bills for walk-ins**: build a bill from services, products or custom lines; get a link and QR code; send it on WhatsApp; the customer is emailed the bill and a receipt. Over- or under-payments are refused and flagged for a refund. A bill paid in cash, by Mobile Money to the owner's own number or on a card machine is recorded at the counter (with the cash received and change worked out), and the customer is emailed a receipt. Unpaid bills can be emailed again, and the page shows what was taken today, split into cash, counter and online.
 - **Payments**: settled to the business's own account. The business chooses whether the customer or the business covers the card and Mobile Money fee.
+- **Booking alerts**: customers are reminded the day before and an hour before, then about 15 minutes before ("starting soon") and when the time arrives ("it's time"), by push if they have a device on, else email. The person doing the service is alerted at the same two moments, by email if they have an address on file (and by push if they also have an account), otherwise the studio's admins are.
 - **Cancellations**: customer cancellations need the business's approval, with an instant notification, and a way to record a refund paid outside the app. Refunds are always made by the business, never by Zuri, because Zuri never holds the money.
 - **Policies page**: every studio and store has a Policies page (cancellations, refunds, delivery, payments, contact) linked from its footer and shown before booking and checkout. The owner writes their own wording, or the standard text is shown.
 - **Insights** (Premium and Zuri Stores): see section 5.
@@ -87,7 +88,7 @@ Each plan can be paid monthly or yearly (the year is two months cheaper). A one-
 - **Storage** (Zuri Studios): see how much is used and by what, add 500 MB blocks, and recover deleted gallery items from a 30-day trash.
 - **Notifications**: an inbox bell and push on every dashboard, with a badge on the installed app's icon.
 - **Your brand**: logo, colours, photos, promotions, contact details, a custom domain.
-- **Learn Zuri**: free guided steps, a free live online session you can reserve a spot for (with a calendar invite by email, a push notification, and a 15-minute reminder in your calendar), and a way to ask for in-person training (a fee confirmed first).
+- **Learn Zuri**: free guided steps, a free live online session you can reserve a spot for (with a confirmation email, a push notification, an Add to Google Calendar button and a starting-soon reminder by email and push), and a way to ask for in-person training (a fee confirmed first).
 - **Feature requests**: suggest a feature with up to 5 pictures; a fee (set by Zuri, told to you first) can be withdrawn before work starts.
 - **Security**: two-step sign-in for admin accounts.
 - **Grow**: refer another business and earn credit; appear on the Zuri marketplace.

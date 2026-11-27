@@ -14,7 +14,6 @@ import { useStudio } from "@/hooks/useStudio";
 import { apiRequest } from "@/lib/apiClient";
 import { formatGHS } from "@/lib/currency";
 import { learnModules as modules, type Step } from "@/lib/learnSteps";
-import { downloadIcs } from "@/lib/calendarFile";
 
 interface TrainingRequest {
   id: string;
@@ -178,29 +177,13 @@ const AdminLearn = () => {
                   (data.liveReserved ? (
                     <div className="mt-3 space-y-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
                       <p className="flex items-center gap-1.5 text-sm font-medium"><Check className="h-4 w-4 text-emerald-600" /> Your spot is reserved</p>
-                      <p className="text-xs text-muted-foreground">We emailed you a calendar invite and sent a notification.</p>
+                      <p className="text-xs text-muted-foreground">We emailed you the details and sent a notification. You'll get a reminder about 15 minutes before it starts.</p>
                       <div className="flex flex-wrap gap-2">
                         {data.googleCalendarUrl && (
                           <Button asChild size="sm" variant="outline">
-                            <a href={data.googleCalendarUrl} target="_blank" rel="noreferrer"><CalendarPlus className="mr-1.5 h-4 w-4" /> Google Calendar</a>
+                            <a href={data.googleCalendarUrl} target="_blank" rel="noreferrer"><CalendarPlus className="mr-1.5 h-4 w-4" /> Add to Google Calendar</a>
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            downloadIcs({
-                              title: "Zuri live training",
-                              start: parseISO(data.liveAt as string),
-                              minutes: data.liveMinutes,
-                              description: `Free live online training with Zuri.${data.liveNote ? ` ${data.liveNote}` : ""}`,
-                              url: data.liveUrl,
-                              fileName: "zuri-live-training.ics",
-                            })
-                          }
-                        >
-                          <CalendarPlus className="mr-1.5 h-4 w-4" /> Apple / Outlook
-                        </Button>
                         <Button size="sm" variant="ghost" disabled={cancelSpot.isPending} onClick={() => cancelSpot.mutate()}>Cancel my spot</Button>
                       </div>
                     </div>

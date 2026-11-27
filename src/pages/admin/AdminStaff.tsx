@@ -27,10 +27,11 @@ import { cn } from "@/lib/utils";
 interface Form {
   name: string;
   role: string;
+  email: string;
   serviceIds: string[];
   active: boolean;
 }
-const empty: Form = { name: "", role: "", serviceIds: [], active: true };
+const empty: Form = { name: "", role: "", email: "", serviceIds: [], active: true };
 
 /** Stylists and chairs: who customers can book, and which services each does. */
 const AdminStaff = () => {
@@ -53,7 +54,7 @@ const AdminStaff = () => {
 
   const save = useMutation({
     mutationFn: () => {
-      const input = { name: form.name.trim(), role: form.role.trim() || null, serviceIds: form.serviceIds, active: form.active, photo };
+      const input = { name: form.name.trim(), role: form.role.trim() || null, email: form.email.trim() || null, serviceIds: form.serviceIds, active: form.active, photo };
       return editing ? staffApi.update(editing.id, input) : staffApi.create(input);
     },
     onSuccess: () => {
@@ -86,7 +87,7 @@ const AdminStaff = () => {
   };
   const startEdit = (s: StaffDTO) => {
     setEditing(s);
-    setForm({ name: s.name, role: s.role ?? "", serviceIds: s.serviceIds, active: s.active !== false });
+    setForm({ name: s.name, role: s.role ?? "", email: s.email ?? "", serviceIds: s.serviceIds, active: s.active !== false });
     setPhoto(null);
     setOpen(true);
   };
@@ -176,6 +177,11 @@ const AdminStaff = () => {
                 <Label htmlFor="staff-role">Role (optional)</Label>
                 <Input id="staff-role" maxLength={60} placeholder="e.g. Senior braider" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="staff-email">Email for booking alerts (optional)</Label>
+              <Input id="staff-email" type="email" maxLength={120} placeholder="name@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <p className="text-xs text-muted-foreground">They are emailed when a booking with them is about to start, and when it is due. Customers never see it. Leave it empty and your admins get the alert instead.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="staff-photo">Photo (optional)</Label>
