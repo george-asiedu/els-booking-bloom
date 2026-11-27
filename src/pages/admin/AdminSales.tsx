@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, format, parseISO } from "date-fns";
-import { Flame, Loader2, Trash2 } from "lucide-react";
+import { Flame, Loader2, Pencil, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { DashboardHeading, Panel } from "@/components/dashboard/KpiTile";
 import { TabEmpty } from "@/components/dashboard/StatusTabs";
@@ -62,7 +62,18 @@ const AdminSales = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
   const bf = nextBlackFriday();
-  const [form, setForm] = useState({ name: "Black Friday", percentOff: "20", startsOn: ymd(addDays(bf, -14)), endsOn: ymd(bf), weekdays: [5], banner: true });
+  const blank = { name: "Black Friday", percentOff: "20", startsOn: ymd(addDays(bf, -14)), endsOn: ymd(bf), weekdays: [5], banner: true };
+  const [form, setForm] = useState(blank);
+  // The sale being changed, or null when scheduling a new one.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const startEdit = (s: Sale) => {
+    setEditingId(s.id);
+    setForm({ name: s.name, percentOff: String(s.percentOff), startsOn: s.startsOn.slice(0, 10), endsOn: s.endsOn.slice(0, 10), weekdays: s.weekdays, banner: s.banner });
+  };
+  const stopEdit = () => {
+    setEditingId(null);
+    setForm(blank);
+  };
 
   const { data: sales = [], isLoading } = useQuery({
     queryKey: ["sales"],
@@ -72,10 +83,14 @@ const AdminSales = () => {
   const fail = (e: unknown) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Something went wrong" });
 
   const create = useMutation({
-    mutationFn: () => apiRequest("/sales", { method: "POST", auth: true, body: { ...form, percentOff: Number(form.percentOff) } }),
+    mutationFn: () =>
+      editingId
+        ? apiRequest(`/sales/${editingId}`, { method: "PATCH", auth: true, body: { ...form, percentOff: Number(form.percentOff) } })
+        : apiRequest("/sales", { method: "POST", auth: true, body: { ...form, percentOff: Number(form.percentOff) } }),
     onSuccess: () => {
       refresh();
-      toast({ title: "Sale scheduled", description: "Prices and the banner change by themselves on the sale days." });
+      toast(editingId ? { title: "Sale updated", description: "Prices and the banner follow the new dates and discount." } : { title: "Sale scheduled", description: "Prices and the banner change by themselves on the sale days." });
+      if (editingId) stopEdit();
     },
     onError: fail,
   });
@@ -125,6 +140,9 @@ const AdminSales = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch checked={s.active} onCheckedChange={(active) => toggle.mutate({ id: s.id, active })} aria-label={`${s.name} on or off`} />
+                    <Button variant="ghost" size="icon" aria-label={`Edit ${s.name}`} onClick={() => startEdit(s)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" aria-label={`Delete ${s.name}`} onClick={() => confirm(`Delete ${s.name}? Prices go back to normal.`) && remove.mutate(s.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -136,7 +154,7 @@ const AdminSales = () => {
         </div>
 
         <Panel className="h-fit">
-          <h2 className="font-semibold">Schedule a sale</h2>
+          <h2 className="font-semibold">{editingId ? "Edit this sale" : "Schedule a sale"}</h2>
           <form
             className="mt-3 space-y-3"
             onSubmit={(e) => {
@@ -189,8 +207,13 @@ const AdminSales = () => {
             </div>
             <Button type="submit" className="w-full" disabled={create.isPending || !form.name.trim() || preview.length === 0}>
               {create.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Schedule sale
+              {editingId ? "Save changes" : "Schedule sale"}
             </Button>
+            {editingId && (
+              <Button type="button" variant="ghost" className="w-full" onClick={stopEdit}>
+                Cancel
+              </Button>
+            )}
           </form>
         </Panel>
       </div>

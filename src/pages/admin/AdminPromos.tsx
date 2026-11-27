@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Megaphone, Trash2, Plus } from "lucide-react";
+import { Loader2, Megaphone, Pencil, Trash2, Plus } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +37,8 @@ const AdminPromos = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [form, setForm] = useState<PromoBannerInput>(empty);
+  // The promotion being changed, or null when adding a new one.
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ["admin-promos"],
@@ -55,17 +57,20 @@ const AdminPromos = () => {
     });
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      promoApi.create({
+    mutationFn: () => {
+      const body = {
         ...form,
         linkUrl: form.linkUrl?.trim() || null,
         bgColor: form.bgColor?.trim() || null,
         textColor: form.textColor?.trim() || null,
-      }),
+      };
+      return editingId ? promoApi.update(editingId, body) : promoApi.create(body);
+    },
     onSuccess: () => {
+      toast({ title: editingId ? "Promotion updated" : "Promo added" });
       setForm(empty);
+      setEditingId(null);
       invalidate();
-      toast({ title: "Promo added" });
     },
     onError,
   });
@@ -101,7 +106,7 @@ const AdminPromos = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">New promotion</CardTitle>
+            <CardTitle className="text-base">{editingId ? "Edit promotion" : "New promotion"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -189,7 +194,18 @@ const AdminPromos = () => {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {editingId && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setEditingId(null);
+                    setForm(empty);
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
               <Button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending || form.message.trim().length < 1}
@@ -199,7 +215,7 @@ const AdminPromos = () => {
                 ) : (
                   <Plus className="mr-2 h-4 w-4" />
                 )}
-                Add promotion
+                {editingId ? "Save changes" : "Add promotion"}
               </Button>
             </div>
           </CardContent>
@@ -247,6 +263,25 @@ const AdminPromos = () => {
                           toggleMutation.mutate({ id: b.id, active })
                         }
                       />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Edit promo"
+                        onClick={() => {
+                          setEditingId(b.id);
+                          setForm({
+                            message: b.message,
+                            linkUrl: b.linkUrl ?? "",
+                            bgColor: b.bgColor ?? "",
+                            textColor: b.textColor ?? "",
+                            placement: b.placement,
+                            active: b.active,
+                          });
+                          document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
