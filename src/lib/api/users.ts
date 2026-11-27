@@ -4,7 +4,7 @@ import { apiRequest } from "../apiClient";
 // and a studio admin's Customers page see them. The same shapes serve both;
 // only the super admin can edit or delete (see platformApi).
 
-export type DirectoryRole = "CUSTOMER" | "ADMIN";
+export type DirectoryRole = "CUSTOMER" | "ADMIN" | "STAFF";
 
 export interface DirectoryUser {
   id: string;
@@ -15,11 +15,12 @@ export interface DirectoryUser {
   studio: { id: string; name: string; slug: string } | null;
   isOwner: boolean;
   bookings: number;
+  orders: number;
   totalSpent: number;
   createdAt: string;
 }
 
-export interface DirectoryUserDetail extends Omit<DirectoryUser, "bookings"> {
+export interface DirectoryUserDetail extends Omit<DirectoryUser, "bookings" | "orders"> {
   location: string | null;
   avatar: string | null;
   updatedAt: string;

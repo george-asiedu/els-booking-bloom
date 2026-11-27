@@ -50,10 +50,15 @@ const ROLE_FILTERS: { value: DirectoryRole | ""; label: string }[] = [
   { value: "", label: "All" },
   { value: "CUSTOMER", label: "Customers" },
   { value: "ADMIN", label: "Admins" },
+  { value: "STAFF", label: "Staff" },
 ];
 
 const RoleBadge = ({ role, isOwner }: { role: DirectoryRole; isOwner: boolean }) =>
-  role === "ADMIN" ? (
+  role === "STAFF" ? (
+    <Badge variant="secondary" className="font-normal">
+      Staff
+    </Badge>
+  ) : role === "ADMIN" ? (
     <Badge variant="secondary" className="gap-1 font-medium">
       {isOwner && <Crown className="h-3 w-3" aria-hidden />}
       {isOwner ? "Owner" : "Admin"}
@@ -76,6 +81,7 @@ export const UserDirectory = ({
   fixedRole,
   studioId,
   showStudioCustomers = false,
+  features,
 }: {
   source: DirectorySource;
   showStudio: boolean;
@@ -87,6 +93,8 @@ export const UserDirectory = ({
   studioId?: string;
   // In an admin's drawer, list their studio's customers (super admin).
   showStudioCustomers?: boolean;
+  // What this business has: a store has no bookings, a studio without a shop has no orders. Omitted (super admin): both.
+  features?: { booking: boolean; commerce: boolean };
 }) => {
   const [search, setSearch] = useState("");
   const [pickedRole, setRole] = useState<DirectoryRole | "">("");
@@ -105,8 +113,10 @@ export const UserDirectory = ({
   });
 
   // Bookings and spend mean nothing for admin accounts.
-  const showActivity = fixedRole !== "ADMIN";
-  const cols = 3 + (showStudio ? 1 : 0) + (showActivity ? 2 : 0);
+  const showActivity = fixedRole !== "ADMIN" && role !== "ADMIN" && role !== "STAFF";
+  const hasBookings = features?.booking !== false;
+  const hasOrders = features ? features.commerce : true;
+  const cols = 3 + (showStudio ? 1 : 0) + (showActivity ? 1 + (hasBookings ? 1 : 0) + (hasOrders ? 1 : 0) : 0);
 
   return (
     <div className="space-y-4">
@@ -146,7 +156,8 @@ export const UserDirectory = ({
               <TableHead>Name</TableHead>
               {showStudio && <TableHead>Studio</TableHead>}
               <TableHead>Role</TableHead>
-              {showActivity && <TableHead className="text-right">Bookings</TableHead>}
+              {showActivity && hasBookings && <TableHead className="text-right">Bookings</TableHead>}
+              {showActivity && hasOrders && <TableHead className="text-right">Orders</TableHead>}
               {showActivity && <TableHead className="text-right">Total spent</TableHead>}
               <TableHead>Joined</TableHead>
             </TableRow>
@@ -193,7 +204,8 @@ export const UserDirectory = ({
                   <TableCell>
                     <RoleBadge role={u.role} isOwner={u.isOwner} />
                   </TableCell>
-                  {showActivity && <TableCell className="text-right tabular-nums">{u.bookings}</TableCell>}
+                  {showActivity && hasBookings && <TableCell className="text-right tabular-nums">{u.bookings}</TableCell>}
+                  {showActivity && hasOrders && <TableCell className="text-right tabular-nums">{u.orders ?? 0}</TableCell>}
                   {showActivity && (
                     <TableCell className="text-right tabular-nums">{formatGHS(u.totalSpent)}</TableCell>
                   )}
@@ -221,6 +233,8 @@ export const UserDirectory = ({
         id={openId}
         showStudio={showStudio}
         showStudioCustomers={showStudioCustomers}
+        hasBookings={hasBookings}
+        hasOrders={hasOrders}
         onClose={() => setOpenId(null)}
       />
     </div>
@@ -299,12 +313,16 @@ const UserSheet = ({
   id: rootId,
   showStudio,
   showStudioCustomers,
+  hasBookings,
+  hasOrders,
   onClose,
 }: {
   source: DirectorySource;
   id: string | null;
   showStudio: boolean;
   showStudioCustomers: boolean;
+  hasBookings: boolean;
+  hasOrders: boolean;
   onClose: () => void;
 }) => {
   // Opening a customer from an admin's drawer stacks on top; Back returns.
@@ -416,10 +434,10 @@ const UserSheet = ({
               <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
                 {/* At a glance (customers only: admins don't book or buy) */}
                 {user.role === "CUSTOMER" && (
-                <div className="grid grid-cols-3 gap-3 text-center">
+                <div className={cn("grid gap-3 text-center", hasBookings && hasOrders ? "grid-cols-3" : "grid-cols-2")}>
                   {[
-                    ["Bookings", String(user.bookings)],
-                    ["Orders", String(user.orders)],
+                    ...(hasBookings ? [["Bookings", String(user.bookings)]] : []),
+                    ...(hasOrders ? [["Orders", String(user.orders)]] : []),
                     ["Spent", formatGHS(user.totalSpent)],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-lg border bg-muted/30 px-2 py-3">
@@ -483,7 +501,7 @@ const UserSheet = ({
                   )}
                 </dl>
 
-                {user.role === "CUSTOMER" && (user.favouriteService || user.lastVisit || user.noShows) ? (
+                {hasBookings && user.role === "CUSTOMER" && (user.favouriteService || user.lastVisit || user.noShows) ? (
                   <dl className="divide-y">
                     {user.favouriteService && <Field label="Favourite service">{user.favouriteService}</Field>}
                     {user.lastVisit && <Field label="Last visit">{format(parseISO(user.lastVisit), "d MMM yyyy")}</Field>}
@@ -495,7 +513,7 @@ const UserSheet = ({
                   <CustomerNotes key={user.id} initial={user.notes ?? ""} save={(text) => source.saveNotes!(user.id, text)} />
                 )}
 
-                {user.recentAppointments.length > 0 && (
+                {hasBookings && user.recentAppointments.length > 0 && (
                   <section>
                     <h3 className="mb-2 text-sm font-semibold">Recent bookings</h3>
                     <ul className="divide-y rounded-md border text-sm">
@@ -516,7 +534,7 @@ const UserSheet = ({
                   </section>
                 )}
 
-                {user.recentOrders.length > 0 && (
+                {hasOrders && user.recentOrders.length > 0 && (
                   <section>
                     <h3 className="mb-2 text-sm font-semibold">Recent orders</h3>
                     <ul className="divide-y rounded-md border text-sm">

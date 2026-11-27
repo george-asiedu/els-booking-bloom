@@ -586,7 +586,7 @@ const PlatformStudioDetail = () => {
           </p>
         </CardHeader>
         <CardContent>
-          <UserDirectory source={memberSource} studioId={studio.id} showStudio={false} noun="members" />
+          <UserDirectory source={memberSource} studioId={studio.id} showStudio={false} noun="members" features={{ booking: !isStore, commerce: isStore || Boolean(studio.settings?.commerce) }} />
         </CardContent>
       </Card>
 
