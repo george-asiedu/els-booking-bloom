@@ -87,7 +87,7 @@ Each plan can be paid monthly or yearly (the year is two months cheaper). A one-
 - **Storage** (Zuri Studios): see how much is used and by what, add 500 MB blocks, and recover deleted gallery items from a 30-day trash.
 - **Notifications**: an inbox bell and push on every dashboard, with a badge on the installed app's icon.
 - **Your brand**: logo, colours, photos, promotions, contact details, a custom domain.
-- **Learn Zuri**: free guided steps, a free live online session, and a way to ask for in-person training (a fee confirmed first).
+- **Learn Zuri**: free guided steps, a free live online session you can reserve a spot for (with a calendar invite by email, a push notification, and a 15-minute reminder in your calendar), and a way to ask for in-person training (a fee confirmed first).
 - **Feature requests**: suggest a feature with up to 5 pictures; a fee (set by Zuri, told to you first) can be withdrawn before work starts.
 - **Security**: two-step sign-in for admin accounts.
 - **Grow**: refer another business and earn credit; appear on the Zuri marketplace.
@@ -96,7 +96,7 @@ Each plan can be paid monthly or yearly (the year is two months cheaper). A one-
 - A platform console: businesses, subscriptions and plans, billing promos, transactions and earnings, scheduled jobs, audit and activity logs.
 - **Storage plans** (included amounts, block size and price) and a usage panel on each business.
 - **Guest access key** that can be rotated in one click (the old one works for 24 hours).
-- **Training**: set the live session and manage in-person requests and fees.
+- **Training**: set the live session's date, time and link, see who has reserved a spot (spots move with the session and everyone is told), and manage in-person requests and fees. Zuri is emailed and pushed for every reservation and request.
 - **Feature requests** with pictures and fees.
 - Background work runs in a **separate worker service**, so it never slows the website.
 

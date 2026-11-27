@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { Check, ExternalLink, GraduationCap, Loader2, Video } from "lucide-react";
+import { CalendarPlus, Check, ExternalLink, GraduationCap, Loader2, Video } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { DashboardHeading, Panel } from "@/components/dashboard/KpiTile";
@@ -14,6 +14,7 @@ import { useStudio } from "@/hooks/useStudio";
 import { apiRequest } from "@/lib/apiClient";
 import { formatGHS } from "@/lib/currency";
 import { learnModules as modules, type Step } from "@/lib/learnSteps";
+import { downloadIcs } from "@/lib/calendarFile";
 
 interface TrainingRequest {
   id: string;
@@ -26,6 +27,11 @@ interface TrainingRequest {
 interface Info {
   liveUrl: string | null;
   liveNote: string | null;
+  // The next session (null when none is set or it has passed).
+  liveAt: string | null;
+  liveMinutes: number;
+  liveReserved: boolean;
+  googleCalendarUrl: string | null;
   requests: TrainingRequest[];
 }
 
@@ -67,6 +73,23 @@ const AdminLearn = () => {
       qc.invalidateQueries({ queryKey: ["training"] });
     },
     onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't send the request" }),
+  });
+
+  const reserve = useMutation({
+    mutationFn: () => apiRequest<{ message: string }>("/training/live/reserve", { method: "POST", auth: true }),
+    onSuccess: (r) => {
+      toast({ title: "Spot reserved", description: r.message });
+      qc.invalidateQueries({ queryKey: ["training"] });
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't reserve your spot" }),
+  });
+  const cancelSpot = useMutation({
+    mutationFn: () => apiRequest<{ message: string }>("/training/live/reserve", { method: "DELETE", auth: true }),
+    onSuccess: () => {
+      toast({ title: "Your spot was cancelled" });
+      qc.invalidateQueries({ queryKey: ["training"] });
+    },
+    onError: (e) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Couldn't cancel" }),
   });
 
   const list = modules(Boolean(features?.commerce), features?.booking !== false);
@@ -142,12 +165,55 @@ const AdminLearn = () => {
             <p className="mt-1 text-sm text-muted-foreground">Free for everyone. Bring your questions and follow along.</p>
             {info.isLoading ? (
               <Loader2 className="mt-3 h-5 w-5 animate-spin text-muted-foreground" />
-            ) : data?.liveUrl ? (
+            ) : data?.liveUrl || data?.liveAt ? (
               <>
-                {data.liveNote && <p className="mt-3 text-sm font-medium">{data.liveNote}</p>}
-                <Button asChild className="mt-3 w-full">
-                  <a href={data.liveUrl} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> Join the session</a>
-                </Button>
+                {data.liveAt && (
+                  <p className="mt-3 text-sm font-semibold">
+                    {format(parseISO(data.liveAt), "EEEE d MMMM, h:mm a")}
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">(your time)</span>
+                  </p>
+                )}
+                {data.liveNote && <p className="mt-1 text-sm font-medium">{data.liveNote}</p>}
+                {data.liveAt &&
+                  (data.liveReserved ? (
+                    <div className="mt-3 space-y-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
+                      <p className="flex items-center gap-1.5 text-sm font-medium"><Check className="h-4 w-4 text-emerald-600" /> Your spot is reserved</p>
+                      <p className="text-xs text-muted-foreground">We emailed you a calendar invite and sent a notification.</p>
+                      <div className="flex flex-wrap gap-2">
+                        {data.googleCalendarUrl && (
+                          <Button asChild size="sm" variant="outline">
+                            <a href={data.googleCalendarUrl} target="_blank" rel="noreferrer"><CalendarPlus className="mr-1.5 h-4 w-4" /> Google Calendar</a>
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            downloadIcs({
+                              title: "Zuri live training",
+                              start: parseISO(data.liveAt as string),
+                              minutes: data.liveMinutes,
+                              description: `Free live online training with Zuri.${data.liveNote ? ` ${data.liveNote}` : ""}`,
+                              url: data.liveUrl,
+                              fileName: "zuri-live-training.ics",
+                            })
+                          }
+                        >
+                          <CalendarPlus className="mr-1.5 h-4 w-4" /> Apple / Outlook
+                        </Button>
+                        <Button size="sm" variant="ghost" disabled={cancelSpot.isPending} onClick={() => cancelSpot.mutate()}>Cancel my spot</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button className="mt-3 w-full" disabled={reserve.isPending} onClick={() => reserve.mutate()}>
+                      {reserve.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarPlus className="mr-2 h-4 w-4" />} Reserve my spot
+                    </Button>
+                  ))}
+                {data.liveUrl && (
+                  <Button asChild variant={data.liveAt ? "outline" : "default"} className="mt-3 w-full">
+                    <a href={data.liveUrl} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> Join the session</a>
+                  </Button>
+                )}
               </>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">The next session will be posted here. Meanwhile the steps on the left cover the same ground.</p>

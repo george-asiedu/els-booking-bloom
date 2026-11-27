@@ -24,8 +24,12 @@ interface Row {
 }
 interface Payload {
   data: Row[];
-  settings: { liveUrl: string | null; liveNote: string | null };
+  settings: { liveUrl: string | null; liveNote: string | null; liveAt: string | null; liveMinutes: number };
+  reservations: { id: string; createdAt: string; email: string | null; studio: { id: string; name: string; slug: string } | null }[];
 }
+
+// <input type="datetime-local"> works in the viewer's own time zone.
+const toLocalInput = (iso: string | null) => (iso ? format(parseISO(iso), "yyyy-MM-dd'T'HH:mm") : "");
 const LABEL: Record<Row["status"], string> = { NEW: "New", SCHEDULED: "Scheduled", DONE: "Done", DECLINED: "Declined" };
 
 /** Free live session details, and in-person training requests with their fees. */
@@ -33,14 +37,23 @@ const PlatformTraining = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading } = useQuery({ queryKey: ["platform-training"], queryFn: () => platformRequest<Payload>("/training") });
-  const [live, setLive] = useState<{ liveUrl: string; liveNote: string } | null>(null);
+  const [live, setLive] = useState<{ liveUrl: string; liveNote: string; liveAt: string; liveMinutes: string } | null>(null);
   const [edits, setEdits] = useState<Record<string, { fee?: string; date?: string }>>({});
   const refresh = () => qc.invalidateQueries({ queryKey: ["platform-training"] });
   const fail = (e: unknown) => toast({ variant: "destructive", title: e instanceof Error ? e.message : "Something went wrong" });
 
   const saveLive = useMutation({
-    mutationFn: () => platformRequest("/training/settings", { method: "PATCH", body: live ?? {} }),
-    onSuccess: () => { toast({ title: "Live session saved", description: "Every business sees it on their Learn page." }); refresh(); },
+    mutationFn: () =>
+      platformRequest("/training/settings", {
+        method: "PATCH",
+        body: {
+          liveUrl: s.liveUrl,
+          liveNote: s.liveNote,
+          liveAt: s.liveAt ? new Date(s.liveAt).toISOString() : null,
+          liveMinutes: Number(s.liveMinutes) || 60,
+        },
+      }),
+    onSuccess: () => { toast({ title: "Live session saved", description: "Every business sees it on their Learn page. Anyone with a spot is told if the time changed." }); setLive(null); refresh(); },
     onError: fail,
   });
   const update = useMutation({
@@ -49,7 +62,12 @@ const PlatformTraining = () => {
     onError: fail,
   });
 
-  const s = live ?? { liveUrl: data?.settings.liveUrl ?? "", liveNote: data?.settings.liveNote ?? "" };
+  const s = live ?? {
+    liveUrl: data?.settings.liveUrl ?? "",
+    liveNote: data?.settings.liveNote ?? "",
+    liveAt: toLocalInput(data?.settings.liveAt ?? null),
+    liveMinutes: String(data?.settings.liveMinutes ?? 60),
+  };
 
   return (
     <PlatformLayout>
@@ -65,10 +83,31 @@ const PlatformTraining = () => {
             <Label htmlFor="live-url">Join link (https)</Label>
             <Input id="live-url" value={s.liveUrl} placeholder="https://meet.google.com/…" onChange={(e) => setLive({ ...s, liveUrl: e.target.value })} />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="live-note">When it runs</Label>
-            <Input id="live-note" value={s.liveNote} maxLength={200} placeholder="Every Tuesday at 4 pm" onChange={(e) => setLive({ ...s, liveNote: e.target.value })} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="live-at">Next session (date and time)</Label>
+              <Input id="live-at" type="datetime-local" value={s.liveAt} onChange={(e) => setLive({ ...s, liveAt: e.target.value })} />
+              <p className="text-xs text-muted-foreground">Businesses reserve a spot for this time and get a calendar invite. Change it and they are told.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="live-minutes">Runs for (minutes)</Label>
+              <Input id="live-minutes" type="number" min={15} max={480} value={s.liveMinutes} onChange={(e) => setLive({ ...s, liveMinutes: e.target.value })} />
+            </div>
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="live-note">A note for them (optional)</Label>
+            <Input id="live-note" value={s.liveNote} maxLength={200} placeholder="Bring your questions" onChange={(e) => setLive({ ...s, liveNote: e.target.value })} />
+          </div>
+          {data?.settings.liveAt && (
+            <div className="rounded-md border p-3 text-sm">
+              <p className="font-medium">{data.reservations.length} {data.reservations.length === 1 ? "business has" : "businesses have"} reserved a spot</p>
+              {data.reservations.length > 0 && (
+                <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                  {data.reservations.map((r) => <li key={r.id}>{r.studio?.name ?? "Unknown"}{r.email ? ` · ${r.email}` : ""}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
           <Button onClick={() => saveLive.mutate()} disabled={saveLive.isPending || !live}>
             {saveLive.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save
           </Button>
