@@ -200,7 +200,26 @@ export const TwoFactorCard = ({ client, label = "Zuri" }: { client: SecurityClie
               <img src={setup.qrDataUrl} alt="QR code for your authenticator app" className="mx-auto h-48 w-48 rounded-lg bg-white p-2" />
               <div className="text-center text-xs text-muted-foreground">
                 Can't scan? Enter this key in the app:
-                <p className="mt-1 break-all font-mono text-sm text-foreground">{setup.secret.match(/.{1,4}/g)?.join(" ")}</p>
+                <div className="mt-1 flex items-center justify-center gap-2">
+                  <p className="break-all font-mono text-sm text-foreground">{setup.secret.match(/.{1,4}/g)?.join(" ")}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 px-2"
+                    aria-label="Copy the setup key"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(setup.secret);
+                        toast({ title: "Setup key copied" });
+                      } catch {
+                        toast({ variant: "destructive", title: "Couldn't copy. Select the key instead." });
+                      }
+                    }}
+                  >
+                    <Copy className="mr-1 h-3.5 w-3.5" /> Copy
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="setup-code">Code from the app</Label>

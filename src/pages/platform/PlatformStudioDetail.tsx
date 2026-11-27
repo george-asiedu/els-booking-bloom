@@ -60,13 +60,15 @@ const statusVariant: Record<
   SUSPENDED: "destructive",
 };
 
-const FEATURES: { key: keyof StudioFeatureSettings; label: string; hint: string }[] =
+// `store: true` marks what a Zuri Store (a shop with no bookings) can use. A
+// studio gets every switch; a store only the ones that apply to a shop.
+const FEATURES: { key: keyof StudioFeatureSettings; label: string; hint: string; store?: boolean }[] =
   [
-    { key: "booking", label: "Booking", hint: "Appointments and services (off for Storefront)" },
-    { key: "reviews", label: "Reviews", hint: "Customer ratings & testimonials" },
+    { key: "booking", label: "Booking", hint: "Appointments and services" },
+    { key: "reviews", label: "Reviews", hint: "Customer ratings & testimonials", store: true },
     { key: "gallery", label: "Gallery", hint: "Showcase of past work" },
-    { key: "loyalty", label: "Loyalty points", hint: "Earn & redeem points" },
-    { key: "referrals", label: "Referrals", hint: "Referral codes & rewards" },
+    { key: "loyalty", label: "Loyalty points", hint: "Earn & redeem points", store: true },
+    { key: "referrals", label: "Referrals", hint: "Referral codes & rewards", store: true },
     { key: "commerce", label: "Shop", hint: "Sell products online" },
     {
       key: "onlinePayments",
@@ -280,6 +282,9 @@ const PlatformStudioDetail = () => {
     );
   }
 
+  // A Zuri Store is a shop with no bookings or services.
+  const isStore = studio.plan === "STOREFRONT";
+
   return (
     <PlatformLayout>
       <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2">
@@ -340,10 +345,16 @@ const PlatformStudioDetail = () => {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className={`mb-6 grid grid-cols-2 gap-3 ${isStore ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}>
         <Stat label="Members" value={studio.counts.userCount} />
-        <Stat label="Bookings" value={studio.counts.appointmentCount} />
-        <Stat label="Services" value={studio.counts.serviceCount} />
+        {isStore ? (
+          <Stat label="Products" value={studio.counts.productCount ?? 0} />
+        ) : (
+          <>
+            <Stat label="Bookings" value={studio.counts.appointmentCount} />
+            <Stat label="Services" value={studio.counts.serviceCount} />
+          </>
+        )}
         <Stat label="Orders" value={studio.counts.orderCount} />
       </div>
 
@@ -488,9 +499,10 @@ const PlatformStudioDetail = () => {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-base">Features</CardTitle>
+            {isStore && <p className="text-xs text-muted-foreground">A store is a shop, so only the switches that apply to a shop are shown.</p>}
           </CardHeader>
           <CardContent className="space-y-4">
-            {FEATURES.map((f) => (
+            {FEATURES.filter((f) => !isStore || f.store).map((f) => (
               <div key={f.key} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Label htmlFor={`feat-${f.key}`} className="cursor-pointer">

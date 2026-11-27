@@ -240,7 +240,7 @@ export interface StudioDetail {
   platformFeePercent: number;
   payoutProvider: string | null;
   payoutAccountNumber: string | null;
-  plan: "STANDARD" | "PREMIUM";
+  plan: "STANDARD" | "PREMIUM" | "STOREFRONT";
   billingCadence: "MONTHLY" | "YEARLY";
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
@@ -254,6 +254,7 @@ export interface StudioDetail {
     appointmentCount: number;
     serviceCount: number;
     orderCount: number;
+    productCount?: number;
   };
   billingMode: "SUBSCRIPTION" | "REVENUE_SHARE";
   billing: StudioBillingSummary;
@@ -688,7 +689,7 @@ export const platformApi = {
   async listFeatureRequestsPage(
     status?: FeatureRequestStatus,
     cursor?: string | null,
-    limit = 20,
+    limit = 15,
   ): Promise<{ items: PlatformFeatureRequest[]; nextCursor: string | null; hasMore: boolean }> {
     const qs = new URLSearchParams({ limit: String(limit), ...(status ? { status } : {}), ...(cursor ? { cursor } : {}) });
     const res = await platformRequest<Envelope<PlatformFeatureRequest[]> & { pagination?: { nextCursor: string | null; hasMore: boolean } }>(

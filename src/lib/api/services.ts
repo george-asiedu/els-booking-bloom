@@ -34,7 +34,7 @@ export const servicesApi = {
     return res.data.map(normalizeService);
   },
 
-  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<ServiceDTO>> {
+  async listActivePage(cursor?: string | null, limit = 15): Promise<CursorPage<ServiceDTO>> {
     const res = await apiRequest<Envelope<RawService[]>>(`/services?${cursorQuery(cursor, limit)}`);
     return { ...cursorPage(res), items: res.data.map(normalizeService) };
   },
@@ -46,7 +46,7 @@ export const servicesApi = {
     return res.data.map(normalizeService);
   },
 
-  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ServiceDTO>> {
+  async listAllPage(cursor?: string | null, limit = 15): Promise<CursorPage<ServiceDTO>> {
     const res = await apiRequest<Envelope<RawService[]>>(`/services/all?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeService) };
   },

@@ -96,7 +96,8 @@ const STANDARD_FEATURES = [
   "Loyalty points & referrals",
   "Reviews & photo/video gallery",
   "A banner for offers and promotions",
-  "500 MB of storage for photos and videos",
+  "{storageStandard} of storage for photos and videos",
+  "{storageExtra}",
   "Free listing on the Zuri marketplace",
 ];
 
@@ -124,7 +125,8 @@ export const PLANS: PlanDef[] = [
       "Sell products during booking",
       "Payments settled straight to your account",
       "Business insights: what to act on, not just charts",
-      "1 GB of storage",
+      "{storagePremium} of storage for photos and videos",
+      "{storageExtra}",
       "Free listing on the Zuri marketplace",
     ],
   },
@@ -147,6 +149,44 @@ export const PLANS: PlanDef[] = [
     ],
   },
 ];
+
+// ---- Storage wording (kept in step with the super admin's storage plans) ----
+
+export interface StorageSettings {
+  standardMb: number;
+  premiumMb: number;
+  blockMb: number;
+  blockPrice: number;
+}
+
+/** 500 -> "500 MB", 1024 -> "1 GB", 1536 -> "1.5 GB". */
+export const formatStorage = (mb: number): string => {
+  if (mb >= 1024) {
+    const gb = Math.round((mb / 1024) * 10) / 10;
+    return `${gb} GB`;
+  }
+  return `${mb} MB`;
+};
+
+const DEFAULT_STORAGE: StorageSettings = { standardMb: 500, premiumMb: 1024, blockMb: 500, blockPrice: 5 };
+
+// The plan lines with their {placeholders}, so they can be filled again when
+// the super admin changes the storage plans.
+const FEATURE_TEMPLATES = new Map(PLANS.map((p) => [p.id, [...p.features]]));
+
+const applyStorage = (st: StorageSettings) => {
+  const price = Number.isInteger(st.blockPrice) ? String(st.blockPrice) : st.blockPrice.toFixed(2);
+  const fill = (line: string) =>
+    line
+      .replace("{storageStandard}", formatStorage(st.standardMb))
+      .replace("{storagePremium}", formatStorage(st.premiumMb))
+      .replace("{storageExtra}", `Need more? Add ${formatStorage(st.blockMb)} for GHS ${price} a month`);
+  for (const plan of PLANS) {
+    const template = FEATURE_TEMPLATES.get(plan.id);
+    if (template) plan.features = template.map(fill);
+  }
+};
+applyStorage(DEFAULT_STORAGE);
 
 export const STUDIO_PLANS = PLANS.filter((p) => p.product === "studio");
 export const STOREFRONT_PLANS = PLANS.filter((p) => p.product === "storefront");
@@ -175,6 +215,8 @@ export interface PublicPlatformConfig {
     priceStorefrontMonthly?: number;
     priceStorefrontYearly?: number;
   };
+  // What each plan includes and what an extra block costs (optional: an older API leaves it out).
+  storage?: StorageSettings;
 }
 
 const CACHE_KEY = "zuri_platform_config";
@@ -185,6 +227,7 @@ const applyPlatformConfig = (cfg: PublicPlatformConfig) => {
   PLATFORM.email = cfg.site.supportEmail || SITE_DEFAULTS.email;
   PLATFORM.whatsapp = cfg.site.supportWhatsapp || SITE_DEFAULTS.whatsapp;
   PLATFORM.demoSlug = cfg.site.demoStudioSlug || SITE_DEFAULTS.demoSlug;
+  applyStorage(cfg.storage ?? DEFAULT_STORAGE);
   for (const plan of PLANS) {
     const b = cfg.billing;
     if (plan.id === "STOREFRONT") {

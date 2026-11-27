@@ -41,7 +41,7 @@ export const galleryApi = {
     const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeGalleryImage);
   },
-  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<GalleryImageDTO>> {
+  async listActivePage(cursor?: string | null, limit = 15): Promise<CursorPage<GalleryImageDTO>> {
     const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery?${cursorQuery(cursor, limit)}`);
     return { ...cursorPage(res), items: res.data.map(normalizeGalleryImage) };
   },
@@ -52,7 +52,7 @@ export const galleryApi = {
     });
     return res.data.map(normalizeGalleryImage);
   },
-  async listAllPage(cursor?: string | null, limit = 24): Promise<CursorPage<GalleryImageDTO>> {
+  async listAllPage(cursor?: string | null, limit = 15): Promise<CursorPage<GalleryImageDTO>> {
     const res = await apiRequest<Envelope<RawGalleryImage[]>>(`/gallery/all?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeGalleryImage) };
   },

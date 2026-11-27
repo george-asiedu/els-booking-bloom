@@ -148,7 +148,7 @@ export const productsApi = {
     const res = await apiRequest<Envelope<RawProduct[]>>(`/products?${cursorQuery(undefined, 100)}`);
     return res.data.map(normalizeProduct);
   },
-  async listActivePage(cursor?: string | null, limit = 24): Promise<CursorPage<ProductDTO>> {
+  async listActivePage(cursor?: string | null, limit = 15): Promise<CursorPage<ProductDTO>> {
     const res = await apiRequest<Envelope<RawProduct[]>>(`/products?${cursorQuery(cursor, limit)}`);
     return { ...cursorPage(res), items: res.data.map(normalizeProduct) };
   },
@@ -158,7 +158,7 @@ export const productsApi = {
     });
     return res.data.map(normalizeProduct);
   },
-  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ProductDTO>> {
+  async listAllPage(cursor?: string | null, limit = 15): Promise<CursorPage<ProductDTO>> {
     const res = await apiRequest<Envelope<RawProduct[]>>(`/products/all?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeProduct) };
   },

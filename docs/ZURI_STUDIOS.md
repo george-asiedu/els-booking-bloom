@@ -51,8 +51,8 @@ Small businesses in Ghana and across Africa run on WhatsApp, Instagram DMs and p
 | Mobile Money and card payments | Yes | Yes | Yes |
 | Online shop, cart and checkout | No | Yes | Yes |
 | **Business insights** | No | **Yes** | **Yes** |
-| Included storage | 500 MB | 1 GB | Not limited |
-| Extra storage | 500 MB for GHS 5 a month | 500 MB for GHS 5 a month | Not needed |
+| Included storage (set in the super admin's Storage plans; the plan cards follow it) | 500 MB | 1 GB | Not limited |
+| Extra storage (block size and price are set by Zuri and can change) | A block a month | A block a month | Not needed |
 
 Each plan can be paid monthly or yearly (the year is two months cheaper). A one-time setup fee of GHS 100 is added to the first payment only (for example a GHS 200 plan costs GHS 300 at signup and GHS 200 at each renewal). The setup fee is not refundable. Anything the business owes on top of its plan (a feature fee, extra storage, in-person training) is shown on its Billing page and added to the next renewal, or paid straight away.
 

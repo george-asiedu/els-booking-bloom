@@ -45,7 +45,7 @@ export interface DirectorySource {
   saveNotes?: (id: string, notes: string) => Promise<unknown>;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 const ROLE_FILTERS: { value: DirectoryRole | ""; label: string }[] = [
   { value: "", label: "All" },
   { value: "CUSTOMER", label: "Customers" },

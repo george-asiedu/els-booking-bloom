@@ -300,7 +300,7 @@ export const ordersApi = {
     });
     return res.data.map(normalizeOrder);
   },
-  async listMinePage(cursor?: string | null, limit = 25): Promise<CursorPage<OrderDTO>> {
+  async listMinePage(cursor?: string | null, limit = 15): Promise<CursorPage<OrderDTO>> {
     const res = await apiRequest<Envelope<RawOrder[]>>(`/orders/me?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeOrder) };
   },
@@ -310,7 +310,7 @@ export const ordersApi = {
     });
     return res.data.map(normalizeOrder);
   },
-  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<OrderDTO>> {
+  async listAllPage(cursor?: string | null, limit = 15): Promise<CursorPage<OrderDTO>> {
     const res = await apiRequest<Envelope<RawOrder[]>>(`/orders?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeOrder) };
   },

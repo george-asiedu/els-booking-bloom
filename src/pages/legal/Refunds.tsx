@@ -33,7 +33,6 @@ const Refunds = () => (
         body: [
           "- Setup fee: not refundable.",
           "- Plan subscriptions (monthly or yearly): not refundable once the period has started, whether or not you use it. You can stop renewing at any time, and the plan runs until the end of the period you paid for.",
-          "- Pay-as-you-earn percentage: this is Zuri's share of each customer payment, taken when the payment is made.",
           "- Extra storage: you can stop it at any time. It ends with the month you paid for and that month is not refunded.",
           "- Features built for you and in-person training: the fee is shown to you first, and you can withdraw before the work starts. If Zuri cannot deliver what you paid for, it is refunded in full.",
           "- Reactivation fee: charged to bring a suspended account back, and not refundable.",

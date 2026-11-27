@@ -13,7 +13,7 @@ export interface CursorPage<T> {
   limit: number;
 }
 
-export const cursorQuery = (cursor?: string | null, limit = 25) => {
+export const cursorQuery = (cursor?: string | null, limit = 15) => {
   const params = new URLSearchParams({ limit: String(limit) });
   if (cursor) params.set("cursor", cursor);
   return params.toString();

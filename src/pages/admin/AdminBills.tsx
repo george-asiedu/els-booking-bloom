@@ -235,7 +235,7 @@ const AdminBills = () => {
     queryKey: ["bills", tab],
     queryFn: ({ pageParam }) =>
       apiRequest<BillsPage>(
-        `/bills?${new URLSearchParams({ limit: "25", ...(tab !== "ALL" ? { status: tab } : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
+        `/bills?${new URLSearchParams({ limit: "15", ...(tab !== "ALL" ? { status: tab } : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
         { auth: true },
       ),
     initialPageParam: undefined as string | undefined,

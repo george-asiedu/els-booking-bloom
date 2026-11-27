@@ -59,7 +59,7 @@ export const reviewsApi = {
     });
     return res.data.map(normalizeReview);
   },
-  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<ReviewDTO>> {
+  async listAllPage(cursor?: string | null, limit = 15): Promise<CursorPage<ReviewDTO>> {
     const res = await apiRequest<Envelope<RawReview[]>>(`/reviews/all?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeReview) };
   },

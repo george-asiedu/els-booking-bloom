@@ -54,7 +54,7 @@ const Discover = () => {
     queryKey: ["directory", term, kind],
     queryFn: ({ pageParam }) =>
       apiRequest<{ data: Listing[]; pagination?: { nextCursor: string | null; hasMore: boolean } }>(
-        `/platform/directory?${new URLSearchParams({ limit: "24", ...(term ? { q: term } : {}), ...(kind ? { kind } : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
+        `/platform/directory?${new URLSearchParams({ limit: "15", ...(term ? { q: term } : {}), ...(kind ? { kind } : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => (last.pagination?.hasMore ? last.pagination.nextCursor ?? undefined : undefined),

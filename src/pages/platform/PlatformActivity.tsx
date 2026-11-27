@@ -33,7 +33,7 @@ const PlatformActivity = () => {
     queryKey: ["platform", "activity", studioId, method, status, cursor],
     queryFn: () =>
       platformApi.listActivityLogs({
-        limit: 50,
+        limit: 15,
         ...(cursor ? { cursor } : {}),
         ...(studioId !== "ALL" ? { studioId } : {}),
         ...(method !== "ALL" ? { method } : {}),

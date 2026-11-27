@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
  * the studios list). Goes back to page 1 when the list's length changes,
  * e.g. after filtering.
  */
-export const usePagedList = <T,>(items: T[], pageSize = 20) => {
+export const usePagedList = <T,>(items: T[], pageSize = 15) => {
   const [page, setPage] = useState(1);
   const pages = Math.max(1, Math.ceil(items.length / pageSize));
   useEffect(() => setPage(1), [items.length]);

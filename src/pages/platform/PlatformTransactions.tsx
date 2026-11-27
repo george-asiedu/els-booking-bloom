@@ -39,7 +39,7 @@ import {
 } from "@/lib/ledgerFormat";
 import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 15;
 
 const PlatformTransactions = () => {
   const [details, setDetails] = useState<LedgerEntryDTO | null>(null);

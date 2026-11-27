@@ -52,7 +52,7 @@ import {
 import { formatGHS } from "@/lib/currency";
 import { DateRangeField } from "@/components/admin/DateRangeFilter";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 15;
 
 const AdminTransactions = () => {
   const [search, setSearch] = useState("");
@@ -100,7 +100,7 @@ const AdminTransactions = () => {
   // admin looking for "did that refund go through" is already looking at money.
   const refundsQuery = useQuery({
     queryKey: ["admin-refunds"],
-    queryFn: () => refundsApi.list({ limit: 25 }),
+    queryFn: () => refundsApi.list({ limit: 15 }),
   });
 
   const detailQuery = useQuery({

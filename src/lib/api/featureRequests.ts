@@ -25,7 +25,7 @@ export interface FeatureRequestDTO {
 }
 
 export const featureRequestsApi = {
-  async listPage(cursor?: string | null, limit = 20): Promise<CursorPage<FeatureRequestDTO>> {
+  async listPage(cursor?: string | null, limit = 15): Promise<CursorPage<FeatureRequestDTO>> {
     const res = await apiRequest<Envelope<FeatureRequestDTO[]>>(
       `/feature-requests?${cursorQuery(cursor, limit)}`,
       { auth: true },

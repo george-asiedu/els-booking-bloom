@@ -64,7 +64,7 @@ export interface MyVoucherDTO {
 }
 
 export const vouchersApi = {
-  minePage: async (cursor?: string | null, limit = 20): Promise<CursorPage<MyVoucherDTO>> =>
+  minePage: async (cursor?: string | null, limit = 15): Promise<CursorPage<MyVoucherDTO>> =>
     cursorPage(await apiRequest<Envelope<MyVoucherDTO[]>>(`/vouchers/mine?${cursorQuery(cursor, limit)}`, { auth: true })),
   packages: async () => (await apiRequest<{ data: PackageOfferDTO[] }>("/vouchers/packages")).data,
   buyGiftCard: async (body: {
@@ -86,7 +86,7 @@ export const vouchersApi = {
       `/vouchers/check?code=${encodeURIComponent(code)}${serviceId ? `&serviceId=${encodeURIComponent(serviceId)}` : ""}`,
     )).data,
   // Admin
-  listPage: async (cursor?: string | null, limit = 25): Promise<CursorPage<VoucherDTO>> =>
+  listPage: async (cursor?: string | null, limit = 15): Promise<CursorPage<VoucherDTO>> =>
     cursorPage(await apiRequest<Envelope<VoucherDTO[]>>(`/vouchers?${cursorQuery(cursor, limit)}`, { auth: true })),
   redeem: async (id: string, amount?: number) =>
     apiRequest<{ message: string }>(`/vouchers/${id}/redeem`, { method: "POST", auth: true, body: { amount } }),

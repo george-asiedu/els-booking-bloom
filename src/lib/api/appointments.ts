@@ -62,7 +62,7 @@ export const appointmentsApi = {
     return res.data.map(normalizeAppointment);
   },
 
-  async listMinePage(cursor?: string | null, limit = 25): Promise<CursorPage<AppointmentDTO>> {
+  async listMinePage(cursor?: string | null, limit = 15): Promise<CursorPage<AppointmentDTO>> {
     const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments/me?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeAppointment) };
   },
@@ -80,7 +80,7 @@ export const appointmentsApi = {
     return res.data.map(normalizeAppointment);
   },
 
-  async listAllPage(cursor?: string | null, limit = 25): Promise<CursorPage<AppointmentDTO>> {
+  async listAllPage(cursor?: string | null, limit = 15): Promise<CursorPage<AppointmentDTO>> {
     const res = await apiRequest<Envelope<RawAppointment[]>>(`/appointments?${cursorQuery(cursor, limit)}`, { auth: true });
     return { ...cursorPage(res), items: res.data.map(normalizeAppointment) };
   },
